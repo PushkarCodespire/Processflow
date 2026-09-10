@@ -1,0 +1,1766 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>NPI Operations Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ink:#202020; --ink-soft:#3A3A3A; --muted:#707070; --faint:#909090;
+  --teal:#E1261C; --teal-d:#A81610; --teal-l:#C21B12; --teal-wash:#FBEAE8;
+  --red:#C4281C; --red-wash:#FBEAE8;
+  --gold:#D9A63C;
+  --amber:#B4740E; --amber-wash:#FBF1DF;
+  --green:#1E7E45; --green-wash:#E4F2EA;
+  --blue:#215E9E; --blue-wash:#E6EEF6;
+  --ground:#F4F4F4; --surface:#FFFFFF; --panel:#F7F7F7; --panel2:#EFEFEF;
+  --border:#E2E2E2; --border2:#ECECEC;
+  --sidebar:#0E1C1B; --sidebar-2:#152826; --sidebar-tx:#B7C6C2; --sidebar-tx2:#7C8F8A;
+  --shadow:none;
+  --shadow-l:0 2px 10px rgba(16,40,38,.16);
+  --sans:"Honeywell Sans","Inter","Helvetica Neue",Arial,sans-serif;
+  --mono:Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#E8EDEB; --ink-soft:#C4CFCB; --muted:#94A29E; --faint:#6F7E7A;
+  --teal:#F0645B; --teal-l:#F27A72; --teal-wash:#3A1F1D;
+  --red:#F08B80; --red-wash:#3A211E; --amber:#E0A94A; --amber-wash:#33280F;
+  --green:#5FC888; --green-wash:#12301E; --blue:#7FB0DE; --blue-wash:#142634;
+  --ground:#0C1514; --surface:#141F1D; --panel:#111A19; --panel2:#0F1817;
+  --border:#26332F; --border2:#1E2A28;
+  --sidebar:#0A1413; --sidebar-2:#111F1D;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 2px 10px rgba(0,0,0,.3);
+  --shadow-l:0 6px 22px rgba(0,0,0,.4);
+}}
+:root[data-theme="dark"]{
+  --ink:#E8EDEB; --ink-soft:#C4CFCB; --muted:#94A29E; --faint:#6F7E7A;
+  --teal:#F0645B; --teal-l:#F27A72; --teal-wash:#3A1F1D;
+  --red:#F08B80; --red-wash:#3A211E; --amber:#E0A94A; --amber-wash:#33280F;
+  --green:#5FC888; --green-wash:#12301E; --blue:#7FB0DE; --blue-wash:#142634;
+  --ground:#0C1514; --surface:#141F1D; --panel:#111A19; --panel2:#0F1817;
+  --border:#26332F; --border2:#1E2A28;
+  --sidebar:#0A1413; --sidebar-2:#111F1D;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 2px 10px rgba(0,0,0,.3);
+  --shadow-l:0 6px 22px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+*,*::before,*::after{border-radius:0 !important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}
+#root{min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+.mono{font-family:var(--mono)}
+
+/* shell */
+.shell{display:flex;flex-direction:column;min-height:100vh}
+.appheader{display:flex;align-items:center;height:58px;background:var(--surface);border-bottom:1px solid var(--border);color:var(--ink);position:sticky;top:0;z-index:10;padding:0 20px}
+.brandwrap{display:flex;align-items:center;gap:11px;min-width:0}
+.wordmark{font-weight:700;font-size:19px;color:var(--teal);letter-spacing:-.4px}
+.hdiv{width:1px;height:22px;background:var(--border);margin:0 6px;flex:none}
+.apptitle{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap}
+.crumb{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.hicon{width:36px;height:36px;border:1px solid var(--border);background:var(--surface);color:var(--muted);display:grid;place-items:center;position:relative;font-size:15px}
+.hicon:hover{background:var(--panel);color:var(--ink)}
+.hicon .dot{position:absolute;top:7px;right:8px;width:7px;height:7px;background:var(--teal);border:1.5px solid var(--surface)}
+.hamburger{display:none;width:38px;height:38px;flex:none;align-items:center;justify-content:center;background:none;border:1px solid var(--border);color:var(--ink);cursor:pointer;padding:0}
+.hamburger svg{width:20px;height:20px}
+.nav-backdrop{display:none}
+.demoTag{font-size:9.5px;font-weight:700;letter-spacing:.5px;color:var(--teal);background:var(--teal-wash);padding:3px 7px;text-transform:uppercase}
+.roleSel{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--border);padding:4px 10px 4px 5px}
+.roleSel .av{width:28px;height:28px;background:var(--teal);color:#fff;display:grid;place-items:center;font-weight:700;font-size:11.5px}
+.roleSel .who{line-height:1.12;color:var(--ink)}
+.roleSel .who b{font-size:12.5px}
+.roleSel .who span{font-size:10.5px;color:var(--muted)}
+.roleSel select{border:none;background:none;font-family:inherit;font-size:12px;color:var(--ink);font-weight:600;outline:none;cursor:pointer}
+.roleSel select option{color:var(--ink)}
+
+.body{display:grid;grid-template-columns:224px 1fr;flex:1;min-height:0}
+.sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:58px;height:calc(100vh - 58px)}
+.sb-nav{padding:14px 12px;overflow-y:auto;flex:1}
+.sb-sec{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--faint);padding:14px 10px 6px;font-weight:700}
+.sb-item{display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;color:var(--ink-soft);padding:9px 11px;border-radius:8px;font-size:13px;font-weight:500;text-align:left;transition:background .12s,color .12s}
+.sb-item svg{width:17px;height:17px;flex:none;opacity:.9}
+.sb-item:hover{background:var(--teal-wash);color:var(--teal)}
+.sb-item.active{background:var(--teal);color:#fff}
+.sb-badge{margin-left:auto;font-size:10.5px;font-weight:700;background:var(--red);color:#fff;border-radius:20px;padding:1px 7px;min-width:18px;text-align:center}
+.sb-item.active .sb-badge{background:rgba(255,255,255,.28)}
+.sb-foot{padding:12px 16px;border-top:1px solid var(--border);font-size:10.5px;color:var(--faint)}
+.appfooter{background:var(--panel);border-top:1px solid var(--border);color:var(--muted);font-size:11.5px;text-align:center;padding:11px 20px}
+.appfooter u{color:var(--teal);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--teal) 40%,transparent)}
+.main{display:contents}
+
+/* content */
+.content{padding:24px 26px 60px;overflow-y:auto;min-width:0}
+.pagehead{margin-bottom:20px}
+.pagehead h1{font-size:23px;margin:0 0 3px;letter-spacing:-.3px;font-weight:600}
+.pagehead p{margin:0;color:var(--muted);font-size:14px}
+.pagehead .hi{color:var(--teal)}
+
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:15px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.tile .k{font-size:11.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:7px}
+.tile .k .ic{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:none}
+.tile .v{font-size:30px;font-weight:700;margin-top:8px;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.tile .s{font-size:11.5px;color:var(--muted);margin-top:1px}
+.tile.warn .v{color:var(--red)}
+.ic-teal{background:var(--teal-wash);color:var(--teal)}
+.ic-amber{background:var(--amber-wash);color:var(--amber)}
+.ic-red{background:var(--red-wash);color:var(--red)}
+.ic-green{background:var(--green-wash);color:var(--green)}
+.ic-blue{background:var(--blue-wash);color:var(--blue)}
+
+.cols{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
+.block{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.block-h{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border2)}
+.block-h h2{font-size:14px;margin:0;display:flex;align-items:center;gap:9px;font-weight:600}
+.block-h .cnt{font-size:11px;color:var(--muted);font-weight:600;background:var(--panel2);padding:2px 8px;border-radius:20px}
+.block-h .link{font-size:12px;color:var(--teal);font-weight:600;background:none;border:none}
+
+/* task rows */
+.task{display:flex;align-items:center;gap:13px;padding:13px 16px;border-bottom:1px solid var(--border2)}
+.task:last-child{border-bottom:none}
+.task:hover{background:var(--panel)}
+.task .stripe{width:3px;align-self:stretch;border-radius:3px;flex:none}
+.task .body{flex:1;min-width:0}
+.task .t1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.task .pid{font-family:var(--mono);font-size:11.5px;color:var(--teal);font-weight:600}
+.task .ttl{font-size:13.5px;font-weight:600}
+.task .t2{font-size:12px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.task .act{flex:none}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:20px;white-space:nowrap}
+.p-teal{background:var(--teal-wash);color:var(--teal)} .p-red{background:var(--red-wash);color:var(--red)}
+.p-amber{background:var(--amber-wash);color:var(--amber)} .p-green{background:var(--green-wash);color:var(--green)}
+.p-blue{background:var(--blue-wash);color:var(--blue)} .p-gray{background:var(--panel2);color:var(--muted)}
+.sla{font-family:var(--mono);font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.sla.g{color:var(--green)} .sla.a{color:var(--amber)} .sla.r{color:var(--red)}
+.btn{font-size:12.5px;font-weight:600;border-radius:8px;padding:7px 14px;border:1px solid var(--border);background:var(--surface);color:var(--ink-soft)}
+.btn:hover{background:var(--panel)}
+.btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn.primary:hover{background:var(--teal-l)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.ok{background:var(--green);color:#fff;border-color:var(--green)}
+.btn.no{background:var(--surface);color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,var(--border))}
+
+/* data table */
+.dt{background:var(--surface)}
+.dt-tools{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border2);flex-wrap:wrap}
+.dt-search{display:flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--panel);padding:7px 10px;color:var(--muted);min-width:180px;flex:1}
+.dt-search input{border:none;background:none;outline:none;font-family:inherit;font-size:13px;color:var(--ink);width:100%}
+.dt-filter{font-family:inherit;font-size:12.5px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--border);padding:7px 9px;font-weight:500;cursor:pointer}
+.dt-count{font-size:11.5px;color:var(--muted);margin-left:auto;font-weight:600;white-space:nowrap}
+.dt-wrap{overflow-x:auto}
+.dt-table{width:100%;border-collapse:collapse;font-size:13px}
+.dt-table th{text-align:left;padding:9px 12px;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;border-bottom:1px solid var(--border);background:var(--panel);white-space:nowrap}
+.dt-table th.sortable{cursor:pointer;user-select:none}
+.dt-table th.sortable:hover{color:var(--teal)}
+.dt-table th .arr{margin-left:5px;font-size:9px}
+.dt-table th .arr.dim{opacity:.32}
+.dt-table td{padding:9px 12px;border-bottom:1px solid var(--border2);vertical-align:middle}
+.dt-table tbody tr:hover{background:var(--panel)}
+.dt-empty{text-align:center;color:var(--muted);padding:26px}
+.tpid{font-family:var(--mono);font-size:11.5px;color:var(--teal);font-weight:600;white-space:nowrap}
+.tcell{font-weight:500}
+.tmeta{color:var(--muted);font-size:12px}
+.dt-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--border2);font-size:12px;color:var(--muted);flex-wrap:wrap}
+.dt-pager{display:flex;align-items:center;gap:10px}
+.dt-page{font-size:12px;color:var(--ink-soft);font-weight:600}
+.btn[disabled]{opacity:.45;cursor:default}
+
+/* material data grid */
+.mdg{background:var(--surface);position:relative}
+.mdg-toolbar{display:flex;align-items:center;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border2)}
+.mdg-tbtn{display:inline-flex;align-items:center;gap:7px;background:none;border:none;color:var(--teal);font-family:inherit;font-size:12px;font-weight:500;letter-spacing:.4px;padding:7px 10px;text-transform:uppercase}
+.mdg-tbtn:hover,.mdg-tbtn.on{background:var(--teal-wash)}
+.mdg-tbtn svg{width:16px;height:16px}
+.mdg-quick{margin-left:auto;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding:6px 4px;min-width:180px}
+.mdg-quick input{border:none;background:none;outline:none;font-family:inherit;font-size:13px;color:var(--ink);width:100%}
+.mdg-quick svg{width:16px;height:16px;color:var(--muted);flex:none}
+.colpanel{position:absolute;z-index:15;top:46px;left:8px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-l);padding:8px 6px;min-width:200px}
+.colpanel .cp-h{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700;padding:4px 10px 8px}
+.colpanel label{display:flex;align-items:center;gap:10px;padding:7px 10px;font-size:13px;cursor:pointer}
+.colpanel label:hover{background:var(--panel)}
+.colpanel input{accent-color:var(--teal);width:15px;height:15px}
+.mdg-wrap{overflow-x:auto}
+.mdg-table{width:100%;border-collapse:collapse;font-size:13px}
+.mdg-table th{text-align:left;padding:11px 12px;font-size:12.5px;color:var(--ink-soft);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface)}
+.mdg-table th.sortable{cursor:pointer;user-select:none}
+.mdg-table th.sortable:hover{color:var(--teal)}
+.mdg-table th .arr{margin-left:6px;font-size:10px;color:var(--teal)}
+.mdg-table th .arr.dim{opacity:0}
+.mdg-table th.sortable:hover .arr.dim{opacity:.4}
+.filter-row th{padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--border2)}
+.filter-row input,.filter-row select{width:100%;font-family:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--border);background:var(--surface);color:var(--ink);outline:none}
+.filter-row input:focus,.filter-row select:focus{border-color:var(--teal)}
+.mdg-table td{padding:11px 12px;border-bottom:1px solid var(--border2);vertical-align:middle;color:var(--ink)}
+.mdg-table tbody tr:hover{background:var(--panel)}
+.mdg-empty{text-align:center;color:var(--muted);padding:28px}
+.mchip{display:inline-block;font-size:11px;padding:3px 9px;border:1px solid var(--border);color:var(--ink-soft);background:var(--panel)}
+.mdg-footer{display:flex;align-items:center;justify-content:flex-end;gap:26px;padding:6px 14px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+.mdg-rpp{display:flex;align-items:center;gap:8px}
+.mdg-rpp select{font-family:inherit;font-size:12.5px;border:none;background:none;color:var(--ink);font-weight:500;outline:none;cursor:pointer}
+.mdg-arrows{display:flex;align-items:center;gap:2px}
+.mdg-arrows button{width:32px;height:32px;border:none;background:none;color:var(--ink-soft);font-size:20px;line-height:1;cursor:pointer}
+.mdg-arrows button:hover:not([disabled]){background:var(--panel);color:var(--teal)}
+.mdg-arrows button[disabled]{opacity:.32;cursor:default}
+.mdg-click{cursor:pointer}
+/* datatable responsive */
+@media (max-width:680px){
+  .mdg-toolbar{flex-wrap:wrap}
+  .mdg-quick{margin-left:0;order:3;flex:1 1 100%;min-width:0;margin-top:2px}
+  .mdg-footer{flex-wrap:wrap;gap:12px 18px;justify-content:space-between}
+  .colpanel{left:8px;right:8px;min-width:0}
+}
+@media (max-width:560px){
+  .mdg-wrap{overflow-x:visible}
+  .mdg-table,.mdg-table tbody,.mdg-table tr,.mdg-table td{display:block;width:auto}
+  .mdg-table thead{display:none}
+  .mdg-table tr{border:1px solid var(--border);margin:10px;background:var(--surface)}
+  .mdg-table tbody tr:hover{background:var(--surface)}
+  .mdg-table td{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:9px 12px;border:none;border-bottom:1px solid var(--border2);text-align:right}
+  .mdg-table td:last-child{border-bottom:none}
+  .mdg-table td::before{content:attr(data-label);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700;text-align:left;flex:0 0 38%;white-space:nowrap}
+  .mdg-table td[data-label=""]{justify-content:flex-end}
+  .mdg-table td[data-label=""]::before{display:none}
+  .mdg-table td.mdg-empty{justify-content:center;text-align:center;padding:22px}
+  .mdg-table td.mdg-empty::before{content:none}
+}
+.backlink{background:none;border:none;color:var(--teal);font-family:inherit;font-size:13px;font-weight:600;padding:2px 0;margin-bottom:8px;cursor:pointer}
+.backlink:hover{text-decoration:underline}
+.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.dcard{background:var(--surface);border:1px solid var(--border);padding:12px 14px;box-shadow:var(--shadow)}
+.dcard .dk{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
+.dcard .dv{font-size:14px;font-weight:500;margin-top:6px;color:var(--ink)}
+@media (max-width:1080px){ .detail-grid{grid-template-columns:1fr 1fr} }
+
+/* ppap request form */
+.ppap-grid{display:grid;grid-template-columns:196px 1fr 282px;gap:16px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow)}
+.panel-pad{padding:16px}
+.eyebrow2{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;margin-bottom:12px}
+.step{display:flex;gap:11px;padding-bottom:16px;position:relative}
+.step:last-child{padding-bottom:0}
+.step .sdot{width:26px;height:26px;flex:none;display:grid;place-items:center;font-size:12px;font-weight:700;border:1.5px solid var(--border);color:var(--muted);background:var(--panel);z-index:1}
+.step.done .sdot{background:var(--teal);color:#fff;border-color:var(--teal)}
+.step.current .sdot{border-color:var(--teal);color:var(--teal);box-shadow:0 0 0 3px var(--teal-wash)}
+.step .sline{position:absolute;left:12.5px;top:26px;bottom:0;width:1.5px;background:var(--border)}
+.step.done .sline{background:var(--teal)}
+.step .sl{font-size:13px;font-weight:500;line-height:1.2}
+.step.current .sl{color:var(--teal);font-weight:600}
+.step .ss{font-size:11px;color:var(--muted);margin-top:2px}
+.step .ss.amber{color:var(--amber);font-weight:600}
+.step.skip{opacity:.5}
+.rtag{font-size:9px;text-transform:uppercase;letter-spacing:.3px;font-weight:700;padding:2px 7px;align-self:flex-start}
+.rtag.conditional{background:var(--amber-wash);color:var(--amber)}
+.rtag.skipped{background:var(--panel2);color:var(--faint)}
+.formhead{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;padding:15px 18px;border-bottom:1px solid var(--border2)}
+.formhead h2{font-size:17px;margin:0;font-weight:600}
+.formhead .rid{font-size:12px;color:var(--muted)}
+.formbody{padding:18px}
+.catrow{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:12px 14px;background:var(--panel);border:1px solid var(--border2);margin-bottom:18px}
+.radio2{display:inline-flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+.radio2 input{accent-color:var(--teal);width:15px;height:15px}
+.flabel{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
+.flabel i{color:var(--red);font-style:normal}
+.fsec{font-size:10.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--teal);font-weight:700;padding-bottom:8px;border-bottom:1px solid var(--border2);margin:22px 0 14px}
+.fsec-row{display:flex;justify-content:space-between;align-items:center}
+.fsec .inv{display:inline-flex;gap:12px;align-items:center}
+.fgrid2{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px}
+.imp-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:12px}
+.field2{display:flex;flex-direction:column;gap:5px}
+.field2 input,.field2 textarea{font-family:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);padding:8px 10px;width:100%;outline:none;resize:vertical}
+.field2 input:focus,.field2 textarea:focus{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-wash)}
+.attachrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:20px;padding-top:15px;border-top:1px solid var(--border2)}
+.ready2{padding:11px 13px;margin-top:8px}
+.ready2.ok{background:var(--green-wash)} .ready2.warn{background:var(--amber-wash)}
+.rk2{font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.ready2.ok .rk2{color:var(--green)} .ready2.warn .rk2{color:var(--amber)}
+.rv2{font-size:12.5px;font-weight:500;margin-top:2px}
+.ppap-actions{display:flex;flex-direction:column;gap:9px;margin-top:14px}
+.ppap-actions .btn{text-align:center}
+@media (max-width:1080px){ .ppap-grid{grid-template-columns:1fr} }
+@media (max-width:640px){ .fgrid2{grid-template-columns:1fr} }
+
+/* approval detail */
+.teams-note{display:flex;gap:10px;align-items:flex-start;background:var(--teal-wash);border:1px solid color-mix(in srgb,var(--teal) 28%,transparent);padding:12px 14px;margin:0 0 16px;font-size:12.5px;color:var(--ink-soft);line-height:1.5}
+.teams-note b{color:var(--ink)}
+.det-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn.ok{background:var(--green);color:#fff;border-color:var(--green)}
+.btn.ok:hover{filter:brightness(1.08)}
+.btn.no{background:var(--surface);color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,var(--border))}
+.btn.no:hover{background:var(--red-wash)}
+
+/* admin */
+.admin-grid{display:grid;grid-template-columns:210px 1fr;gap:16px;align-items:start}
+.admin-nav{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);padding:8px}
+.admin-nav button{display:block;width:100%;text-align:left;background:none;border:none;font-family:inherit;font-size:13px;color:var(--ink-soft);padding:9px 11px;font-weight:500}
+.admin-nav button:hover{background:var(--teal-wash);color:var(--teal)}
+.admin-nav button.on{background:var(--teal);color:#fff}
+.admin-add{font-size:12.5px;font-weight:600;color:#fff;background:var(--teal);border:1px solid var(--teal);padding:7px 13px}
+.admin-add:hover{background:var(--teal-l)}
+@media (max-width:900px){ .admin-grid{grid-template-columns:1fr} }
+
+/* reports */
+.tiles.five{grid-template-columns:repeat(5,1fr)}
+.chart-cols{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start;margin-bottom:16px}
+.chartbody{padding:18px}
+.hbar{display:flex;flex-direction:column;gap:13px}
+.hbar-row{display:grid;grid-template-columns:104px 1fr 30px;align-items:center;gap:10px}
+.hbar-lbl{font-size:12px;color:var(--ink-soft)}
+.hbar-track{height:14px;background:var(--panel2)}
+.hbar-fill{height:100%;background:var(--teal);min-width:2px}
+.hbar-val{font-size:12px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.donut-wrap{display:flex;gap:20px;align-items:center;flex-wrap:wrap;justify-content:center}
+.donut-legend{display:flex;flex-direction:column;gap:9px;min-width:150px}
+.dl{font-size:12.5px;color:var(--ink-soft);display:flex;align-items:center;gap:9px}
+.dl b{margin-left:auto;color:var(--ink);font-variant-numeric:tabular-nums}
+.dlc{width:12px;height:12px;display:inline-block;flex:none}
+.vbars{display:flex;align-items:flex-end;gap:18px;height:190px;padding:6px 6px 0}
+.vbar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%}
+.vbar-num{font-size:12px;font-weight:600;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.vbar-track{flex:1;width:100%;max-width:54px;display:flex;align-items:flex-end}
+.vbar-fill{width:100%;background:var(--teal);min-height:2px}
+.vbar-lbl{font-size:11.5px;color:var(--muted)}
+@media (max-width:1080px){ .tiles.five{grid-template-columns:repeat(2,1fr)} .chart-cols{grid-template-columns:1fr} }
+
+/* segmented control */
+.seg{display:inline-flex;border:1px solid var(--border);margin-bottom:16px;background:var(--surface);box-shadow:var(--shadow)}
+.seg button{background:none;border:none;border-right:1px solid var(--border);font-family:inherit;font-size:13px;font-weight:500;color:var(--ink-soft);padding:8px 20px;cursor:pointer}
+.seg button:last-child{border-right:none}
+.seg button:hover:not(.on){background:var(--panel)}
+.seg button.on{background:var(--teal);color:#fff}
+.doc-name{display:inline-flex;align-items:center;gap:8px;font-weight:500}
+.tile.clickable{cursor:pointer}
+.tile.clickable:hover{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal)}
+.rail-foot{padding:11px 16px;border-top:1px solid var(--border2)}
+.linkbtn{background:none;border:none;color:var(--teal);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:0}
+.linkbtn:hover{text-decoration:underline}
+
+/* modals + popovers */
+.modal-back{position:fixed;inset:0;background:rgba(20,20,20,.45);display:flex;align-items:flex-start;justify-content:center;z-index:60;padding:56px 16px;overflow-y:auto}
+.modal{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-l);width:100%;max-width:500px}
+.modal.wide{max-width:760px}
+.modal-h{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border2)}
+.modal-h h3{margin:0;font-size:15px;font-weight:600}
+.modal-x{background:none;border:none;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;padding:0 4px}
+.modal-x:hover{color:var(--ink)}
+.modal-b{padding:18px}
+.modal-f{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid .field2.full{grid-column:1 / -1}
+.form-grid select,.form-grid input,.form-grid textarea{font-family:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);padding:8px 10px;width:100%;outline:none}
+.form-grid select:focus,.form-grid input:focus,.form-grid textarea:focus{border-color:var(--teal)}
+.form-err{color:var(--red);font-size:12.5px;margin-top:12px;font-weight:500}
+.confirm-msg{font-size:13.5px;color:var(--ink-soft);margin:0;line-height:1.5}
+.modal-note{background:var(--panel);border:1px solid var(--border2);padding:12px 14px;font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:2px}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:8px 12px;font-size:13px}
+.kv .kk{color:var(--muted);font-weight:600}
+.hicon-wrap{position:relative}
+.pop{position:absolute;top:44px;right:0;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-l);width:326px;z-index:40}
+.pop-h{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border2)}
+.pop-h b{font-size:13px}
+.pop-h button{background:none;border:none;color:var(--teal);font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.notif{display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border2);font-size:12.5px;color:var(--ink-soft);line-height:1.4}
+.notif:last-child{border-bottom:none}
+.notif .nd{width:7px;height:7px;background:var(--teal);flex:none;margin-top:5px}
+.notif.read .nd{background:transparent;border:1px solid var(--border)}
+.usermenu{position:absolute;top:46px;right:0;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-l);width:200px;z-index:40}
+.usermenu button{display:block;width:100%;text-align:left;background:none;border:none;font-family:inherit;font-size:13px;color:var(--ink-soft);padding:10px 14px;cursor:pointer}
+.usermenu button:hover{background:var(--panel);color:var(--teal)}
+.chipbtn{cursor:pointer}
+
+/* intake wizard */
+.wiz{max-width:860px}
+.wiz-steps{display:flex;align-items:center;margin-bottom:16px}
+.wiz-step{display:flex;align-items:center;gap:9px}
+.wiz-step.done{cursor:pointer}
+.wiz-step .wn{width:28px;height:28px;flex:none;display:grid;place-items:center;border:1.5px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;background:var(--surface)}
+.wiz-step.done .wn{background:var(--teal);color:#fff;border-color:var(--teal)}
+.wiz-step.current .wn{border-color:var(--teal);color:var(--teal);box-shadow:0 0 0 3px var(--teal-wash)}
+.wiz-step .wl{font-size:13px;font-weight:500;color:var(--ink-soft)}
+.wiz-step.current .wl{color:var(--teal);font-weight:600}
+.wiz-line{height:2px;background:var(--border);flex:1;margin:0 8px}
+.wiz-line.on{background:var(--teal)}
+.wiz-nav{display:flex;justify-content:space-between;margin-top:16px}
+.field2 select{font-family:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);padding:8px 10px;width:100%;outline:none}
+.field2 select:focus{border-color:var(--teal)}
+.wcol2{grid-column:span 2}
+.part-head{display:grid;grid-template-columns:1fr 1.4fr 1fr 82px;gap:10px;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;padding:0 2px 7px}
+.part-row{display:grid;grid-template-columns:1fr 1.4fr 1fr 82px;gap:10px;margin-bottom:10px;align-items:center}
+.part-row input{font-family:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--border);padding:8px 10px;width:100%;outline:none}
+.part-row input:focus{border-color:var(--teal)}
+@media (max-width:720px){ .part-head{display:none} .part-row{grid-template-columns:1fr;gap:6px} .wcol2{grid-column:auto} }
+.grp-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:11px 13px;background:var(--panel);border:1px solid var(--border2)}
+.grp-chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:5px 10px;background:var(--surface);border:1px solid var(--border);color:var(--ink)}
+.grp-chip b{color:var(--teal)}
+.grp-chip .x{cursor:pointer;color:var(--muted);font-weight:700;padding:0 2px}
+.grp-chip .x:hover{color:var(--red)}
+.grp-add{display:inline-flex;gap:6px;align-items:center;margin-left:auto}
+.grp-add input{font-family:inherit;font-size:12.5px;border:1px solid var(--border);background:var(--surface);color:var(--ink);padding:6px 9px;width:160px;outline:none}
+.grp-add input:focus{border-color:var(--teal)}
+.partbtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.emptyparts{padding:18px;border:1px dashed var(--border);color:var(--muted);font-size:13px;text-align:center;margin-top:12px}
+.pgroup{border:1px solid var(--border2);margin-top:12px}
+.pgroup-head{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--panel);border-bottom:1px solid var(--border2);font-size:13px;font-weight:600;color:var(--ink)}
+.pgroup-head .cnt{color:var(--teal);font-weight:600}
+.pgroup-head .note{margin-left:auto;font-weight:400;font-size:11px;color:var(--muted)}
+.pcard{display:grid;grid-template-columns:1.1fr 1.7fr 1.3fr auto;gap:12px;align-items:center;padding:9px 12px;border-top:1px solid var(--border2);font-size:12.5px;color:var(--ink-soft)}
+.pcard:first-of-type{border-top:none}
+.pcard .pn{font-weight:600;color:var(--ink)}
+.pcard .meta{color:var(--muted);font-size:11.5px}
+@media(max-width:720px){ .pcard{grid-template-columns:1fr;gap:4px} .grp-add{margin-left:0;width:100%} .grp-add input{flex:1} }
+/* intake stepper — small screens */
+@media(max-width:560px){
+  .wiz-steps{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .wiz-step .wl{display:none;white-space:nowrap}
+  .wiz-step.current .wl{display:inline}
+  .wiz-line{margin:0 6px;min-width:14px}
+  .pgroup-head{flex-wrap:wrap}
+  .pgroup-head .note{margin-left:0;flex-basis:100%}
+  .partbtns .btn{flex:1}
+  .imp-row{flex-direction:column;align-items:stretch}
+  .imp-row .btn{width:100%}
+}
+
+/* phase workspaces */
+.phase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+.phase-form{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--border2);padding:11px 16px;font-family:inherit;cursor:pointer}
+.phase-form:first-child{border-top:none}
+.phase-form:hover{background:var(--panel)}
+.pf-id{font-family:var(--mono);color:var(--teal);font-weight:600;font-size:12px;flex:none;width:42px}
+.pf-name{font-size:13px;flex:1;color:var(--ink)}
+.pf-role{font-size:11px;color:var(--muted)}
+@media (max-width:1080px){ .phase-grid{grid-template-columns:1fr 1fr} }
+@media (max-width:720px){ .phase-grid{grid-template-columns:1fr} }
+/* stage 5 — reports / modals / detail views */
+@media (max-width:560px){
+  .modal-back{padding:16px 10px}
+  .form-grid{grid-template-columns:1fr}
+  .modal-f .btn{flex:1}
+  .chartbody{padding:14px}
+  .tiles.five{gap:10px}
+}
+@media (max-width:480px){
+  .kv{grid-template-columns:1fr;gap:2px 0}
+  .kv .kk{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;margin-top:9px}
+  .kv .kk:first-child{margin-top:0}
+}
+@media (max-width:420px){ .tiles.five{grid-template-columns:1fr} }
+/* stage 6 — touch targets on phones */
+@media (max-width:560px){
+  .btn{padding:9px 15px}
+  .btn.sm{padding:8px 12px;font-size:12px}
+  .mdg-arrows button{width:38px;height:38px}
+  .mdg-tbtn{padding:9px 11px}
+  .mdg-rpp select{padding:6px 4px}
+  .linkbtn{padding:7px 0}
+}
+
+/* approval mini */
+.appr{padding:14px 16px;border-bottom:1px solid var(--border2)}
+.appr:last-child{border-bottom:none}
+.appr-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.appr-role{font-size:10.5px;color:var(--muted)}
+.appr-title{font-size:13px;font-weight:500;margin-top:6px;line-height:1.35}
+.appr-sub{font-size:11.5px;color:var(--muted);margin-top:3px}
+.appr-actions{display:flex;gap:8px;margin-top:12px}
+.appr-actions .btn{flex:1}
+.appr.done .appr-status{font-size:12px;font-weight:600;margin-top:6px}
+.appr.done.ok .appr-status{color:var(--green)}
+.appr.done.no .appr-status{color:var(--red)}
+
+/* activity */
+.act-item{display:flex;gap:11px;padding:11px 16px;border-bottom:1px solid var(--border2)}
+.act-item:last-child{border-bottom:none}
+.act-item .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#fff;flex:none}
+.act-item .tx{font-size:12.5px;color:var(--ink-soft);line-height:1.4}
+.act-item .tx b{color:var(--ink)}
+.act-item .tm{font-size:11px;color:var(--faint);margin-top:2px}
+
+.rail-block{margin-bottom:18px}
+
+/* placeholder */
+.ph{display:grid;place-items:center;min-height:60vh;text-align:center}
+.ph .box{max-width:420px}
+.ph .big{width:64px;height:64px;border-radius:16px;background:var(--teal-wash);color:var(--teal);display:grid;place-items:center;margin:0 auto 18px}
+.ph h2{font-size:20px;margin:0 0 8px}
+.ph p{color:var(--muted);margin:0}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--surface);font-size:13px;font-weight:500;padding:11px 20px;border-radius:10px;box-shadow:var(--shadow-l);z-index:40;display:flex;align-items:center;gap:9px}
+.toast .cbadge{color:#fff}
+:root[data-theme="dark"] .toast,:root:not([data-theme="light"]) .toast{background:#e8edeb;color:#0c1514}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .toast{background:#e8edeb;color:#0c1514}}
+
+.themeBtn{background:none;border:none;color:var(--ink-soft)}
+@media (max-width:1080px){ .tiles{grid-template-columns:repeat(2,1fr)} .cols{grid-template-columns:1fr} }
+/* home dashboard — small screens */
+@media (max-width:560px){
+  .tiles{gap:10px;margin-bottom:16px}
+  .tile{padding:13px 13px}
+  .tile .v{font-size:25px;margin-top:6px}
+  .cols{gap:14px}
+}
+@media (max-width:360px){ .tiles{grid-template-columns:1fr} }
+/* ---------- responsive shell ---------- */
+/* small desktop / large tablet: narrower sidebar, tighter header */
+@media (max-width:1080px){
+  .body{grid-template-columns:200px 1fr}
+  .appheader{padding:0 16px}
+  .crumb{display:none}
+}
+/* tablet & below: sidebar becomes an off-canvas drawer */
+@media (max-width:900px){
+  .body{grid-template-columns:1fr}
+  .hamburger{display:inline-flex}
+  .sidebar{position:fixed;top:58px;left:0;width:270px;max-width:82vw;height:calc(100vh - 58px);transform:translateX(-100%);transition:transform .22s ease;z-index:55;box-shadow:var(--shadow-l)}
+  .sidebar.open{transform:none}
+  .nav-backdrop{display:block;position:fixed;inset:58px 0 0 0;background:rgba(20,20,20,.44);z-index:50;border:none}
+  .apptitle{display:none}
+}
+/* landscape phone: condense header identity + role chip */
+@media (max-width:680px){
+  .wordmark{display:none}
+  .hdiv{display:none}
+  .demoTag{display:none}
+  .roleSel .who{display:none}
+  .roleSel{padding:4px 8px 4px 5px}
+  .hdr-right{gap:7px}
+  .content{padding:18px 15px 52px}
+  .pagehead h1{font-size:20px}
+  .pagehead p{font-size:13px}
+}
+/* phone: shrink header controls, full-width drawer feel */
+@media (max-width:460px){
+  .appheader{padding:0 10px;gap:6px}
+  .hicon{width:34px;height:34px}
+  .hamburger{width:34px;height:34px}
+  .content{padding:14px 12px 48px}
+  .toast{left:12px;right:12px;transform:none;justify-content:center}
+}
+</style>
+
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.4/babel.min.js"></script>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useContext, useEffect, useRef } = React;
+
+/* ---------- icons ---------- */
+const I = {
+  home:"M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10",
+  projects:"M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z",
+  approvals:"M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  intake:"M12 5v14M5 12h14",
+  phases:"M4 6h16M4 12h16M4 18h10",
+  samples:"M9 3h6M10 3v6l-4 8a2 2 0 002 3h8a2 2 0 002-3l-4-8V3",
+  vendors:"M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M15 9h.01M9 13h.01M15 13h.01",
+  docs:"M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1zM14 3v5h5",
+  reports:"M4 20V10M10 20V4M16 20v-7M22 20H2",
+  admin:"M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1l-.4-2.6h-4l-.4 2.6a7 7 0 00-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.4 2.6h4l.4-2.6a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6a7 7 0 00.1-1z",
+  audit:"M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  search:"M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3",
+  bell:"M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0",
+  clock:"M12 7v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  columns:"M4 4h4v16H4zM10 4h4v16h-4zM16 4h4v16h-4z",
+  filter:"M3 6h18M6 12h12M9 18h6",
+};
+const Icon = ({n,cls,style}) => <svg className={cls} style={style} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d={I[n]}/></svg>;
+const HoneywellMark = ({size}) => {const s=size||26; return <svg width={s} height={s} viewBox="0 0 100 100" style={{flex:"none"}} aria-label="Honeywell"><rect x="6" y="6" width="28" height="27" fill="var(--teal)"/><rect x="66" y="6" width="28" height="27" fill="var(--teal)"/><rect x="6" y="40" width="88" height="20" fill="var(--teal)"/><rect x="6" y="67" width="28" height="27" fill="var(--teal)"/><rect x="66" y="67" width="28" height="27" fill="var(--teal)"/></svg>;};
+
+/* ---------- nav ---------- */
+const NAV = [
+  {id:"home",label:"Home / My Work",icon:"home"},
+  {id:"projects",label:"Projects",icon:"projects"},
+  {id:"approvals",label:"Approvals",icon:"approvals",badge:"3"},
+  {id:"intake",label:"New Request",icon:"intake"},
+  {id:"phases",label:"Phase Workspaces",icon:"phases"},
+  {id:"samples",label:"Samples & Pilot Lots",icon:"samples"},
+  {id:"vendors",label:"Vendors",icon:"vendors"},
+  {id:"docs",label:"Documents",icon:"docs"},
+  {id:"reports",label:"Reports",icon:"reports"},
+];
+const ADMINNAV = [
+  {id:"admin",label:"Admin & Config",icon:"admin"},
+  {id:"audit",label:"Audit Trail",icon:"audit"},
+];
+
+/* ---------- demo data per role ---------- */
+const AV = ["#0F5A57","#215E9E","#B4740E","#1E7E45","#8f1c13","#5B3E8E"];
+const ROLES = {
+  Sourcing:{ name:"Hitesh Sharma", init:"HS",
+    tiles:[["Open tasks","11","3 due today","ic-teal","home"],["Awaiting my approval","3","2 to initiate","ic-blue","approvals"],["Breaching SLA","3","action needed","ic-red","clock"],["Closed this week","12","+4 vs last","ic-green","reports"]],
+    tasks:[
+      {pid:"NPI-2026-0126",title:"Create PPAP approval request",meta:["Part 6152-PPAP-09","Approval setup"],phase:"Approval",h:6,act:"Open"},
+      {pid:"NPI-2026-0131",title:"Intake — new localization (F-01)",meta:["Housing bracket","Pune"],phase:"Initiation",h:10,act:"Open"},
+      {pid:"NPI-2026-0112",title:"Feasibility hold review (F-02)",meta:["Part 8890-CVR-01","Reactivate / drop"],phase:"Initiation",h:8,act:"Open"},
+      {pid:"NPI-2026-0121",title:"Feasibility assessment (F-02)",meta:["Part 4471-BRK-02","Go / No-Go"],phase:"Initiation",h:20,act:"Open"},
+      {pid:"NPI-2026-0128",title:"Vendor RFQ follow-up",meta:["Bharat Forge","Quote due"],phase:"Vendor Dev",h:30,act:"Open"},
+      {pid:"NPI-2026-0118",title:"Vendor notification & timeline (F-05)",meta:["Acme Precision","Day 5 reminder"],phase:"Vendor Dev",h:44,act:"Open"},
+      {pid:"NPI-2026-0115",title:"Award recommendation",meta:["3 vendors compared"],phase:"Approval",h:52,act:"Open"},
+      {pid:"NPI-2026-0126",title:"Sample submission record (F-06)",meta:["Part 6152-PPAP-09"],phase:"Sample Qual",h:96,act:"Start"},
+      {pid:"NPI-2026-0106",title:"Sample re-submission (F-06)",meta:["Part 2231-HSG-05"],phase:"Sample Qual",h:72,act:"Start"},
+      {pid:"NPI-2026-0109",title:"Project closure (F-14)",meta:["3 parts","iValua scorecard"],phase:"Closure",h:120,act:"Open"},
+      {pid:"NPI-2026-0103",title:"Closure — iValua scorecard (F-14)",meta:["Final rating"],phase:"Closure",h:130,act:"Open"},
+    ],
+    approvals:[
+      {pid:"NPI-2026-0126",title:"PPAP request — Capex ₹12,50,000",who:"as Sourcing Head",amt:"Acme Precision · 12,000/yr"},
+      {pid:"NPI-2026-0124",title:"Feasibility Go — tooling required",who:"as Sourcing Head",amt:"Part 7788-VLV-01"},
+      {pid:"NPI-2026-0117",title:"Sample re-trigger approval",who:"3rd rejection escalation",amt:"Part 2231-HSG-05"},
+    ]},
+  Buyer:{ name:"Ravi Menon", init:"RM",
+    tiles:[["Open tasks","5","PR/PO work","ic-teal","home"],["PRs to raise","4","SAP outbound","ic-blue","intake"],["Breaching SLA","1","action needed","ic-red","clock"],["Closed this week","9","+2 vs last","ic-green","reports"]],
+    tasks:[
+      {pid:"NPI-2026-0120",title:"PR/PO creation (F-04)",meta:["Part 9012-CAM-03","Cost centre PUN-SRC"],phase:"Vendor Dev",h:5,act:"Raise PR"},
+      {pid:"NPI-2026-0102",title:"PR/PO creation (F-04)",meta:["Part 3312-GER-02"],phase:"Vendor Dev",h:40,act:"Raise PR"},
+      {pid:"NPI-2026-0114",title:"Pilot lot 2 — raise PR (F-12)",meta:["Order qty 500"],phase:"Pilot",h:22,act:"Raise PR"},
+      {pid:"NPI-2026-0108",title:"Pilot lot 3 — raise PR (F-13)",meta:["Order qty 500"],phase:"Pilot",h:96,act:"Raise PR"},
+      {pid:"NPI-2026-0099",title:"Pilot lot 1 — raise PR (F-11)",meta:["Order qty 500"],phase:"Pilot",h:110,act:"Raise PR"},
+      {pid:"NPI-2026-0120",title:"Confirm PO number",meta:["PR submitted to SAP"],phase:"Vendor Dev",h:70,act:"Open"},
+    ],
+    approvals:[]},
+  Finance:{ name:"Anita Desai", init:"AD",
+    tiles:[["Awaiting my approval","6","cost sign-off","ic-blue","approvals"],["Capex reviews","3","budget check","ic-teal","home"],["Breaching SLA","1","action needed","ic-red","clock"],["Approved this week","14","+5 vs last","ic-green","reports"]],
+    tasks:[
+      {pid:"NPI-2026-0126",title:"Cost approval — Capex (F-03)",meta:["₹12,50,000 · payback 18m"],phase:"Approval",h:4,act:"Review"},
+      {pid:"NPI-2026-0111",title:"Cost approval — Capex (F-03)",meta:["₹6,20,000 · tooling"],phase:"Approval",h:8,act:"Review"},
+      {pid:"NPI-2026-0123",title:"Cost approval — Opex (F-03)",meta:["₹1,80,000"],phase:"Approval",h:20,act:"Review"},
+      {pid:"NPI-2026-0119",title:"Cost approval — Capex (F-03)",meta:["₹8,40,000 · tooling"],phase:"Approval",h:44,act:"Review"},
+      {pid:"NPI-2026-0115",title:"Cost approval — Opex (F-03)",meta:["₹2,40,000"],phase:"Approval",h:60,act:"Review"},
+      {pid:"NPI-2026-0107",title:"Cost approval — Opex (F-03)",meta:["₹95,000"],phase:"Approval",h:90,act:"Review"},
+    ],
+    approvals:[
+      {pid:"NPI-2026-0126",title:"Capex sign-off ₹12,50,000",who:"as Finance Head",amt:"Acme Precision · payback 18m"},
+      {pid:"NPI-2026-0123",title:"Opex sign-off ₹1,80,000",who:"as Finance Head",amt:"Part 3345-CLP-02"},
+    ]},
+  SQE:{ name:"Vikram Rao", init:"VR",
+    tiles:[["Samples to validate","4","inspection queue","ic-teal","samples"],["Dispositions due","2","pilot quality","ic-blue","home"],["Breaching SLA","1","action needed","ic-red","clock"],["Cleared this week","11","+3 vs last","ic-green","reports"]],
+    tasks:[
+      {pid:"NPI-2026-0122",title:"SQE sample validation (F-07)",meta:["Part 5567-GSK-01","Approve / Conditional / Reject"],phase:"Sample Qual",h:5,act:"Validate"},
+      {pid:"NPI-2026-0098",title:"SQE sample validation (F-07)",meta:["Part 7741-PIN-03"],phase:"Sample Qual",h:9,act:"Validate"},
+      {pid:"NPI-2026-0116",title:"SQE sample validation (F-07)",meta:["Part 1120-SHF-04"],phase:"Sample Qual",h:22,act:"Validate"},
+      {pid:"NPI-2026-0110",title:"Pilot lot quality disposition",meta:["Not-OK · Accept / Return / Rework"],phase:"Pilot",h:40,act:"Disposition"},
+      {pid:"NPI-2026-0104",title:"IQC quality check (F-11)",meta:["Lot 1 · 500 pcs"],phase:"Pilot",h:70,act:"Open"},
+    ],
+    approvals:[]},
+  "BU Head":{ name:"Sunil Kapoor", init:"SK",
+    tiles:[["Awaiting my approval","4","final business","ic-blue","approvals"],["Capex decisions","2","strategic","ic-teal","home"],["Breaching SLA","0","all on track","ic-green","clock"],["Approved this week","8","+1 vs last","ic-green","reports"]],
+    tasks:[
+      {pid:"NPI-2026-0126",title:"Final business approval (F-03)",meta:["Capex ₹12,50,000"],phase:"Approval",h:20,act:"Review"},
+      {pid:"NPI-2026-0113",title:"Final business approval (F-03)",meta:["Capex ₹5,60,000"],phase:"Approval",h:44,act:"Review"},
+      {pid:"NPI-2026-0119",title:"Final business approval (F-03)",meta:["Capex ₹8,40,000"],phase:"Approval",h:70,act:"Review"},
+    ],
+    approvals:[
+      {pid:"NPI-2026-0126",title:"Business approval — Capex",who:"as BU Head · 72h SLA",amt:"Acme Precision · ₹12,50,000"},
+    ]},
+};
+const ROLE_KEYS = Object.keys(ROLES);
+
+/* ---------- small components ---------- */
+function Tile({k,v,s,ic,icon,warn,onClick}){
+  return <div className={"tile"+(warn?" warn":"")+(onClick?" clickable":"")} onClick={onClick}>
+    <div className="k"><span className={"ic "+ic}><Icon n={icon} cls=""/></span>{k}</div>
+    <div className="v">{v}</div><div className="s">{s}</div>
+  </div>;
+}
+const slaColor = h => h<=12?"r":h<=48?"a":"g";
+const slaLabel = h => h<24 ? h+"h left" : Math.round(h/24)+"d left";
+
+function DataTable({columns, rows, pageSize, onAct, onRowClick}){
+  const toggleable=columns.filter(c=>!c.always);
+  const [visible,setVisible]=useState(()=>columns.filter(c=>!c.always&&!c.hidden).map(c=>c.key));
+  const [showCols,setShowCols]=useState(false);
+  const [showFilters,setShowFilters]=useState(false);
+  const [fvals,setFvals]=useState({});
+  const [q,setQ]=useState("");
+  const [sort,setSort]=useState({key:null,dir:"asc"});
+  const [ps,setPs]=useState(pageSize||10);
+  const [page,setPage]=useState(0);
+  const valOf=(c,row)=>c.val?c.val(row):row[c.key];
+  const setF=(k,v)=>{setFvals(o=>({...o,[k]:v}));setPage(0);};
+  const visCols=columns.filter(c=>c.always||visible.includes(c.key));
+
+  let data=rows.filter(row=>{
+    if(q){const hay=columns.map(c=>c.filterType?valOf(c,row):"").join(" ").toLowerCase(); if(!hay.includes(q.toLowerCase()))return false;}
+    for(const c of columns){
+      const fv=fvals[c.key]; if(fv==null||fv===""||fv==="All"||fv==="Any")continue;
+      if(c.filterTest){if(!c.filterTest(row,fv))return false;}
+      else if(c.filterType==="select"){if(String(valOf(c,row))!==String(fv))return false;}
+      else if(c.filterType==="text"){if(!String(valOf(c,row)).toLowerCase().includes(String(fv).toLowerCase()))return false;}
+    }
+    return true;
+  });
+  if(sort.key){const col=columns.find(c=>c.key===sort.key); if(col){data=[...data].sort((a,b)=>{const av=col.sortVal?col.sortVal(a):valOf(col,a),bv=col.sortVal?col.sortVal(b):valOf(col,b); return (av<bv?-1:av>bv?1:0)*(sort.dir==="asc"?1:-1);});}}
+  const total=data.length, pages=Math.max(1,Math.ceil(total/ps)), cur=Math.min(page,pages-1);
+  const slice=data.slice(cur*ps,cur*ps+ps);
+  const toggleSort=k=>{const col=columns.find(c=>c.key===k); if(col&&col.sortable===false)return; setSort(s=>s.key===k?{key:k,dir:s.dir==="asc"?"desc":"asc"}:{key:k,dir:"asc"});};
+  const toggleCol=k=>setVisible(v=>v.includes(k)?v.filter(x=>x!==k):v.concat(k));
+
+  return <div className="mdg">
+    <div className="mdg-toolbar">
+      <button className="mdg-tbtn" onClick={()=>{setShowCols(s=>!s);setShowFilters(false);}}><Icon n="columns" cls=""/>Columns</button>
+      <button className={"mdg-tbtn"+(showFilters?" on":"")} onClick={()=>{setShowFilters(s=>!s);setShowCols(false);}}><Icon n="filter" cls=""/>Filters</button>
+      <div className="mdg-quick"><Icon n="search" cls=""/><input placeholder="Search…" value={q} onChange={e=>{setQ(e.target.value);setPage(0);}}/></div>
+    </div>
+    {showCols? <div className="colpanel">
+      <div className="cp-h">Show columns</div>
+      {toggleable.map(c=><label key={c.key}><input type="checkbox" checked={visible.includes(c.key)} onChange={()=>toggleCol(c.key)}/>{c.label||c.key}</label>)}
+    </div>:null}
+    <div className="mdg-wrap">
+      <table className="mdg-table">
+        <thead>
+          <tr>{visCols.map(c=><th key={c.key} className={c.sortable===false?"":"sortable"} onClick={()=>toggleSort(c.key)} style={c.w?{width:c.w}:null}>
+            {c.label}{c.sortable===false?null:<span className={"arr "+(sort.key===c.key?"":"dim")}>{sort.key===c.key?(sort.dir==="asc"?"▲":"▼"):"▲"}</span>}</th>)}</tr>
+          {showFilters? <tr className="filter-row">{visCols.map(c=><th key={c.key}>
+            {!c.filterType?null: c.filterType==="select"
+              ? <select value={fvals[c.key]||c.options[0]} onChange={e=>setF(c.key,e.target.value)}>{c.options.map(o=><option key={o} value={o}>{o}</option>)}</select>
+              : <input placeholder="Filter" value={fvals[c.key]||""} onChange={e=>setF(c.key,e.target.value)}/>}
+          </th>)}</tr>:null}
+        </thead>
+        <tbody>
+          {slice.length? slice.map((row,i)=><tr key={i} className={onRowClick?"mdg-click":""} onClick={onRowClick?()=>onRowClick(row):undefined}>{visCols.map(c=><td key={c.key} data-label={c.label||""}>{c.render(row,onAct)}</td>)}</tr>)
+            : <tr><td colSpan={visCols.length} className="mdg-empty">No matching rows.</td></tr>}
+        </tbody>
+      </table>
+    </div>
+    <div className="mdg-footer">
+      <div className="mdg-rpp">Rows per page:<select value={ps} onChange={e=>{setPs(+e.target.value);setPage(0);}}>{[10,20,50].map(n=><option key={n} value={n}>{n}</option>)}</select></div>
+      <div className="mdg-range">{total?cur*ps+1:0}–{Math.min(cur*ps+ps,total)} of {total}</div>
+      <div className="mdg-arrows"><button disabled={cur===0} onClick={()=>setPage(cur-1)}>‹</button><button disabled={cur>=pages-1} onClick={()=>setPage(cur+1)}>›</button></div>
+    </div>
+  </div>;
+}
+
+function Appr({a,onApprove,onReject}){
+  return <div className="appr">
+    <div className="appr-top"><span className="tpid">{a.pid}</span><span className="appr-role">{a.who}</span></div>
+    <div className="appr-title">{a.title}</div>
+    <div className="appr-sub">{a.amt}</div>
+    <div className="appr-actions">
+      <button className="btn ok sm" onClick={onApprove}>Approve</button>
+      <button className="btn no sm" onClick={onReject}>Reject</button>
+    </div>
+  </div>;
+}
+function Activity(){
+  const items=[
+    {av:0,tx:<><b>SAP</b> created PR #4500219 for <b>NPI-2026-0120</b></>,tm:"12 min ago"},
+    {av:2,tx:<><b>Anita Desai</b> approved Capex sign-off · <b>NPI-2026-0119</b></>,tm:"40 min ago"},
+    {av:3,tx:<><b>Vikram Rao</b> marked sample <b>Conditional</b> · Part 1120-SHF-04</>,tm:"1h ago"},
+    {av:4,tx:<>SLA breach escalation raised · <b>NPI-2026-0117</b></>,tm:"2h ago"},
+    {av:1,tx:<><b>Ravi Menon</b> raised pilot lot 1 PR · <b>NPI-2026-0104</b></>,tm:"3h ago"},
+  ];
+  return items.map((it,i)=><div className="act-item" key={i}>
+    <span className="av" style={{background:AV[it.av%AV.length]}}>{["SAP","AD","VR","!","RM"][i]}</span>
+    <div><div className="tx">{it.tx}</div><div className="tm">{it.tm}</div></div>
+  </div>);
+}
+
+/* ---------- Home screen ---------- */
+const PHASES=["All","Initiation","Approval","Vendor Dev","Sample Qual","Pilot","Closure"];
+function Home({roleKey,onAct,go}){
+  const {db,act}=useApp();
+  const r=ROLES[roleKey];
+  const rappr=db.roleAppr[roleKey];
+  const hour=new Date().getHours();
+  const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
+  const rows=r.tasks.map((t,i)=>({...t, id:"REC-"+(20451+i), created:"2026-09-"+String((i%27)+1).padStart(2,"0")}));
+  const taskCols=[
+    {key:"id",label:"Record ID",w:"112px",hidden:true,filterType:"text",val:x=>x.id,render:x=><span className="tpid">{x.id}</span>},
+    {key:"pid",label:"Project ID",w:"120px",filterType:"text",val:x=>x.pid,render:x=><span className="tpid">{x.pid}</span>},
+    {key:"title",label:"Task",filterType:"text",val:x=>x.title,render:x=><span className="tcell">{x.title}</span>},
+    {key:"phase",label:"Phase",w:"124px",filterType:"select",options:PHASES,val:x=>x.phase,render:x=><span className="mchip">{x.phase}</span>},
+    {key:"meta",label:"Details",sortable:false,filterType:"text",val:x=>x.meta.join(" "),render:x=><span className="tmeta">{x.meta.join(" · ")}</span>},
+    {key:"h",label:"SLA",w:"106px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?x.h<=12:v==="Due soon"?(x.h>12&&x.h<24):v==="On track"?x.h>=24:true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
+    {key:"created",label:"Created",w:"116px",hidden:true,filterType:"text",val:x=>x.created,render:x=><span className="tmeta">{x.created}</span>},
+    {key:"act",label:"",w:"92px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={()=>go(x.act==="Review"?"approvals":"projects")}>{x.act}</button>},
+  ];
+  return <>
+    <div className="pagehead">
+      <h1>{greet}, <span className="hi">{r.name.split(" ")[0]}</span></h1>
+      <p>Here's your work as <b>{roleKey}</b> — {r.tasks.length} open tasks{rappr.length?`, ${rappr.length} awaiting your approval`:""}.</p>
+    </div>
+    <div className="tiles">{r.tiles.map((t,i)=>{const isAppr=t[0].toLowerCase().indexOf("approval")>=0;return <Tile key={i} k={t[0]} v={isAppr?String(rappr.length):t[1]} s={t[2]} ic={t[3]} icon={t[4]} warn={t[3]==="ic-red"} onClick={isAppr?()=>go("approvals"):undefined}/>;})}</div>
+    <div className="cols">
+      <div className="block">
+        <div className="block-h"><h2><Icon n="home" cls="" style={{width:16,height:16,color:"var(--teal)"}}/> My tasks <span className="cnt">{r.tasks.length}</span></h2></div>
+        <DataTable columns={taskCols} rows={rows} pageSize={10} onAct={onAct}/>
+      </div>
+      <div>
+        <div className="block rail-block">
+          <div className="block-h"><h2><Icon n="approvals" cls="" style={{width:16,height:16,color:"var(--blue)"}}/> Awaiting approval <span className="cnt">{rappr.length}</span></h2></div>
+          {rappr.length? rappr.map((a,i)=><Appr key={a.pid+i} a={a} onApprove={()=>act.resolveRoleAppr(roleKey,a.pid,"Approved")} onReject={()=>act.resolveRoleAppr(roleKey,a.pid,"Rejected")}/>) :
+            <div style={{padding:"22px 16px",textAlign:"center",color:"var(--muted)",fontSize:12.5}}>No approvals in your queue right now.</div>}
+          {rappr.length? <div className="rail-foot"><button className="linkbtn" onClick={()=>go("approvals")}>Open Approvals inbox →</button></div> : null}
+        </div>
+        <div className="block">
+          <div className="block-h"><h2><Icon n="audit" cls="" style={{width:16,height:16,color:"var(--muted)"}}/> Recent activity</h2></div>
+          <Activity/>
+        </div>
+      </div>
+    </div>
+  </>;
+}
+
+const LABELS={projects:"Projects",approvals:"Approvals inbox",intake:"New Request / Intake",phases:"Phase Workspaces",samples:"Samples & Pilot Lots",vendors:"Vendors & Suppliers",docs:"Documents",reports:"Reports & Dashboards",admin:"Admin & Configuration",audit:"Audit Trail"};
+function Placeholder({id}){
+  return <div className="ph"><div className="box">
+    <div className="big"><Icon n={(NAV.concat(ADMINNAV).find(n=>n.id===id)||{icon:"phases"}).icon} cls="" style={{width:30,height:30}}/></div>
+    <h2>{LABELS[id]}</h2>
+    <p>Designed next. The <b>Home / My Work</b> screen is the fully-built reference — this section follows the same shell, data model and role-based access.</p>
+  </div></div>;
+}
+
+/* ---------- projects ---------- */
+const STAGES=["Feasibility","Approval","Sampling","PSW","Pilot","Done"];
+const PHASE2STAGE={Initiation:"Feasibility",Approval:"Approval","Vendor Dev":"Approval","Sample Qual":"Sampling",PSW:"PSW",Pilot:"Pilot",Closed:"Done"};
+const statusClass=s=>{s=s.toLowerCase(); if(s.indexOf("reject")>=0||s.indexOf("held")>=0||s.indexOf("dropped")>=0)return "p-red"; if(s.indexOf("complet")>=0||s.indexOf("approved")>=0||s.indexOf("released")>=0||s.indexOf("delivered")>=0)return "p-green"; if(s.indexOf("pending")>=0||s.indexOf("review")>=0||s.indexOf("inspection")>=0||s.indexOf("conditional")>=0)return "p-amber"; if(s.indexOf("development")>=0||s.indexOf("progress")>=0||s.indexOf("sign-off")>=0)return "p-blue"; return "p-gray";};
+
+const PROJECTS=[
+  {id:"NPI-2026-0126",title:"Localized PPAP housing",phase:"Approval",status:"Approval Pending — Capex",plant:"Pune",owner:"Hitesh Sharma",supplier:"Acme Precision",parts:4,target:"30 Sep 2026",updated:"09 Sep 2026"},
+  {id:"NPI-2026-0121",title:"Brake bracket resourcing",phase:"Initiation",status:"Feasibility Review",plant:"Pune",owner:"Hitesh Sharma",supplier:"Bharat Forge",parts:2,target:"15 Oct 2026",updated:"08 Sep 2026"},
+  {id:"NPI-2026-0120",title:"Cam module NPI",phase:"Vendor Dev",status:"PO Pending",plant:"Pune",owner:"Ravi Menon",supplier:"Sundaram Fasteners",parts:3,target:"22 Oct 2026",updated:"08 Sep 2026"},
+  {id:"NPI-2026-0119",title:"Valve body localization",phase:"Approval",status:"Approval Pending — Capex",plant:"Pune",owner:"Hitesh Sharma",supplier:"Rane Group",parts:5,target:"05 Nov 2026",updated:"07 Sep 2026"},
+  {id:"NPI-2026-0118",title:"Gasket dual-source",phase:"Vendor Dev",status:"In Development",plant:"Pune",owner:"Hitesh Sharma",supplier:"Acme Precision",parts:2,target:"12 Nov 2026",updated:"07 Sep 2026"},
+  {id:"NPI-2026-0116",title:"Shaft assembly NPI",phase:"Sample Qual",status:"Sample Under Inspection",plant:"Pune",owner:"Vikram Rao",supplier:"Endurance Tech",parts:3,target:"18 Nov 2026",updated:"06 Sep 2026"},
+  {id:"NPI-2026-0115",title:"Sensor mount ECN",phase:"Approval",status:"Rejected — Approval",plant:"Pune",owner:"Hitesh Sharma",supplier:"Minda Corp",parts:1,target:"20 Nov 2026",updated:"06 Sep 2026"},
+  {id:"NPI-2026-0112",title:"Cover plate feasibility",phase:"Initiation",status:"Held",plant:"Pune",owner:"Hitesh Sharma",supplier:"—",parts:1,target:"01 Dec 2026",updated:"05 Sep 2026"},
+  {id:"NPI-2026-0110",title:"Pump body pilot",phase:"Pilot",status:"Pilot Lots In Progress",plant:"Pune",owner:"Vikram Rao",supplier:"Shakti Pumps",parts:2,target:"10 Dec 2026",updated:"05 Sep 2026"},
+  {id:"NPI-2026-0109",title:"Bearing cap closure",phase:"Closed",status:"Project Completed",plant:"Pune",owner:"Hitesh Sharma",supplier:"NRB Bearings",parts:3,target:"28 Aug 2026",updated:"02 Sep 2026"},
+  {id:"NPI-2026-0104",title:"Flange NPI",phase:"Pilot",status:"All Lots Delivered",plant:"Pune",owner:"Ravi Menon",supplier:"Jamna Auto",parts:2,target:"14 Dec 2026",updated:"01 Sep 2026"},
+  {id:"NPI-2026-0102",title:"Gear housing localization",phase:"Vendor Dev",status:"PO Pending",plant:"Pune",owner:"Ravi Menon",supplier:"Bharat Gears",parts:4,target:"20 Dec 2026",updated:"31 Aug 2026"},
+  {id:"NPI-2026-0098",title:"Pin & clip NPI",phase:"Sample Qual",status:"SQE Conditional",plant:"Pune",owner:"Vikram Rao",supplier:"Sterling Tools",parts:2,target:"22 Dec 2026",updated:"30 Aug 2026"},
+  {id:"NPI-2026-0095",title:"Manifold PSW sign-off",phase:"PSW",status:"PSW Pending Sign-off",plant:"Pune",owner:"Hitesh Sharma",supplier:"Endurance Tech",parts:3,target:"28 Dec 2026",updated:"29 Aug 2026"},
+];
+const PARTS={
+  "NPI-2026-0126":[
+    {part:"6152-PPAP-09",desc:"Localized housing bracket",supplier:"Acme Precision",stage:"Approval",status:"Approval Pending — Capex",h:6},
+    {part:"6152-PPAP-10",desc:"Housing cover",supplier:"Acme Precision",stage:"Approval",status:"Approval Pending — Capex",h:30},
+    {part:"6152-PPAP-11",desc:"Mounting clip",supplier:"Acme Precision",stage:"Feasibility",status:"Feasibility Review",h:52},
+    {part:"6152-PPAP-12",desc:"Gasket seal",supplier:"Acme Precision",stage:"Sampling",status:"Sample Under Inspection",h:96},
+  ],
+};
+function genParts(p){
+  const nm=["BRK","HSG","CAM","VLV","GSK","SHF"], ds=["Bracket","Housing","Cam lever","Valve body","Gasket","Shaft"], stage=PHASE2STAGE[p.phase]||"Feasibility";
+  return Array.from({length:p.parts},(_,i)=>({part:(6100+i*7)+"-"+nm[i%6]+"-0"+((i%9)+1),desc:ds[i%6]+" assembly",supplier:p.supplier,stage:stage,status:p.status,h:6+i*13}));
+}
+
+function PartsTable({p}){
+  const {openModal,closeModal}=useApp();
+  const parts=PARTS[p.id]||genParts(p);
+  const openPart=(x)=>openModal(<InfoModal title={x.part} onClose={closeModal} pairs={[["Description",x.desc],["Supplier",x.supplier],["Stage",<span className="mchip">{x.stage}</span>],["Status",<span className={"pill "+statusClass(x.status)}>{x.status}</span>],["SLA",<span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>]]}/>);
+  const cols=[
+    {key:"part",label:"Part number",w:"150px",filterType:"text",val:x=>x.part,render:x=><span className="tpid">{x.part}</span>},
+    {key:"desc",label:"Description",filterType:"text",val:x=>x.desc,render:x=><span className="tcell">{x.desc}</span>},
+    {key:"supplier",label:"Supplier",filterType:"text",val:x=>x.supplier,render:x=><span>{x.supplier}</span>},
+    {key:"stage",label:"Stage",w:"128px",filterType:"select",options:["All"].concat(STAGES),val:x=>x.stage,render:x=><span className="mchip">{x.stage}</span>},
+    {key:"status",label:"Status",w:"186px",filterType:"text",val:x=>x.status,render:x=><span className={"pill "+statusClass(x.status)}>{x.status}</span>},
+    {key:"h",label:"SLA",w:"104px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?x.h<=12:v==="Due soon"?(x.h>12&&x.h<24):v==="On track"?x.h>=24:true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
+    {key:"act",label:"",w:"84px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={e=>{e.stopPropagation();openPart(x);}}>Open</button>},
+  ];
+  return <DataTable columns={cols} rows={parts} pageSize={10}/>;
+}
+
+function ProjectDetail({p,onBack}){
+  const n=(PARTS[p.id]||genParts(p)).length;
+  return <>
+    <button className="backlink" onClick={onBack}>‹ Back to projects</button>
+    <div className="pagehead"><h1>{p.title}</h1><p><span className="mono" style={{color:"var(--teal)",fontWeight:600}}>{p.id}</span> · {p.plant} · Owner {p.owner}</p></div>
+    <div className="detail-grid">
+      <div className="dcard"><div className="dk">Status</div><div className="dv"><span className={"pill "+statusClass(p.status)}>{p.status}</span></div></div>
+      <div className="dcard"><div className="dk">Phase</div><div className="dv">{p.phase}</div></div>
+      <div className="dcard"><div className="dk">Supplier</div><div className="dv">{p.supplier}</div></div>
+      <div className="dcard"><div className="dk">Target PPAP</div><div className="dv">{p.target}</div></div>
+    </div>
+    <div className="block">
+      <div className="block-h"><h2><Icon n="projects" cls="" style={{width:16,height:16,color:"var(--teal)"}}/> Parts <span className="cnt">{n}</span></h2></div>
+      <PartsTable p={p}/>
+    </div>
+  </>;
+}
+
+function Projects(){
+  const {db,act,openModal,closeModal}=useApp();
+  const [selId,setSelId]=useState(null);
+  const sel=selId!=null?db.projects.find(x=>x.id===selId):null;
+  if(sel) return <ProjectDetail p={sel} onBack={()=>setSelId(null)}/>;
+  const newProject=()=>openModal(<FormModal title="New project" fields={[{key:"title",label:"Title",req:true,full:true},{key:"supplier",label:"Supplier",req:true},{key:"owner",label:"Sourcing owner",req:true},{key:"plant",label:"Plant",type:"select",options:["Pune","Bengaluru","Chennai"]},{key:"phase",label:"Phase",type:"select",options:["Initiation","Approval","Vendor Dev","Sample Qual"]},{key:"status",label:"Status",type:"select",options:["Feasibility Review","Approval Pending — Capex","In Development","Sample Under Inspection"]},{key:"target",label:"Target PPAP",ph:"30 Dec 2026"},{key:"parts",label:"Parts",def:"1"}]} submitLabel="Create" onClose={closeModal} onSubmit={v=>{act.addProject(v);closeModal();}}/>);
+  const cols=[
+    {key:"id",label:"Project ID",w:"128px",filterType:"text",val:x=>x.id,render:x=><span className="tpid">{x.id}</span>},
+    {key:"title",label:"Title",filterType:"text",val:x=>x.title,render:x=><span className="tcell">{x.title}</span>},
+    {key:"phase",label:"Phase",w:"126px",filterType:"select",options:["All","Initiation","Approval","Vendor Dev","Sample Qual","PSW","Pilot","Closed"],val:x=>x.phase,render:x=><span className="mchip">{x.phase}</span>},
+    {key:"status",label:"Status",w:"188px",filterType:"text",val:x=>x.status,render:x=><span className={"pill "+statusClass(x.status)}>{x.status}</span>},
+    {key:"parts",label:"Parts",w:"78px",sortVal:x=>x.parts,filterType:"text",val:x=>x.parts,render:x=><span>{x.parts}</span>},
+    {key:"plant",label:"Plant",w:"92px",filterType:"select",options:["All","Pune","Bengaluru","Chennai"],val:x=>x.plant,render:x=><span>{x.plant}</span>},
+    {key:"owner",label:"Owner",w:"150px",hidden:true,filterType:"text",val:x=>x.owner,render:x=><span>{x.owner}</span>},
+    {key:"target",label:"Target PPAP",w:"128px",hidden:true,filterType:"text",val:x=>x.target,render:x=><span className="tmeta">{x.target}</span>},
+    {key:"updated",label:"Updated",w:"120px",hidden:true,filterType:"text",val:x=>x.updated,render:x=><span className="tmeta">{x.updated}</span>},
+    {key:"act",label:"",w:"84px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={e=>{e.stopPropagation();setSelId(x.id);}}>Open</button>},
+  ];
+  return <>
+    <div className="pagehead"><h1>Projects</h1><p>All NPI projects across the Pune plant — click a row to open its parts and detail.</p></div>
+    <div className="block">
+      <div className="block-h"><h2><Icon n="projects" cls="" style={{width:16,height:16,color:"var(--teal)"}}/> All projects <span className="cnt">{db.projects.length}</span></h2><button className="admin-add" onClick={newProject}>+ New project</button></div>
+      <DataTable columns={cols} rows={db.projects} pageSize={10} onRowClick={x=>setSelId(x.id)}/>
+    </div>
+  </>;
+}
+
+/* ---------- new request (NPI intake stepper) ---------- */
+const WIZ_STEPS=["Project","4-Blocker","Parts & Groups","Review"];
+const NPI_CATS=["New Product Development","Localization","Resourcing","ECN Driven","Cost Reduction"];
+const NPI_SITES=["Pune","Bangalore","Chennai","Mumbai"];
+const NPI_COMMOD=["Mechanical","Electronic","Plastic","Metal","Composite","Other"];
+const SAMPLE_PARTS_TSV="PartNumber\tPartDescription\tCommodity\tVendorCode\tIncumbentSupplier\tNewSupplier\tEstimatedAnnualVolume\tEstimatedUnitCost\n"+
+"AL-CP-001\tAluminum cooling plate top\tAluminum Casting\tACME001\tAcme Precision Industries\tBharat MetalWorks Pune\t12000\t42\n"+
+"AL-CP-002\tAluminum cooling plate bottom\tAluminum Casting\tACME002\tAcme Precision Industries\t\t12000\t38\n"+
+"RB-GS-001\tEPDM rubber gasket 220x180x3mm\tRubber Sealing\tSEALCO\tSealco Rubber Industries\t\t12000\t8.5\n"+
+"SS-BL-001\tStainless steel bolt M6x20\tHardware\t1234567\tBolt Group Pune\t\t48000\t2.1\n"+
+"PL-LB-001\tPE label sticker 50x30mm\tLabels\tLABEL01\tLabelTech Industries\tLabelMaster Mumbai\t12000\t0.5\n"+
+"CU-WR-001\tCopper wire harness 12-gauge\tWiring\tCUWIRE1\tHarnessCorp Chennai\t\t24000\t15.75\n"+
+"PB-FL-001\tPolymer foam insulation block\tFoam Inserts\tFOAMP01\tPolyFoam Bengaluru\t\t12000\t3.25";
+function Intake(){
+  const {act,flash,go}=useApp();
+  const [step,setStep]=useState(0);
+  const [proj,setProj]=useState({title:"Aluminium cooling assembly localization",category:"Localization",site:"Pune",ecn:"",scope:"Localize the aluminium cooling plate assembly and associated hardware to India-based suppliers to reduce landed cost and lead time."});
+  const [fb,setFb]=useState({q:"Maintain Cpk ≥ 1.33 on critical dims; PPAP Level 3.",c:"Target 18% landed-cost reduction vs incumbent.",d:"Mass production ready by Q4 2026.",r:"New-supplier ramp risk; dual-source critical parts."});
+  const [groups,setGroups]=useState(["Aluminium castings","Hardware & seals"]);
+  const [newGroup,setNewGroup]=useState("");
+  const blankDraft={part:"",desc:"",commodity:"Mechanical",vendor:"",vendorEmail:"",vol:"",cost:"",mpd:"",group:"Aluminium castings"};
+  const [draft,setDraft]=useState(blankDraft);
+  const [parts,setParts]=useState([
+    {part:"AL-CP-001",desc:"Aluminum cooling plate top",commodity:"Metal",vendor:"Bharat MetalWorks Pune",vendorEmail:"rfq@bharatmetal.in",vol:"12000",cost:"42",mpd:"2026-12-31",group:"Aluminium castings"},
+    {part:"AL-CP-002",desc:"Aluminum cooling plate bottom",commodity:"Metal",vendor:"Bharat MetalWorks Pune",vendorEmail:"",vol:"12000",cost:"38",mpd:"2026-12-31",group:"Aluminium castings"},
+    {part:"SS-BL-001",desc:"Stainless steel bolt M6x20",commodity:"Metal",vendor:"Bolt Group Pune",vendorEmail:"",vol:"48000",cost:"2.1",mpd:"2026-12-31",group:"Hardware & seals"},
+  ]);
+  const [importOpen,setImportOpen]=useState(false);
+  const [impText,setImpText]=useState("");
+  const [impGroup,setImpGroup]=useState("__commodity");
+  const [submitted,setSubmitted]=useState(false);
+  const [createdId,setCreatedId]=useState(null);
+  const setP=k=>e=>setProj(o=>({...o,[k]:e.target.value}));
+  const setF=k=>e=>setFb(o=>({...o,[k]:e.target.value}));
+  const setD=k=>e=>setDraft(o=>({...o,[k]:e.target.value}));
+  const addGroup=()=>{const g=newGroup.trim(); if(!g)return; if(groups.includes(g)){flash("Group already exists");return;} setGroups(a=>a.concat([g])); setDraft(d=>({...d,group:g})); setNewGroup("");};
+  const rmGroup=(g)=>{ if(parts.some(p=>p.group===g)){flash("Group has parts — remove them first");return;} setGroups(a=>{const n=a.filter(x=>x!==g); setDraft(d=>d.group===g?{...d,group:n[0]||""}:d); return n;}); };
+  const addPart=()=>{
+    if(!draft.part.trim()||!draft.desc.trim()){flash("Part number and description are required.");return;}
+    const g=draft.group||groups[0]||"Group 1";
+    if(!groups.includes(g)) setGroups(a=>a.concat([g]));
+    setParts(a=>a.concat([{...draft,group:g}]));
+    setDraft(d=>({...blankDraft,commodity:d.commodity,vendorEmail:d.vendorEmail,group:d.group}));
+    flash("Part added. Total: "+(parts.length+1));
+  };
+  const rmPart=(i)=>setParts(a=>a.filter((p,j)=>j!==i));
+  const clearParts=()=>{setParts([]);flash("All parts cleared");};
+  const parseRows=(text)=>{
+    const lines=text.split(/\r?\n/).map(l=>l.replace(/\s+$/,"")).filter(l=>l.trim());
+    const out=[];
+    lines.forEach((ln,idx)=>{
+      const sep=ln.indexOf("\t")>=0?"\t":",";
+      const c=ln.split(sep).map(x=>x.trim());
+      if(idx===0 && /part\s*number|partnumber/i.test(c[0])) return;
+      if(c.length>=8) out.push({part:c[0],desc:c[1],commodity:c[2],vendor:c[5]||c[4]||"",vendorEmail:"",vol:c[6]||"",cost:c[7]||""});
+      else if(c.length>=6) out.push({part:c[0],desc:c[1],commodity:c[2],vendor:c[3]||"",vendorEmail:"",vol:c[4]||"",cost:c[5]||""});
+      else if(c.length>=2) out.push({part:c[0],desc:c[1],commodity:"Other",vendor:"",vendorEmail:"",vol:"",cost:""});
+    });
+    return out;
+  };
+  const doImport=()=>{
+    const rows=parseRows(impText);
+    if(!rows.length){flash("Nothing to import — paste rows or load the sample file.");return;}
+    let gs=[...groups];
+    const mapped=rows.map(r=>{
+      let g = impGroup==="__commodity" ? (r.commodity||"Other") : impGroup==="__vendor" ? (r.vendor||"Unassigned") : impGroup;
+      if(!gs.includes(g)) gs.push(g);
+      return {...r,mpd:"2026-12-31",group:g};
+    });
+    setGroups(gs); setParts(a=>a.concat(mapped)); setImportOpen(false); setImpText("");
+    flash("Imported "+mapped.length+" part(s) into "+(impGroup==="__commodity"?"commodity groups":impGroup==="__vendor"?"vendor groups":"\""+impGroup+"\""));
+  };
+  const usedGroups=Array.from(new Set(parts.map(p=>p.group)));
+  const allGroups=groups.concat(usedGroups.filter(g=>!groups.includes(g)));
+  const grpCount=(g)=>parts.filter(p=>p.group===g).length;
+  const readyToSubmit=parts.length>0&&proj.title.trim()&&proj.category&&proj.site&&proj.scope.trim();
+  const validStep=()=>{
+    if(step===0) return proj.title.trim()&&proj.category&&proj.site&&proj.scope.trim();
+    if(step===2) return parts.length>0;
+    return true;
+  };
+  const next=()=>{ if(!validStep()){flash("Complete the required fields on this step.");return;} setStep(s=>Math.min(s+1,3)); };
+  const back=()=>setStep(s=>Math.max(s-1,0));
+  const submit=()=>{
+    if(!readyToSubmit){flash("Add at least one part and complete the required project fields.");return;}
+    const firstMpd=(parts.find(p=>p.mpd&&p.mpd.trim())||{}).mpd||"—";
+    const id=act.submitIntake({title:proj.title,category:proj.category,site:proj.site,ecn:proj.ecn,scope:proj.scope,fb,parts,groups:usedGroups.length,target:firstMpd});
+    setCreatedId(id); setSubmitted(true);
+  };
+  if(submitted) return <>
+    <div className="pagehead"><h1>Honeywell NPI Intake</h1><p>Multi-part project submission.</p></div>
+    <div className="wiz"><div className="block"><div className="panel-pad">
+      <div className="ready2 ok"><div className="rk2">NPI Project Created Successfully</div><div className="rv2">{createdId} created — {parts.length} part(s) across {usedGroups.length} group(s). Status: Feasibility Review.</div></div>
+      <div className="modal-note" style={{marginTop:14}}>The Sourcing team has been notified. The project proceeds through Phase 1 Feasibility per group; each group runs the feasibility → approval → sampling flow together.</div>
+      <div className="det-actions" style={{marginTop:14}}><button className="btn primary" onClick={()=>go("projects")}>Open in Projects</button><button className="btn" onClick={()=>go("phases")}>Go to Phase Workspaces</button><button className="btn" onClick={()=>{setSubmitted(false);setStep(0);}}>+ Submit Another NPI</button></div>
+    </div></div></div>
+  </>;
+  return <>
+    <div className="pagehead"><h1>Honeywell NPI Intake</h1><p>Multi-part project submission — project details, 4-Blocker, then add or bulk-import parts and organise them into groups that move through the workflow together.</p></div>
+    <div className="wiz">
+      <div className="wiz-steps">
+        {WIZ_STEPS.map((s,i)=><React.Fragment key={i}>
+          <div className={"wiz-step "+(i<step?"done":i===step?"current":"")} onClick={()=>{if(i<step)setStep(i);}}>
+            <span className="wn">{i<step?"✓":i+1}</span><span className="wl">{s}</span>
+          </div>
+          {i<WIZ_STEPS.length-1?<span className={"wiz-line"+(i<step?" on":"")}/>:null}
+        </React.Fragment>)}
+      </div>
+      <div className="block"><div className="panel-pad">
+        {step===0?<div>
+          <div className="fsec" style={{marginTop:0}}>Project information</div>
+          <div className="fgrid2">
+            <div className="field2 wcol2"><div className="flabel">Project title <i>*</i></div><input value={proj.title} onChange={setP("title")} placeholder="e.g. New Mounting Bracket NPI"/></div>
+            <div className="field2"><div className="flabel">Project category <i>*</i></div><select value={proj.category} onChange={setP("category")}>{NPI_CATS.map(o=><option key={o}>{o}</option>)}</select></div>
+            <div className="field2"><div className="flabel">Project site <i>*</i></div><select value={proj.site} onChange={setP("site")}>{NPI_SITES.map(o=><option key={o}>{o}</option>)}</select></div>
+            <div className="field2"><div className="flabel">ECN number</div><input value={proj.ecn} onChange={setP("ecn")} placeholder="optional"/></div>
+            <div className="field2"/>
+            <div className="field2 wcol2"><div className="flabel">Project scope <i>*</i></div><textarea rows={3} value={proj.scope} onChange={setP("scope")} placeholder="Describe the scope of this NPI project..."/></div>
+          </div>
+        </div>:null}
+        {step===1?<div>
+          <div className="fsec" style={{marginTop:0}}>4-Blocker</div>
+          <div className="fgrid2">
+            <div className="field2"><div className="flabel">Quality</div><textarea rows={3} value={fb.q} onChange={setF("q")} placeholder="Key quality considerations..."/></div>
+            <div className="field2"><div className="flabel">Cost</div><textarea rows={3} value={fb.c} onChange={setF("c")} placeholder="Cost considerations..."/></div>
+            <div className="field2"><div className="flabel">Delivery</div><textarea rows={3} value={fb.d} onChange={setF("d")} placeholder="Delivery / timeline considerations..."/></div>
+            <div className="field2"><div className="flabel">Risk</div><textarea rows={3} value={fb.r} onChange={setF("r")} placeholder="Risk factors..."/></div>
+          </div>
+        </div>:null}
+        {step===2?<div>
+          <div className="fsec fsec-row" style={{marginTop:0}}><span>Groups</span><span style={{textTransform:"none",fontWeight:400,letterSpacing:0,color:"var(--muted)",fontSize:11.5}}>Feasibility, approval &amp; sampling run once per group — not per part.</span></div>
+          <div className="grp-bar">
+            {allGroups.map(g=><span className="grp-chip" key={g}>{g} <b>{grpCount(g)}</b>{grpCount(g)===0?<span className="x" title="Remove group" onClick={()=>rmGroup(g)}>×</span>:null}</span>)}
+            <span className="grp-add"><input value={newGroup} placeholder="New group name" onChange={e=>setNewGroup(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addGroup();}}/><button className="btn sm" onClick={addGroup}>+ Group</button></span>
+          </div>
+          <div className="fsec fsec-row"><span>Add part</span><button className="btn sm" onClick={()=>{setImpText("");setImportOpen(true);}}>Import Parts from Excel</button></div>
+          <div className="fgrid2">
+            <div className="field2"><div className="flabel">Part number <i>*</i></div><input value={draft.part} onChange={setD("part")}/></div>
+            <div className="field2"><div className="flabel">Description <i>*</i></div><input value={draft.desc} onChange={setD("desc")}/></div>
+            <div className="field2"><div className="flabel">Commodity</div><select value={draft.commodity} onChange={setD("commodity")}>{NPI_COMMOD.map(o=><option key={o}>{o}</option>)}</select></div>
+            <div className="field2"><div className="flabel">Group</div><select value={draft.group} onChange={setD("group")}>{allGroups.map(o=><option key={o}>{o}</option>)}</select></div>
+            <div className="field2"><div className="flabel">Target vendor</div><input value={draft.vendor} onChange={setD("vendor")}/></div>
+            <div className="field2"><div className="flabel">Vendor email</div><input value={draft.vendorEmail} onChange={setD("vendorEmail")}/></div>
+            <div className="field2"><div className="flabel">Est. annual volume</div><input inputMode="numeric" value={draft.vol} onChange={setD("vol")}/></div>
+            <div className="field2"><div className="flabel">Est. unit cost</div><input inputMode="numeric" value={draft.cost} onChange={setD("cost")}/></div>
+            <div className="field2"><div className="flabel">Target mass production date</div><input value={draft.mpd} onChange={setD("mpd")} placeholder="2026-12-31"/></div>
+          </div>
+          <div className="partbtns"><button className="btn primary" onClick={addPart}>+ Add Part</button><button className="btn no" onClick={clearParts} disabled={!parts.length}>Clear All Parts</button></div>
+          <div className="fsec fsec-row"><span>Parts in this submission</span><span style={{textTransform:"none",fontWeight:400,letterSpacing:0,color:"var(--teal)",fontSize:12}}>{parts.length} {parts.length===1?"part":"parts"} loaded · {usedGroups.length} group(s)</span></div>
+          {parts.length===0?<div className="emptyparts">No parts added yet. Fill the fields above and click <b>+ Add Part</b>, or import a batch from Excel.</div>:
+            allGroups.filter(g=>grpCount(g)>0).map(g=><div className="pgroup" key={g}>
+              <div className="pgroup-head">{g} <span className="cnt">· {grpCount(g)} part(s)</span><span className="note">runs the feasibility → approval → sampling flow as one group</span></div>
+              {parts.map((pt,i)=>pt.group===g?<div className="pcard" key={i}>
+                <span className="pn">{pt.part}</span>
+                <span>{pt.desc}<div className="meta">Commodity: {pt.commodity||"—"}</div></span>
+                <span className="meta">{pt.vendor||"—"}{pt.vol?" · Vol "+pt.vol:""}{pt.cost?" · ₹"+pt.cost:""}{pt.mpd?" · MPD "+pt.mpd:""}</span>
+                <button className="btn no sm" onClick={()=>rmPart(i)}>Remove</button>
+              </div>:null)}
+            </div>)}
+        </div>:null}
+        {step===3?<div>
+          <div className="fsec" style={{marginTop:0}}>Review &amp; submit</div>
+          <div className="kv">
+            <span className="kk">Project title</span><span>{proj.title}</span>
+            <span className="kk">Category · Site</span><span>{proj.category} · {proj.site}</span>
+            <span className="kk">ECN number</span><span>{proj.ecn||"—"}</span>
+            <span className="kk">Scope</span><span>{proj.scope}</span>
+            <span className="kk">4-Blocker</span><span>Q: {fb.q||"—"} · C: {fb.c||"—"} · D: {fb.d||"—"} · R: {fb.r||"—"}</span>
+            <span className="kk">Parts · Groups</span><span>{parts.length} part(s) across {usedGroups.length} group(s)</span>
+          </div>
+          <div style={{marginTop:12}}>
+            {allGroups.filter(g=>grpCount(g)>0).map(g=><div className="pgroup" key={g}>
+              <div className="pgroup-head">{g} <span className="cnt">· {grpCount(g)} part(s)</span></div>
+              {parts.map((pt,i)=>pt.group===g?<div className="pcard" key={i}><span className="pn">{pt.part}</span><span>{pt.desc}</span><span className="meta">{pt.vendor||"—"}</span><span className="meta">{pt.commodity}</span></div>:null)}
+            </div>)}
+          </div>
+          <div className="modal-note" style={{marginTop:14}}>On submit, one NPI project ({parts.length} parts) is created at status <b>Feasibility Review</b>. Each of the {usedGroups.length} group(s) then moves through feasibility, approval and sampling together, so the process runs once per group instead of once per part.</div>
+        </div>:null}
+      </div></div>
+      <div className="wiz-nav">
+        <button className="btn" disabled={step===0} onClick={back}>Back</button>
+        {step<3?<button className="btn primary" onClick={next}>Next</button>:<button className="btn primary" onClick={submit} disabled={!readyToSubmit}>Submit NPI Project</button>}
+      </div>
+    </div>
+    {importOpen?<div className="modal-back" onClick={()=>setImportOpen(false)}>
+      <div className="modal wide" onClick={e=>e.stopPropagation()}>
+        <div className="modal-h"><h3>Import Parts from Excel</h3><button className="modal-x" onClick={()=>setImportOpen(false)}>×</button></div>
+        <div className="modal-b">
+          <div className="modal-note" style={{marginBottom:14}}>Paste rows from your parts spreadsheet (tab or comma separated). Columns: Part Number, Description, Commodity, Vendor, Annual Volume, Unit Cost — the standard <b>NPI_Parts_Import_Test.xlsx</b> layout is auto-detected.</div>
+          <div className="field2"><div className="flabel">Rows</div><textarea rows={8} value={impText} onChange={e=>setImpText(e.target.value)} placeholder="AL-CP-001&#9;Aluminum cooling plate top&#9;Metal&#9;Bharat MetalWorks&#9;12000&#9;42"/></div>
+          <div className="imp-row">
+            <div className="field2" style={{flex:1,minWidth:220}}><div className="flabel">Assign imported parts to</div><select value={impGroup} onChange={e=>setImpGroup(e.target.value)}>
+              <option value="__commodity">Auto — group by commodity</option>
+              <option value="__vendor">Auto — group by target vendor</option>
+              {allGroups.map(g=><option key={g} value={g}>{g}</option>)}
+            </select></div>
+            <button className="btn" onClick={()=>setImpText(SAMPLE_PARTS_TSV)}>Load sample file</button>
+          </div>
+          <div className="modal-f"><button className="btn" onClick={()=>setImportOpen(false)}>Cancel</button><button className="btn primary" onClick={doImport}>Import parts</button></div>
+        </div>
+      </div>
+    </div>:null}
+  </>;
+}
+
+/* ---------- approvals ---------- */
+const APPROVALS=[
+  {id:"AP-3301",pid:"NPI-2026-0126",part:"6152-PPAP-09",gate:"PPAP request — Capex (F-03)",type:"Capex",by:"Hitesh Sharma",amount:"₹12,50,000",h:6},
+  {id:"AP-3302",pid:"NPI-2026-0119",part:"7788-VLV-01",gate:"Cost approval — Capex (F-03)",type:"Capex",by:"Hitesh Sharma",amount:"₹8,40,000",h:20},
+  {id:"AP-3303",pid:"NPI-2026-0123",part:"3345-CLP-02",gate:"Cost approval — Opex (F-03)",type:"Opex",by:"Hitesh Sharma",amount:"₹1,80,000",h:30},
+  {id:"AP-3304",pid:"NPI-2026-0122",part:"5567-GSK-01",gate:"SQE sample validation (F-07)",type:"SQE",by:"Vikram Rao",amount:"—",h:5},
+  {id:"AP-3305",pid:"NPI-2026-0116",part:"1120-SHF-04",gate:"Engineering approval (F-08)",type:"Engineering",by:"AME Team",amount:"—",h:44},
+  {id:"AP-3306",pid:"NPI-2026-0110",part:"9982-PMP-02",gate:"Production trial (F-09)",type:"Trial",by:"Production",amount:"—",h:52},
+  {id:"AP-3307",pid:"NPI-2026-0095",part:"4410-MAN-03",gate:"PSW / CFT sign-off (F-10)",type:"PSW",by:"Hitesh Sharma",amount:"—",h:36},
+  {id:"AP-3308",pid:"NPI-2026-0124",part:"7788-VLV-01",gate:"Feasibility Go (F-02)",type:"Feasibility",by:"Hitesh Sharma",amount:"—",h:12},
+  {id:"AP-3309",pid:"NPI-2026-0102",part:"3312-GER-02",gate:"Cost approval — Capex (F-03)",type:"Capex",by:"Ravi Menon",amount:"₹6,20,000",h:70},
+  {id:"AP-3310",pid:"NPI-2026-0098",part:"7741-PIN-03",gate:"SQE sample validation (F-07)",type:"SQE",by:"Vikram Rao",amount:"—",h:9},
+  {id:"AP-3311",pid:"NPI-2026-0118",part:"2231-HSG-05",gate:"Cost approval — Opex (F-03)",type:"Opex",by:"Hitesh Sharma",amount:"₹2,40,000",h:60},
+  {id:"AP-3312",pid:"NPI-2026-0115",part:"5560-SNS-01",gate:"Award recommendation (F-03)",type:"Capex",by:"Hitesh Sharma",amount:"₹4,90,000",h:26},
+];
+
+function ApprovalDetail({a,onBack}){
+  const {act,confirm}=useApp();
+  const [comment,setComment]=useState("");
+  const decide=(decision,tone)=>{
+    const what=decision==="Approved"?"route it to the next gate":decision==="Rejected"?"return it to the requester":"reassign it to the role group";
+    confirm({title:decision+" — "+a.pid,message:"Record "+decision.toLowerCase()+" for "+a.gate+"? This writes an audit entry and will "+what+".",confirmLabel:decision,tone:tone,onConfirm:()=>{act.resolveApproval(a,decision,comment);onBack();}});
+  };
+  return <>
+    <button className="backlink" onClick={onBack}>‹ Back to approvals</button>
+    <div className="pagehead"><h1>{a.gate}</h1><p><span className="mono" style={{color:"var(--teal)",fontWeight:600}}>{a.pid}</span> · Part {a.part} · Requested by {a.by}</p></div>
+    <div className="detail-grid">
+      <div className="dcard"><div className="dk">Type</div><div className="dv">{a.type}</div></div>
+      <div className="dcard"><div className="dk">Amount</div><div className="dv">{a.amount}</div></div>
+      <div className="dcard"><div className="dk">Requested by</div><div className="dv">{a.by}</div></div>
+      <div className="dcard"><div className="dk">SLA remaining</div><div className="dv"><span className={"sla "+slaColor(a.h)}>{slaLabel(a.h)}</span></div></div>
+    </div>
+    <div className="panel panel-pad" style={{maxWidth:680}}>
+      <div className="teams-note"><span>🔔</span><div><b>Also in Teams.</b> This request was delivered to your Teams as an approval card — act here or there, and Power Automate records the single decision.</div></div>
+      <div className="field2"><div className="flabel">Approver comments</div><textarea rows={3} value={comment} onChange={e=>setComment(e.target.value)} placeholder="Add a comment (optional)…"/></div>
+      <div className="det-actions">
+        <button className="btn ok" onClick={()=>decide("Approved","ok")}>Approve</button>
+        <button className="btn no" onClick={()=>decide("Rejected","danger")}>Reject</button>
+        <button className="btn" onClick={()=>decide("Reassigned")}>Reassign</button>
+      </div>
+    </div>
+  </>;
+}
+
+function Approvals(){
+  const {db}=useApp();
+  const [selId,setSelId]=useState(null);
+  const sel=selId!=null?db.approvals.find(x=>x.id===selId):null;
+  if(sel) return <ApprovalDetail a={sel} onBack={()=>setSelId(null)}/>;
+  const cols=[
+    {key:"pid",label:"Project ID",w:"126px",filterType:"text",val:x=>x.pid,render:x=><span className="tpid">{x.pid}</span>},
+    {key:"gate",label:"Gate",filterType:"text",val:x=>x.gate,render:x=><span className="tcell">{x.gate}</span>},
+    {key:"type",label:"Type",w:"124px",filterType:"select",options:["All","Capex","Opex","SQE","Engineering","Trial","PSW","Feasibility"],val:x=>x.type,render:x=><span className="mchip">{x.type}</span>},
+    {key:"by",label:"Requested by",w:"150px",filterType:"text",val:x=>x.by,render:x=><span>{x.by}</span>},
+    {key:"amount",label:"Amount",w:"120px",filterType:"text",val:x=>x.amount,render:x=><span>{x.amount}</span>},
+    {key:"h",label:"SLA",w:"104px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?x.h<=12:v==="Due soon"?(x.h>12&&x.h<24):v==="On track"?x.h>=24:true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
+    {key:"part",label:"Part",w:"140px",hidden:true,filterType:"text",val:x=>x.part,render:x=><span className="tmeta">{x.part}</span>},
+    {key:"act",label:"",w:"98px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={e=>{e.stopPropagation();setSelId(x.id);}}>Review</button>},
+  ];
+  return <>
+    <div className="pagehead"><h1>Approvals</h1><p>Every gate awaiting a decision — approve here or from the Teams card. {db.approvals.length} pending.</p></div>
+    <div className="block">
+      <div className="block-h"><h2><Icon n="approvals" cls="" style={{width:16,height:16,color:"var(--teal)"}}/> Approval inbox <span className="cnt">{db.approvals.length}</span></h2></div>
+      <DataTable columns={cols} rows={db.approvals} pageSize={10} onRowClick={x=>setSelId(x.id)}/>
+    </div>
+  </>;
+}
+
+/* ---------- admin & config ---------- */
+const _t=(key,label,w,cls)=>({key,label,w,filterType:"text",val:x=>x[key],render:x=><span className={cls||""}>{x[key]}</span>});
+const _chip=(key,label,w)=>({key,label,w,filterType:"text",val:x=>x[key],render:x=><span className="mchip">{x[key]}</span>});
+const _stat=(w)=>({key:"status",label:"Status",w:w||"112px",filterType:"select",options:["All","Active","Inactive","Planned"],val:x=>x.status,render:x=><span className={"pill "+(x.status==="Active"?"p-green":x.status==="Inactive"?"p-gray":"p-amber")}>{x.status}</span>});
+const _edit={key:"_e",label:"",w:"68px",always:true,sortable:false,render:(x,cb)=><button className="btn sm" onClick={e=>{e.stopPropagation();cb("Edit "+(x.name||x.role||x.list||x.gate||x.journey||x.path||"item")+" (demo)");}}>Edit</button>};
+
+const ADMIN_CFG={
+  plants:{title:"Plants",add:"plant",cols:[_t("name","Plant"),_t("code","Code","110px","tpid"),_t("region","Region","120px"),_t("bu","Business unit","160px"),_stat()],rows:[
+    {name:"Pune Plant",code:"PUN",region:"India",bu:"Automotive",status:"Active"},
+    {name:"Bengaluru Plant",code:"BLR",region:"India",bu:"Aerospace",status:"Active"},
+    {name:"Chennai Plant",code:"MAA",region:"India",bu:"Automotive",status:"Inactive"},
+    {name:"Waltham HQ",code:"WAL",region:"US",bu:"Corporate",status:"Active"},
+  ]},
+  people:{title:"People",add:"person",cols:[_t("name","Name","180px"),_t("email","Email"),_chip("role","Role","150px"),_t("plant","Plant","100px"),_stat()],rows:[
+    {name:"Hitesh Sharma",email:"hitesh.sharma@honeywell.com",role:"Sourcing",plant:"Pune",status:"Active"},
+    {name:"Ravi Menon",email:"ravi.menon@honeywell.com",role:"Buyer",plant:"Pune",status:"Active"},
+    {name:"Anita Desai",email:"anita.desai@honeywell.com",role:"Finance",plant:"Pune",status:"Active"},
+    {name:"Vikram Rao",email:"vikram.rao@honeywell.com",role:"SQE",plant:"Pune",status:"Active"},
+    {name:"Sunil Kapoor",email:"sunil.kapoor@honeywell.com",role:"BU Head",plant:"Pune",status:"Active"},
+    {name:"Meera Iyer",email:"meera.iyer@honeywell.com",role:"Engineering",plant:"Pune",status:"Active"},
+    {name:"Arjun Nair",email:"arjun.nair@honeywell.com",role:"Planner",plant:"Pune",status:"Active"},
+    {name:"Priya Shah",email:"priya.shah@honeywell.com",role:"Controllership",plant:"Pune",status:"Inactive"},
+  ]},
+  roles:{title:"Roles & assignments",add:"role",cols:[_chip("role","Role","190px"),_t("members","Members","100px"),_t("backup","Backup approver","180px"),_t("plant","Plant","100px")],rows:[
+    {role:"Sourcing",members:"4",backup:"Meera Iyer",plant:"Pune"},
+    {role:"Buyer",members:"2",backup:"Arjun Nair",plant:"Pune"},
+    {role:"Finance",members:"3",backup:"Priya Shah",plant:"Pune"},
+    {role:"BU Head",members:"1",backup:"—",plant:"Pune"},
+    {role:"Controllership",members:"1",backup:"Anita Desai",plant:"Pune"},
+    {role:"SQE / IQC",members:"3",backup:"Meera Iyer",plant:"Pune"},
+    {role:"Engineering / AME",members:"2",backup:"Vikram Rao",plant:"Pune"},
+    {role:"Production",members:"2",backup:"Arjun Nair",plant:"Pune"},
+    {role:"Planner",members:"2",backup:"Ravi Menon",plant:"Pune"},
+    {role:"CFT",members:"6",backup:"—",plant:"Pune"},
+    {role:"App Admin",members:"1",backup:"—",plant:"Pune"},
+  ]},
+  matrix:{title:"Approval matrix",add:"route",cols:[_chip("journey","Journey","110px"),_t("path","Path","130px"),_t("sequence","Approver sequence"),_t("sla","SLA","116px")],rows:[
+    {journey:"NPI",path:"Capex",sequence:"Sourcing Head → Finance → BU Head → Controllership",sla:"48h / gate"},
+    {journey:"NPI",path:"Opex",sequence:"Sourcing Head → Finance → BU Head",sla:"48h / gate"},
+    {journey:"NPI",path:"BU Head gate",sequence:"BU Head",sla:"72h"},
+    {journey:"NPI",path:"PSW / CFT",sequence:"Sourcing · Finance · SQE · Eng · Production · Planner (parallel)",sla:"48h"},
+  ]},
+  suppliers:{title:"Suppliers",add:"supplier",cols:[_t("name","Supplier","220px"),_t("code","Code","120px","tpid"),_t("ivalua","iValua ID","120px","tpid"),_t("contact","Contact","150px"),_t("email","Email")],rows:[
+    {name:"Acme Precision Industries",code:"SUP-1042",ivalua:"IV-88231",contact:"R. Kulkarni",email:"sales@acmeprecision.in"},
+    {name:"Bharat Forge",code:"SUP-1051",ivalua:"IV-88240",contact:"S. Deshmukh",email:"npi@bharatforge.com"},
+    {name:"Sundaram Fasteners",code:"SUP-1063",ivalua:"IV-88255",contact:"K. Raman",email:"sourcing@sfl.co.in"},
+    {name:"Rane Group",code:"SUP-1074",ivalua:"IV-88261",contact:"P. Rao",email:"quality@ranegroup.com"},
+    {name:"Endurance Tech",code:"SUP-1088",ivalua:"IV-88279",contact:"A. Jadhav",email:"npi@endurance.co.in"},
+    {name:"Minda Corp",code:"SUP-1095",ivalua:"IV-88284",contact:"V. Gupta",email:"supplier@mindacorp.com"},
+  ]},
+  refdata:{title:"Reference data",add:"list value",cols:[_t("list","List","200px"),_t("values","Values")],rows:[
+    {list:"PPAP category",values:"NPI · Localization · ECN"},
+    {list:"Document types",values:"AEF · Quote · Drawing · SQE report · PSW · IQC"},
+    {list:"Currencies",values:"INR · USD · EUR"},
+    {list:"Units of measure",values:"pcs · kg · m"},
+    {list:"Commodities",values:"Machined · Castings · PCBA · Electromechanical"},
+  ]},
+  sla:{title:"SLA & escalation",add:"rule",cols:[_t("gate","Gate","210px"),_t("sla","SLA","110px"),_t("reminder","Reminder","120px"),_t("escalate","Escalate to")],rows:[
+    {gate:"Approval (most gates)",sla:"48h",reminder:"at 50%",escalate:"Role-group manager"},
+    {gate:"BU Head",sla:"72h",reminder:"at 50%",escalate:"Role-group manager"},
+    {gate:"PSW / CFT",sla:"48h",reminder:"at 36h",escalate:"CFT lead"},
+    {gate:"Vendor timeline",sla:"7 days",reminder:"Day 5",escalate:"Sourcing Head"},
+    {gate:"Pilot lot delivery",sla:"7 days",reminder:"Day 5",escalate:"Sourcing Head"},
+  ]},
+  journeys:{title:"Journeys",add:"journey",cols:[_chip("journey","Journey","150px"),_t("id","ID format","180px","mono"),_stat()],rows:[
+    {journey:"NPI",id:"NPI-YYYY-NNNN",status:"Active"},
+    {journey:"Sales",id:"SO-YYYY-NNNN",status:"Planned"},
+    {journey:"ECN",id:"ECN-YYYY-NNNN",status:"Planned"},
+    {journey:"Resourcing",id:"RES-YYYY-NNNN",status:"Planned"},
+    {journey:"Localisation",id:"LOC-YYYY-NNNN",status:"Planned"},
+    {journey:"Transition",id:"TRN-YYYY-NNNN",status:"Planned"},
+  ]},
+};
+
+function Admin(){
+  const {db,act,openModal,closeModal,confirm}=useApp();
+  const [sec,setSec]=useState("plants");
+  const cfg=ADMIN_CFG[sec];
+  const rows=db.admin[sec];
+  const fieldsFor=()=>cfg.cols.map(c=>{
+    const opts=c.options?c.options.filter(o=>o!=="All"):null;
+    return {key:c.key,label:c.label,req:true,type:(c.filterType==="select"&&opts)?"select":"text",options:opts,full:["email","values","sequence"].indexOf(c.key)>=0};
+  });
+  const openAdd=()=>openModal(<FormModal title={"Add "+cfg.add} fields={fieldsFor()} submitLabel="Add" onClose={closeModal} onSubmit={v=>{act.addAdmin(sec,v);closeModal();}}/>);
+  const openEdit=(row)=>openModal(<FormModal title={"Edit "+cfg.add} fields={fieldsFor()} initial={row} submitLabel="Save" onClose={closeModal} onSubmit={v=>{act.updateAdmin(sec,rows.indexOf(row),v);closeModal();}}/>);
+  const del=(row)=>confirm({title:"Delete "+cfg.add,message:"Delete this "+cfg.add+"? This cannot be undone.",confirmLabel:"Delete",tone:"danger",onConfirm:()=>act.deleteAdmin(sec,rows.indexOf(row))});
+  const editCol={key:"_e",label:"",w:"120px",always:true,sortable:false,render:(x)=><div style={{display:"flex",gap:6}}><button className="btn sm" onClick={e=>{e.stopPropagation();openEdit(x);}}>Edit</button><button className="btn no sm" onClick={e=>{e.stopPropagation();del(x);}}>Del</button></div>};
+  const cols=cfg.cols.concat([editCol]);
+  return <>
+    <div className="pagehead"><h1>Admin &amp; configuration</h1><p>Master data behind the platform — plants, people, roles and routing are configured here, not coded. Adding a plant or approver is a data entry.</p></div>
+    <div className="admin-grid">
+      <aside className="admin-nav">
+        {Object.keys(ADMIN_CFG).map(k=><button key={k} className={sec===k?"on":""} onClick={()=>setSec(k)}>{ADMIN_CFG[k].title}</button>)}
+      </aside>
+      <div className="block">
+        <div className="block-h"><h2>{cfg.title} <span className="cnt">{rows.length}</span></h2><button className="admin-add" onClick={openAdd}>+ Add {cfg.add}</button></div>
+        <DataTable key={sec} columns={cols} rows={rows} pageSize={10}/>
+      </div>
+    </div>
+  </>;
+}
+
+/* ---------- reports ---------- */
+function HBar({data}){
+  const max=Math.max.apply(null,data.map(d=>d.v).concat([1]));
+  return <div className="hbar">{data.map((d,i)=><div key={i} className="hbar-row">
+    <div className="hbar-lbl">{d.label}</div>
+    <div className="hbar-track"><div className="hbar-fill" style={{width:(d.v/max*100)+"%"}}/></div>
+    <div className="hbar-val">{d.v}</div>
+  </div>)}</div>;
+}
+function Donut({data}){
+  const total=data.reduce((s,d)=>s+d.v,0)||1, R=54, C=2*Math.PI*R; let acc=0;
+  return <div className="donut-wrap">
+    <svg viewBox="0 0 140 140" width="140" height="140">
+      <g transform="translate(70,70) rotate(-90)">
+        <circle r={R} fill="none" stroke="var(--border2)" strokeWidth="16"/>
+        {data.map((d,i)=>{const frac=d.v/total, dash=frac*C, off=acc*C; acc+=frac; return <circle key={i} r={R} fill="none" stroke={d.color} strokeWidth="16" strokeDasharray={dash+" "+(C-dash)} strokeDashoffset={-off}/>;})}
+      </g>
+      <text x="70" y="67" textAnchor="middle" fontSize="24" fontWeight="700" fill="var(--ink)">{total}</text>
+      <text x="70" y="85" textAnchor="middle" fontSize="10" fill="var(--muted)">projects</text>
+    </svg>
+    <div className="donut-legend">{data.map((d,i)=><div key={i} className="dl"><span className="dlc" style={{background:d.color}}/>{d.label} <b>{d.v}</b></div>)}</div>
+  </div>;
+}
+function VBars({data}){
+  const max=Math.max.apply(null,data.map(d=>d.v).concat([1]));
+  return <div className="vbars">{data.map((d,i)=><div key={i} className="vbar-col">
+    <div className="vbar-num">{d.v}</div>
+    <div className="vbar-track"><div className="vbar-fill" style={{height:(d.v/max*100)+"%"}}/></div>
+    <div className="vbar-lbl">{d.label}</div>
+  </div>)}</div>;
+}
+function Reports({onAct}){
+  const active=PROJECTS.filter(x=>x.phase!=="Closed").length;
+  const rtiles=[["Active projects",String(active),"across Pune","ic-teal","projects"],["On-time PPAP","92%","last 90 days","ic-green","reports"],["Avg cycle time","47d","intake to PSW","ic-blue","clock"],["SLA breaches","3","this week","ic-red","clock"],["Cost savings","₹42L","year to date","ic-amber","reports"]];
+  const phaseOrder=["Initiation","Approval","Vendor Dev","Sample Qual","PSW","Pilot","Closed"];
+  const byPhase=phaseOrder.map(p=>({label:p,v:PROJECTS.filter(x=>x.phase===p).length}));
+  const health=[
+    {label:"In progress",v:PROJECTS.filter(x=>["p-blue","p-teal","p-gray"].indexOf(statusClass(x.status))>=0).length,color:"var(--blue)"},
+    {label:"Pending",v:PROJECTS.filter(x=>statusClass(x.status)==="p-amber").length,color:"var(--amber)"},
+    {label:"Blocked",v:PROJECTS.filter(x=>statusClass(x.status)==="p-red").length,color:"var(--red)"},
+    {label:"Completed",v:PROJECTS.filter(x=>statusClass(x.status)==="p-green").length,color:"var(--green)"},
+  ];
+  const monthly=[{label:"Apr",v:3},{label:"May",v:5},{label:"Jun",v:4},{label:"Jul",v:6},{label:"Aug",v:8},{label:"Sep",v:12}];
+  return <>
+    <div className="pagehead"><h1>Reports</h1><p>Portfolio health across the Pune plant — figures roll up from projects, approvals and SLAs.</p></div>
+    <div className="tiles five">{rtiles.map((t,i)=><Tile key={i} k={t[0]} v={t[1]} s={t[2]} ic={t[3]} icon={t[4]} warn={t[3]==="ic-red"}/>)}</div>
+    <div className="chart-cols">
+      <div className="block"><div className="block-h"><h2>Projects by phase</h2></div><div className="chartbody"><HBar data={byPhase}/></div></div>
+      <div className="block"><div className="block-h"><h2>Portfolio health</h2></div><div className="chartbody"><Donut data={health}/></div></div>
+    </div>
+    <div className="block"><div className="block-h"><h2>Projects completed / month</h2><span className="cnt">2026</span></div><div className="chartbody"><VBars data={monthly}/></div></div>
+  </>;
+}
+
+/* ---------- samples & pilot lots ---------- */
+const resultPill=r=>(r==="Approved"||r==="OK")?"p-green":(r==="Rejected"||r==="Not OK")?"p-red":"p-amber";
+const _sla=()=>({key:"h",label:"SLA",w:"100px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?x.h<=12:v==="Due soon"?(x.h>12&&x.h<24):v==="On track"?x.h>=24:true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>});
+const SAMPLES=[
+  {pid:"NPI-2026-0122",part:"5567-GSK-01",supplier:"Endurance Tech",submitted:"05 Sep 2026",result:"Pending",stage:"SQE validation",h:5},
+  {pid:"NPI-2026-0126",part:"6152-PPAP-12",supplier:"Acme Precision",submitted:"06 Sep 2026",result:"Pending",stage:"SQE validation",h:96},
+  {pid:"NPI-2026-0116",part:"1120-SHF-04",supplier:"Endurance Tech",submitted:"04 Sep 2026",result:"Conditional",stage:"Engineering",h:22},
+  {pid:"NPI-2026-0098",part:"7741-PIN-03",supplier:"Sterling Tools",submitted:"03 Sep 2026",result:"Approved",stage:"Trial",h:9},
+  {pid:"NPI-2026-0119",part:"7788-VLV-01",supplier:"Rane Group",submitted:"02 Sep 2026",result:"Rejected",stage:"Re-sample",h:40},
+  {pid:"NPI-2026-0110",part:"9982-PMP-02",supplier:"Shakti Pumps",submitted:"01 Sep 2026",result:"Approved",stage:"Trial",h:70},
+  {pid:"NPI-2026-0102",part:"3312-GER-02",supplier:"Bharat Gears",submitted:"31 Aug 2026",result:"Conditional",stage:"Engineering",h:52},
+  {pid:"NPI-2026-0095",part:"4410-MAN-03",supplier:"Endurance Tech",submitted:"29 Aug 2026",result:"Approved",stage:"Trial",h:120},
+];
+const PILOTLOTS=[
+  {pid:"NPI-2026-0110",part:"9982-PMP-02",lot:"Lot 1",pr:"4500221",qty:"500",delivery:"12 Sep 2026",iqc:"OK",h:70},
+  {pid:"NPI-2026-0110",part:"9982-PMP-02",lot:"Lot 2",pr:"4500229",qty:"500",delivery:"—",iqc:"Pending",h:22},
+  {pid:"NPI-2026-0104",part:"3410-FLG-01",lot:"Lot 1",pr:"4500210",qty:"500",delivery:"08 Sep 2026",iqc:"OK",h:110},
+  {pid:"NPI-2026-0104",part:"3410-FLG-02",lot:"Lot 2",pr:"4500215",qty:"500",delivery:"10 Sep 2026",iqc:"Not OK",h:40},
+  {pid:"NPI-2026-0109",part:"8820-BRG-03",lot:"Lot 3",pr:"4500199",qty:"500",delivery:"28 Aug 2026",iqc:"OK",h:130},
+  {pid:"NPI-2026-0109",part:"8820-BRG-03",lot:"Lot 2",pr:"4500188",qty:"500",delivery:"20 Aug 2026",iqc:"OK",h:150},
+  {pid:"NPI-2026-0095",part:"4410-MAN-03",lot:"Lot 1",pr:"4500233",qty:"300",delivery:"—",iqc:"Pending",h:12},
+];
+
+function InfoModal({title,pairs,onClose}){
+  return <Modal title={title} onClose={onClose}>
+    <div className="kv">{pairs.map((p,i)=><React.Fragment key={i}><span className="kk">{p[0]}</span><span>{p[1]}</span></React.Fragment>)}</div>
+    <div className="modal-f"><button className="btn" onClick={onClose}>Close</button></div>
+  </Modal>;
+}
+function Samples(){
+  const {db,act,openModal,closeModal}=useApp();
+  const [tab,setTab]=useState("samples");
+  const openSample=(x)=>{
+    if(x.result==="Pending") openModal(<FormModal title={"Validate sample "+x.part} fields={[{key:"result",label:"SQE result",req:true,type:"select",options:["Approved","Conditional","Rejected"]},{key:"comment",label:"Inspection comment",type:"textarea",full:true,ph:"Notes…"}]} submitLabel="Record decision" onClose={closeModal} onSubmit={v=>{act.validateSample(x,v.result,v.comment);closeModal();}}/>);
+    else openModal(<InfoModal title={"Sample "+x.part} onClose={closeModal} pairs={[["Project",x.pid],["Supplier",x.supplier],["Stage",x.stage],["SQE result",<span className={"pill "+resultPill(x.result)}>{x.result}</span>],["Submitted",x.submitted]]}/>);
+  };
+  const openPilot=(x)=>{
+    if(x.iqc==="Not OK") openModal(<FormModal title={"Disposition — "+x.lot+" · "+x.part} fields={[{key:"disp",label:"Disposition",req:true,type:"select",options:["Accept as-is","Return to supplier","Rework"]},{key:"comment",label:"Notes",type:"textarea",full:true}]} submitLabel="Record" onClose={closeModal} onSubmit={v=>{act.dispositionPilot(x,v.disp);closeModal();}}/>);
+    else openModal(<InfoModal title={x.lot+" · "+x.part} onClose={closeModal} pairs={[["Project",x.pid],["PR number",x.pr],["Order qty",x.qty],["Delivery",x.delivery],["IQC",<span className={"pill "+resultPill(x.iqc)}>{x.iqc}</span>]]}/>);
+  };
+  const scols=[
+    {key:"pid",label:"Project ID",w:"126px",filterType:"text",val:x=>x.pid,render:x=><span className="tpid">{x.pid}</span>},
+    {key:"part",label:"Part",w:"150px",filterType:"text",val:x=>x.part,render:x=><span className="tcell">{x.part}</span>},
+    {key:"supplier",label:"Supplier",filterType:"text",val:x=>x.supplier,render:x=><span>{x.supplier}</span>},
+    {key:"submitted",label:"Submitted",w:"120px",hidden:true,filterType:"text",val:x=>x.submitted,render:x=><span className="tmeta">{x.submitted}</span>},
+    {key:"result",label:"SQE result",w:"132px",filterType:"select",options:["All","Approved","Conditional","Pending","Rejected"],val:x=>x.result,render:x=><span className={"pill "+resultPill(x.result)}>{x.result}</span>},
+    {key:"stage",label:"Stage",w:"142px",filterType:"select",options:["All","SQE validation","Engineering","Trial","Re-sample"],val:x=>x.stage,render:x=><span className="mchip">{x.stage}</span>},
+    _sla(),
+    {key:"act",label:"",w:"92px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={e=>{e.stopPropagation();openSample(x);}}>{x.result==="Pending"?"Validate":"Open"}</button>},
+  ];
+  const pcols=[
+    {key:"pid",label:"Project ID",w:"126px",filterType:"text",val:x=>x.pid,render:x=><span className="tpid">{x.pid}</span>},
+    {key:"part",label:"Part",w:"150px",filterType:"text",val:x=>x.part,render:x=><span className="tcell">{x.part}</span>},
+    {key:"lot",label:"Lot",w:"90px",filterType:"select",options:["All","Lot 1","Lot 2","Lot 3"],val:x=>x.lot,render:x=><span className="mchip">{x.lot}</span>},
+    {key:"pr",label:"PR number",w:"120px",filterType:"text",val:x=>x.pr,render:x=><span className="tpid">{x.pr}</span>},
+    {key:"qty",label:"Order qty",w:"100px",filterType:"text",val:x=>x.qty,render:x=><span>{x.qty}</span>},
+    {key:"delivery",label:"Delivery",w:"124px",filterType:"text",val:x=>x.delivery,render:x=><span className="tmeta">{x.delivery}</span>},
+    {key:"iqc",label:"IQC",w:"110px",filterType:"select",options:["All","OK","Not OK","Pending"],val:x=>x.iqc,render:x=><span className={"pill "+resultPill(x.iqc)}>{x.iqc}</span>},
+    _sla(),
+    {key:"act",label:"",w:"92px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={e=>{e.stopPropagation();openPilot(x);}}>{x.iqc==="Not OK"?"Disposition":"Open"}</button>},
+  ];
+  return <>
+    <div className="pagehead"><h1>Samples &amp; pilot lots</h1><p>Sample qualification (SQE, Engineering, Trial) and pilot-lot delivery &amp; IQC across the plant.</p></div>
+    <div className="seg">
+      <button className={tab==="samples"?"on":""} onClick={()=>setTab("samples")}>Samples</button>
+      <button className={tab==="pilot"?"on":""} onClick={()=>setTab("pilot")}>Pilot lots</button>
+    </div>
+    <div className="block">
+      <div className="block-h"><h2><Icon n="samples" cls="" style={{width:16,height:16,color:"var(--teal)"}}/> {tab==="samples"?"Sample submissions":"Pilot lots"} <span className="cnt">{tab==="samples"?db.samples.length:db.pilots.length}</span></h2></div>
+      {tab==="samples"
+        ? <DataTable key="samples" columns={scols} rows={db.samples} pageSize={10}/>
+        : <DataTable key="pilot" columns={pcols} rows={db.pilots} pageSize={10}/>}
+    </div>
+  </>;
+}
+
+/* ---------- vendors ---------- */
+const vpill=s=>{s=s.toLowerCase(); if(s.indexOf("overdue")>=0)return "p-red"; if(s.indexOf("await")>=0||s.indexOf("conditional")>=0)return "p-amber"; if(s.indexOf("received")>=0||s.indexOf("approved")>=0)return "p-green"; if(s.indexOf("acknowled")>=0||s.indexOf("onboard")>=0)return "p-blue"; return "p-gray";};
+const ratingPill=r=>r==="A"?"p-green":r==="B"?"p-amber":"p-red";
+const VENDORS_SUP=[
+  {name:"Acme Precision Industries",code:"SUP-1042",contact:"R. Kulkarni",email:"sales@acmeprecision.in",projects:"3",rating:"A",status:"Approved"},
+  {name:"Bharat Forge",code:"SUP-1051",contact:"S. Deshmukh",email:"npi@bharatforge.com",projects:"2",rating:"A",status:"Approved"},
+  {name:"Sundaram Fasteners",code:"SUP-1063",contact:"K. Raman",email:"sourcing@sfl.co.in",projects:"1",rating:"B",status:"Approved"},
+  {name:"Rane Group",code:"SUP-1074",contact:"P. Rao",email:"quality@ranegroup.com",projects:"1",rating:"A",status:"Approved"},
+  {name:"Endurance Tech",code:"SUP-1088",contact:"A. Jadhav",email:"npi@endurance.co.in",projects:"3",rating:"B",status:"Approved"},
+  {name:"Minda Corp",code:"SUP-1095",contact:"V. Gupta",email:"supplier@mindacorp.com",projects:"1",rating:"C",status:"Conditional"},
+  {name:"Sterling Tools",code:"SUP-1101",contact:"N. Bansal",email:"npi@sterlingtools.in",projects:"1",rating:"B",status:"Approved"},
+  {name:"Shakti Pumps",code:"SUP-1112",contact:"D. Patel",email:"quality@shaktipumps.com",projects:"1",rating:"C",status:"Onboarding"},
+  {name:"Bharat Gears",code:"SUP-1120",contact:"M. Singh",email:"sales@bharatgears.com",projects:"1",rating:"A",status:"Approved"},
+  {name:"NRB Bearings",code:"SUP-1134",contact:"L. Menon",email:"npi@nrb.co.in",projects:"1",rating:"A",status:"Approved"},
+];
+const VENDOR_COMMS=[
+  {pid:"NPI-2026-0117",supplier:"Endurance Tech",type:"Escalation",sent:"02 Sep 2026",due:"04 Sep 2026",status:"Overdue",h:8},
+  {pid:"NPI-2026-0118",supplier:"Acme Precision",type:"Timeline reminder",sent:"05 Sep 2026",due:"10 Sep 2026",status:"Awaiting reply",h:44},
+  {pid:"NPI-2026-0119",supplier:"Rane Group",type:"Sample request",sent:"31 Aug 2026",due:"07 Sep 2026",status:"Awaiting reply",h:20},
+  {pid:"NPI-2026-0128",supplier:"Bharat Forge",type:"RFQ",sent:"04 Sep 2026",due:"09 Sep 2026",status:"Quote received",h:30},
+  {pid:"NPI-2026-0102",supplier:"Bharat Gears",type:"RFQ",sent:"01 Sep 2026",due:"08 Sep 2026",status:"Quote received",h:52},
+  {pid:"NPI-2026-0120",supplier:"Sundaram Fasteners",type:"PO notification",sent:"03 Sep 2026",due:"—",status:"Acknowledged",h:70},
+  {pid:"NPI-2026-0126",supplier:"Acme Precision",type:"RFQ",sent:"06 Sep 2026",due:"12 Sep 2026",status:"Awaiting reply",h:96},
+  {pid:"NPI-2026-0110",supplier:"Shakti Pumps",type:"Onboarding",sent:"30 Aug 2026",due:"06 Sep 2026",status:"Acknowledged",h:60},
+];
+
+function Vendors(){
+  const {db,act,openModal,closeModal}=useApp();
+  const [tab,setTab]=useState("suppliers");
+  const viewSup=(x)=>openModal(<InfoModal title={x.name} onClose={closeModal} pairs={[["Code",x.code],["Contact",x.contact],["Email",x.email],["Active projects",x.projects],["Rating",<span className={"pill "+ratingPill(x.rating)}>{x.rating}</span>],["Status",<span className={"pill "+vpill(x.status)}>{x.status}</span>]]}/>);
+  const openComm=(x)=>openModal(<Modal title={x.type+" — "+x.pid} onClose={closeModal}>
+    <div className="kv"><span className="kk">Supplier</span><span>{x.supplier}</span><span className="kk">Sent</span><span>{x.sent}</span><span className="kk">Due</span><span>{x.due}</span><span className="kk">Status</span><span className={"pill "+vpill(x.status)}>{x.status}</span></div>
+    <div className="modal-f"><button className="btn" onClick={closeModal}>Close</button>{x.status!=="Acknowledged"?<button className="btn primary" onClick={()=>{act.markCommReplied(x);closeModal();}}>Mark replied</button>:null}</div>
+  </Modal>);
+  const addSup=()=>openModal(<FormModal title="Add supplier" fields={[{key:"name",label:"Supplier",req:true,full:true},{key:"code",label:"Code",req:true},{key:"contact",label:"Contact"},{key:"email",label:"Email",full:true},{key:"rating",label:"Rating",type:"select",options:["A","B","C"]},{key:"status",label:"Status",type:"select",options:["Approved","Conditional","Onboarding"]}]} submitLabel="Add" onClose={closeModal} onSubmit={v=>{act.addSupplier(v);closeModal();}}/>);
+  const supCols=[
+    {key:"name",label:"Supplier",filterType:"text",val:x=>x.name,render:x=><span className="tcell">{x.name}</span>},
+    {key:"code",label:"Code",w:"120px",filterType:"text",val:x=>x.code,render:x=><span className="tpid">{x.code}</span>},
+    {key:"contact",label:"Contact",w:"150px",filterType:"text",val:x=>x.contact,render:x=><span>{x.contact}</span>},
+    {key:"email",label:"Email",hidden:true,filterType:"text",val:x=>x.email,render:x=><span className="tmeta">{x.email}</span>},
+    {key:"projects",label:"Active",w:"90px",sortVal:x=>x.projects,filterType:"text",val:x=>x.projects,render:x=><span>{x.projects}</span>},
+    {key:"rating",label:"Rating",w:"104px",filterType:"select",options:["All","A","B","C"],val:x=>x.rating,render:x=><span className={"pill "+ratingPill(x.rating)}>{x.rating}</span>},
+    {key:"status",label:"Status",w:"134px",filterType:"select",options:["All","Approved","Conditional","Onboarding"],val:x=>x.status,render:x=><span className={"pill "+vpill(x.status)}>{x.status}</span>},
+    {key:"act",label:"",w:"84px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={e=>{e.stopPropagation();viewSup(x);}}>View</button>},
+  ];
+  const commCols=[
+    {key:"pid",label:"Project ID",w:"126px",filterType:"text",val:x=>x.pid,render:x=><span className="tpid">{x.pid}</span>},
+    {key:"supplier",label:"Supplier",filterType:"text",val:x=>x.supplier,render:x=><span className="tcell">{x.supplier}</span>},
+    {key:"type",label:"Type",w:"150px",filterType:"select",options:["All","RFQ","Timeline reminder","Sample request","PO notification","Escalation","Onboarding"],val:x=>x.type,render:x=><span className="mchip">{x.type}</span>},
+    {key:"sent",label:"Sent",w:"120px",filterType:"text",val:x=>x.sent,render:x=><span className="tmeta">{x.sent}</span>},
+    {key:"due",label:"Due",w:"120px",filterType:"text",val:x=>x.due,render:x=><span className="tmeta">{x.due}</span>},
+    {key:"status",label:"Status",w:"148px",filterType:"select",options:["All","Awaiting reply","Quote received","Acknowledged","Overdue"],val:x=>x.status,render:x=><span className={"pill "+vpill(x.status)}>{x.status}</span>},
+    _sla(),
+    {key:"act",label:"",w:"84px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={e=>{e.stopPropagation();openComm(x);}}>Open</button>},
+  ];
+  return <>
+    <div className="pagehead"><h1>Vendors</h1><p>Supplier directory and vendor communications — RFQs, notifications, reminders and escalations.</p></div>
+    <div className="seg">
+      <button className={tab==="suppliers"?"on":""} onClick={()=>setTab("suppliers")}>Suppliers</button>
+      <button className={tab==="comms"?"on":""} onClick={()=>setTab("comms")}>Communications</button>
+    </div>
+    <div className="block">
+      <div className="block-h"><h2><Icon n="vendors" cls="" style={{width:16,height:16,color:"var(--teal)"}}/> {tab==="suppliers"?"Suppliers":"Vendor communications"} <span className="cnt">{tab==="suppliers"?db.suppliers.length:db.comms.length}</span></h2>{tab==="suppliers"?<button className="admin-add" onClick={addSup}>+ Add supplier</button>:null}</div>
+      {tab==="suppliers"
+        ? <DataTable key="suppliers" columns={supCols} rows={db.suppliers} pageSize={10}/>
+        : <DataTable key="comms" columns={commCols} rows={db.comms} pageSize={10}/>}
+    </div>
+  </>;
+}
+
+/* ---------- documents ---------- */
+const DOCS=[
+  {name:"Quote_v3.pdf",pid:"NPI-2026-0126",part:"6152-PPAP-09",type:"Quote",by:"Hitesh Sharma",date:"06 Sep 2026",size:"420 KB"},
+  {name:"Feasibility.xlsx",pid:"NPI-2026-0126",part:"—",type:"Feasibility",by:"Hitesh Sharma",date:"05 Sep 2026",size:"88 KB"},
+  {name:"Drawing_revB.pdf",pid:"NPI-2026-0126",part:"6152-PPAP-09",type:"Drawing",by:"Meera Iyer",date:"04 Sep 2026",size:"1.2 MB"},
+  {name:"AEF_0126.pdf",pid:"NPI-2026-0126",part:"6152-PPAP-09",type:"AEF",by:"Hitesh Sharma",date:"06 Sep 2026",size:"280 KB"},
+  {name:"AEF_0119.pdf",pid:"NPI-2026-0119",part:"7788-VLV-01",type:"AEF",by:"Anita Desai",date:"03 Sep 2026",size:"310 KB"},
+  {name:"SQE_report_0122.pdf",pid:"NPI-2026-0122",part:"5567-GSK-01",type:"SQE report",by:"Vikram Rao",date:"05 Sep 2026",size:"640 KB"},
+  {name:"PSW_0095.pdf",pid:"NPI-2026-0095",part:"4410-MAN-03",type:"PSW",by:"Hitesh Sharma",date:"02 Sep 2026",size:"780 KB"},
+  {name:"IQC_report_0104.pdf",pid:"NPI-2026-0104",part:"3410-FLG-02",type:"IQC",by:"Vikram Rao",date:"10 Sep 2026",size:"290 KB"},
+  {name:"Quote_0120.pdf",pid:"NPI-2026-0120",part:"9012-CAM-03",type:"Quote",by:"Ravi Menon",date:"03 Sep 2026",size:"360 KB"},
+  {name:"Drawing_0116.pdf",pid:"NPI-2026-0116",part:"1120-SHF-04",type:"Drawing",by:"Meera Iyer",date:"04 Sep 2026",size:"950 KB"},
+  {name:"Sample_receipt_0098.pdf",pid:"NPI-2026-0098",part:"7741-PIN-03",type:"Sample receipt",by:"Vikram Rao",date:"03 Sep 2026",size:"120 KB"},
+  {name:"PSW_0126.pdf",pid:"NPI-2026-0126",part:"6152-PPAP-12",type:"PSW",by:"Hitesh Sharma",date:"07 Sep 2026",size:"810 KB"},
+];
+function Documents(){
+  const {db,act,openModal,closeModal}=useApp();
+  const preview=(x)=>openModal(<Modal title={x.name} onClose={closeModal}>
+    <div className="modal-note">Live preview isn't available in this demo — this is where the document would render.</div>
+    <div className="kv"><span className="kk">Project</span><span>{x.pid}</span><span className="kk">Part</span><span>{x.part}</span><span className="kk">Type</span><span className="mchip">{x.type}</span><span className="kk">Uploaded by</span><span>{x.by}</span><span className="kk">Date</span><span>{x.date}</span><span className="kk">Size</span><span>{x.size}</span></div>
+    <div className="modal-f"><button className="btn" onClick={closeModal}>Close</button></div>
+  </Modal>);
+  const upload=()=>openModal(<FormModal title="Upload document" fields={[{key:"name",label:"File name",req:true,full:true,ph:"e.g. Quote_v4.pdf"},{key:"pid",label:"Project ID",req:true,ph:"NPI-2026-…"},{key:"part",label:"Part",ph:"optional"},{key:"type",label:"Type",req:true,type:"select",options:["AEF","Quote","Drawing","Feasibility","Sample receipt","SQE report","PSW","IQC"]}]} submitLabel="Upload" onClose={closeModal} onSubmit={v=>{act.uploadDoc(v);closeModal();}}/>);
+  const cols=[
+    {key:"name",label:"Document",filterType:"text",val:x=>x.name,render:x=><span className="doc-name"><Icon n="docs" cls="" style={{width:15,height:15,color:"var(--muted)"}}/>{x.name}</span>},
+    {key:"pid",label:"Project ID",w:"126px",filterType:"text",val:x=>x.pid,render:x=><span className="tpid">{x.pid}</span>},
+    {key:"part",label:"Part",w:"140px",hidden:true,filterType:"text",val:x=>x.part,render:x=><span className="tmeta">{x.part}</span>},
+    {key:"type",label:"Type",w:"148px",filterType:"select",options:["All","AEF","Quote","Drawing","Feasibility","Sample receipt","SQE report","PSW","IQC"],val:x=>x.type,render:x=><span className="mchip">{x.type}</span>},
+    {key:"by",label:"Uploaded by",w:"150px",filterType:"text",val:x=>x.by,render:x=><span>{x.by}</span>},
+    {key:"date",label:"Date",w:"120px",filterType:"text",val:x=>x.date,render:x=><span className="tmeta">{x.date}</span>},
+    {key:"size",label:"Size",w:"92px",filterType:"text",val:x=>x.size,render:x=><span className="tmeta">{x.size}</span>},
+    {key:"act",label:"",w:"84px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={e=>{e.stopPropagation();preview(x);}}>Open</button>},
+  ];
+  return <>
+    <div className="pagehead"><h1>Documents</h1><p>Central document library — foldered by project and part. AEF, quotes, drawings, SQE reports, PSW and IQC.</p></div>
+    <div className="block">
+      <div className="block-h"><h2><Icon n="docs" cls="" style={{width:16,height:16,color:"var(--teal)"}}/> All documents <span className="cnt">{db.docs.length}</span></h2><button className="admin-add" onClick={upload}>+ Upload</button></div>
+      <DataTable columns={cols} rows={db.docs} pageSize={10}/>
+    </div>
+  </>;
+}
+
+/* ---------- audit trail ---------- */
+const AUDIT=[
+  {ts:"2026-09-09 14:32:18Z",actor:"SAP Integration",role:"System",action:"PR created",entity:"NPI-2026-0120",detail:"PR #4500219",comment:"—"},
+  {ts:"2026-09-09 13:52:04Z",actor:"Anita Desai",role:"Finance",action:"Approved",entity:"NPI-2026-0119",detail:"Capex ₹8,40,000",comment:"Budget confirmed"},
+  {ts:"2026-09-09 12:40:11Z",actor:"Vikram Rao",role:"SQE",action:"Sample marked Conditional",entity:"NPI-2026-0116 / 1120-SHF-04",detail:"F-07",comment:"Minor dim deviation"},
+  {ts:"2026-09-09 11:15:47Z",actor:"System",role:"System",action:"SLA breach escalation",entity:"NPI-2026-0117",detail:"→ Sourcing Head",comment:"—"},
+  {ts:"2026-09-09 10:03:29Z",actor:"Ravi Menon",role:"Buyer",action:"PR raised",entity:"NPI-2026-0104",detail:"Pilot lot 1",comment:"—"},
+  {ts:"2026-09-09 09:20:55Z",actor:"Hitesh Sharma",role:"Sourcing",action:"PPAP request submitted",entity:"NPI-2026-0126",detail:"DRAFT → SUBMITTED",comment:"Routed to Sourcing Head"},
+  {ts:"2026-09-08 17:44:12Z",actor:"Sunil Kapoor",role:"BU Head",action:"Approved",entity:"NPI-2026-0119",detail:"F-03 BU gate",comment:"—"},
+  {ts:"2026-09-08 16:10:33Z",actor:"Hitesh Sharma",role:"Sourcing",action:"Feasibility Go",entity:"NPI-2026-0121",detail:"Tooling=Yes → Capex",comment:"—"},
+  {ts:"2026-09-08 15:02:19Z",actor:"Priya Shah",role:"Controllership",action:"Rejected",entity:"NPI-2026-0115",detail:"F-03 Capex",comment:"Revise cost basis"},
+  {ts:"2026-09-08 14:28:07Z",actor:"Meera Iyer",role:"Engineering",action:"Engineering approved",entity:"NPI-2026-0116 / 1120-SHF-04",detail:"F-08",comment:"—"},
+  {ts:"2026-09-08 11:47:52Z",actor:"System",role:"System",action:"SLA reminder (50%)",entity:"NPI-2026-0122",detail:"F-07 SQE",comment:"—"},
+  {ts:"2026-09-08 09:33:41Z",actor:"Hitesh Sharma",role:"Sourcing",action:"Project created",entity:"NPI-2026-0126",detail:"NPI-YYYY-NNNN",comment:"Intake F-01"},
+];
+function Audit(){
+  const {db,openModal,closeModal,flash}=useApp();
+  const exportCsv=()=>{
+    const head=["Timestamp","Actor","Role","Action","Entity","Detail","Comment"];
+    const rows=db.audit.map(a=>[a.ts,a.actor,a.role,a.action,a.entity,a.detail,a.comment]);
+    const csv=[head].concat(rows).map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\n");
+    openModal(<Modal title="Export audit log (CSV)" onClose={closeModal} wide={true}>
+      <div className="modal-note">Direct download is blocked in this demo sandbox — copy the CSV below, or in production this exports a file.</div>
+      <textarea readOnly rows={12} style={{width:"100%",fontFamily:"var(--mono)",fontSize:11.5,border:"1px solid var(--border)",padding:10}} value={csv}/>
+      <div className="modal-f"><button className="btn" onClick={closeModal}>Close</button><button className="btn primary" onClick={()=>{try{navigator.clipboard.writeText(csv);flash("Copied CSV to clipboard");}catch(e){flash("Copy from the box above");}}}>Copy to clipboard</button></div>
+    </Modal>);
+  };
+  const cols=[
+    {key:"ts",label:"Timestamp (UTC)",w:"162px",filterType:"text",val:x=>x.ts,render:x=><span className="mono" style={{fontSize:11.5,color:"var(--muted)"}}>{x.ts}</span>},
+    {key:"actor",label:"Actor",w:"150px",filterType:"text",val:x=>x.actor,render:x=><span className="tcell">{x.actor}</span>},
+    {key:"role",label:"Role",w:"140px",filterType:"select",options:["All","Sourcing","Buyer","Finance","BU Head","Controllership","SQE","Engineering","System"],val:x=>x.role,render:x=><span className="mchip">{x.role}</span>},
+    {key:"action",label:"Action",filterType:"text",val:x=>x.action,render:x=><span>{x.action}</span>},
+    {key:"entity",label:"Entity",w:"200px",filterType:"text",val:x=>x.entity,render:x=><span className="tpid">{x.entity}</span>},
+    {key:"detail",label:"Detail",w:"170px",hidden:true,filterType:"text",val:x=>x.detail,render:x=><span className="tmeta">{x.detail}</span>},
+    {key:"comment",label:"Comment",w:"180px",filterType:"text",val:x=>x.comment,render:x=><span className="tmeta">{x.comment}</span>},
+  ];
+  return <>
+    <div className="pagehead"><h1>Audit trail</h1><p>Immutable, read-only record of every action — actor, role, UTC timestamp, before/after and comment. Exportable as CSV (admin only).</p></div>
+    <div className="block">
+      <div className="block-h"><h2><Icon n="audit" cls="" style={{width:16,height:16,color:"var(--teal)"}}/> Activity log <span className="cnt">{db.audit.length}</span></h2><button className="admin-add" onClick={exportCsv}>Export CSV</button></div>
+      <DataTable columns={cols} rows={db.audit} pageSize={10}/>
+    </div>
+  </>;
+}
+
+/* ---------- phase workspaces ---------- */
+const PHASE_FORMS=[
+  {phase:"1 · Initiation",forms:[["F-01","Intake","Sourcing"],["F-02","Feasibility assessment","Sourcing"]]},
+  {phase:"2 · Approval",forms:[["F-03","AEF + 4-blocker approval","Approvers"]]},
+  {phase:"3 · Vendor development",forms:[["F-04","PR / PO creation","Buyer"],["F-05","Vendor notification & timeline","Sourcing"]]},
+  {phase:"4 · Sample qualification",forms:[["F-06","Sample submission record","Sourcing"],["F-07","SQE sample validation","SQE / IQC"],["F-08","Engineering / AME approval","Engineering"],["F-09","Production trial initiation","Production"]]},
+  {phase:"5 · PSW sign-off",forms:[["F-10","TRUN / PSW sign-off (CFT)","Sourcing → CFT"]]},
+  {phase:"6 · Pilot & closure",forms:[["F-11","Pilot lot 1","Buyer / Planner / IQC"],["F-12","Pilot lot 2","Buyer / Planner / IQC"],["F-13","Pilot lot 3","Buyer / Planner / IQC"],["F-14","Project closure","Sourcing"]]},
+];
+function Phases(){
+  const {openModal,closeModal,go}=useApp();
+  const openForm=(f)=>{
+    if(f[0]==="F-01") { go("intake"); return; }
+    openModal(<InfoModal title={f[0]+" · "+f[1]} onClose={closeModal} pairs={[["Owner role",f[2]],["Delivery","Teams adaptive card + this app"],["Records to","SharePoint + audit log"],["Status","Available"]]}/>);
+  };
+  return <>
+    <div className="pagehead"><h1>Phase workspaces</h1><p>The 6-phase NPI journey and its 14 forms, grouped by phase. Each opens the data-entry form for the owning role.</p></div>
+    <div className="phase-grid">
+      {PHASE_FORMS.map((p,i)=><div className="block" key={i}>
+        <div className="block-h"><h2><Icon n="phases" cls="" style={{width:16,height:16,color:"var(--teal)"}}/> {p.phase} <span className="cnt">{p.forms.length}</span></h2></div>
+        <div>{p.forms.map((f,j)=><button className="phase-form" key={j} onClick={()=>openForm(f)}>
+          <span className="pf-id">{f[0]}</span>
+          <span className="pf-name">{f[1]}</span>
+          <span className="pf-role">{f[2]}</span>
+        </button>)}</div>
+      </div>)}
+    </div>
+  </>;
+}
+
+/* ---------- store + modal infrastructure ---------- */
+const AppCtx = React.createContext(null);
+const useApp = () => useContext(AppCtx);
+function stampNow(){const d=new Date(),p=x=>String(x).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds())+"Z";}
+function todayStr(){const m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],d=new Date();return String(d.getDate()).padStart(2,"0")+" "+m[d.getMonth()]+" "+d.getFullYear();}
+const SEED_NOTIFS=[
+  {id:1,text:"PPAP request NPI-2026-0126 routed to you for approval",time:"9 min ago",read:false},
+  {id:2,text:"SLA breach escalation raised on NPI-2026-0117",time:"2h ago",read:false},
+  {id:3,text:"Sample NPI-2026-0122 awaiting SQE validation",time:"3h ago",read:false},
+  {id:4,text:"Anita Desai approved Capex sign-off · NPI-2026-0119",time:"5h ago",read:true},
+];
+
+function Modal({title,onClose,children,wide}){
+  return <div className="modal-back" onClick={onClose}>
+    <div className={"modal"+(wide?" wide":"")} onClick={e=>e.stopPropagation()}>
+      <div className="modal-h"><h3>{title}</h3><button className="modal-x" onClick={onClose}>×</button></div>
+      <div className="modal-b">{children}</div>
+    </div>
+  </div>;
+}
+function FormModal({title,fields,initial,submitLabel,onSubmit,onClose}){
+  const [v,setV]=useState(()=>{const o={};fields.forEach(f=>o[f.key]=(initial&&initial[f.key]!=null)?initial[f.key]:(f.def||(f.type==="select"?f.options[0]:"")));return o;});
+  const [err,setErr]=useState("");
+  const set=k=>e=>setV(s=>({...s,[k]:e.target.value}));
+  const submit=()=>{const miss=fields.filter(f=>f.req&&!String(v[f.key]).trim());if(miss.length){setErr("Please complete: "+miss.map(f=>f.label).join(", "));return;}onSubmit(v);};
+  return <Modal title={title} onClose={onClose}>
+    <div className="form-grid">
+      {fields.map(f=><div className={"field2"+(f.full?" full":"")} key={f.key}>
+        <div className="flabel">{f.label} {f.req?<i>*</i>:null}</div>
+        {f.type==="select"
+          ? <select value={v[f.key]} onChange={set(f.key)}>{f.options.map(o=><option key={o} value={o}>{o}</option>)}</select>
+          : f.type==="textarea"
+          ? <textarea rows={3} value={v[f.key]} onChange={set(f.key)} placeholder={f.ph||""}/>
+          : <input value={v[f.key]} onChange={set(f.key)} placeholder={f.ph||""}/>}
+      </div>)}
+    </div>
+    {err?<div className="form-err">{err}</div>:null}
+    <div className="modal-f"><button className="btn" onClick={onClose}>Cancel</button><button className="btn primary" onClick={submit}>{submitLabel||"Save"}</button></div>
+  </Modal>;
+}
+function ConfirmDialog({opts,onClose}){
+  return <Modal title={opts.title} onClose={onClose}>
+    <p className="confirm-msg">{opts.message}</p>
+    <div className="modal-f"><button className="btn" onClick={onClose}>Cancel</button>
+      <button className={"btn "+(opts.tone==="danger"?"no":opts.tone==="ok"?"ok":"primary")} onClick={()=>{opts.onConfirm();onClose();}}>{opts.confirmLabel||"Confirm"}</button></div>
+  </Modal>;
+}
+function NotifPanel({notifs,onReadAll}){
+  return <div className="pop">
+    <div className="pop-h"><b>Notifications</b><button onClick={onReadAll}>Mark all read</button></div>
+    <div style={{maxHeight:320,overflowY:"auto"}}>
+      {notifs.length?notifs.map(n=><div key={n.id} className={"notif"+(n.read?" read":"")}><span className="nd"/><div>{n.text}<div style={{color:"var(--faint)",fontSize:11,marginTop:2}}>{n.time}</div></div></div>):<div className="notif">No notifications.</div>}
+    </div>
+  </div>;
+}
+
+/* ---------- app ---------- */
+function App(){
+  const [page,setPage]=useState("home");
+  const [roleKey,setRole]=useState("Sourcing");
+  const [toast,setToast]=useState("");
+  const flash=m=>{setToast(m);clearTimeout(window.__t);window.__t=setTimeout(()=>setToast(""),2800);};
+  const [modal,setModal]=useState(null);
+  const [confirmO,setConfirmO]=useState(null);
+  const [notifOpen,setNotifOpen]=useState(false);
+  const [userMenu,setUserMenu]=useState(false);
+  const [navOpen,setNavOpen]=useState(false);
+  const [db,setDb]=useState(()=>({
+    projects:PROJECTS.map(p=>({...p})),
+    approvals:APPROVALS.map(a=>({...a})),
+    samples:SAMPLES.map((s,i)=>({...s,_i:i})),
+    pilots:PILOTLOTS.map((p,i)=>({...p,_i:i})),
+    suppliers:VENDORS_SUP.map(v=>({...v})),
+    comms:VENDOR_COMMS.map((c,i)=>({...c,_i:i})),
+    docs:DOCS.map(d=>({...d})),
+    audit:AUDIT.map(a=>({...a})),
+    admin:Object.keys(ADMIN_CFG).reduce((o,k)=>{o[k]=ADMIN_CFG[k].rows.map(x=>({...x}));return o;},{}),
+    roleAppr:ROLE_KEYS.reduce((o,k)=>{o[k]=ROLES[k].approvals.map(a=>({...a}));return o;},{}),
+    notifs:SEED_NOTIFS.map(n=>({...n})),
+    seq:132,
+  }));
+  const r=ROLES[roleKey];
+  const me=r.name;
+  const withAudit=(d,entry)=>[{ts:stampNow(),actor:me,role:roleKey,detail:"—",comment:"—",...entry},...d.audit];
+  const withNotif=(d,text)=>[{id:Date.now()+Math.random(),text,time:"just now",read:false},...d.notifs];
+  const act={
+    resolveApproval:(a,decision,comment)=>{setDb(d=>({...d,approvals:d.approvals.filter(x=>x.id!==a.id),audit:withAudit(d,{action:decision,entity:a.pid,detail:a.gate,comment:comment||"—"}),notifs:withNotif(d,decision+" — "+a.gate+" · "+a.pid)}));flash(decision+" — "+a.pid+" recorded");},
+    resolveRoleAppr:(role,pid,decision)=>{setDb(d=>({...d,roleAppr:{...d.roleAppr,[role]:d.roleAppr[role].filter(x=>x.pid!==pid)},audit:withAudit(d,{action:decision,entity:pid,detail:"Home approval queue"})}));flash(decision+" — "+pid);},
+    submitIntake:(p)=>{let id;setDb(d=>{const num=d.seq+1;id="NPI-2026-0"+num;const proj={id,title:p.title,phase:"Initiation",status:"Feasibility Review",plant:p.site,owner:me,supplier:(p.parts[0]&&p.parts[0].vendor)||"—",parts:String(p.parts.length),target:p.target||"—",updated:todayStr()};return {...d,seq:num,projects:[proj,...d.projects],audit:withAudit(d,{action:"NPI intake submitted",entity:id,detail:p.category+" · "+p.groups+" group(s) · "+p.parts.length+" part(s)",comment:p.title}),notifs:withNotif(d,"New NPI project "+id+" — Feasibility Review ("+p.groups+" group(s), "+p.parts.length+" part(s))")};});return id;},
+    validateSample:(row,result,comment)=>{setDb(d=>({...d,samples:d.samples.map(s=>s._i===row._i?{...s,result,stage:result==="Approved"?"Trial":result==="Rejected"?"Re-sample":"Engineering"}:s),audit:withAudit(d,{action:"SQE sample "+result,entity:row.pid+" / "+row.part,detail:"F-07",comment:comment||"—"})}));flash("Sample "+row.part+" — "+result);},
+    dispositionPilot:(row,disp)=>{setDb(d=>({...d,pilots:d.pilots.map(p=>p._i===row._i?{...p,iqc:disp==="Accept as-is"?"OK":p.iqc}:p),audit:withAudit(d,{action:"Pilot disposition: "+disp,entity:row.pid+" / "+row.part,detail:row.lot})}));flash(row.lot+" — "+disp);},
+    markCommReplied:(row)=>{setDb(d=>({...d,comms:d.comms.map(c=>c._i===row._i?{...c,status:"Acknowledged"}:c),audit:withAudit(d,{action:"Vendor reply logged",entity:row.pid,detail:row.type})}));flash("Marked replied — "+row.pid);},
+    uploadDoc:(doc)=>{setDb(d=>({...d,docs:[{...doc,by:me,date:todayStr(),size:(Math.floor(Math.random()*900)+100)+" KB"},...d.docs],audit:withAudit(d,{action:"Document uploaded",entity:doc.pid,detail:doc.name})}));flash("Uploaded "+doc.name);},
+    addSupplier:(s)=>{setDb(d=>({...d,suppliers:[{...s,projects:"0"},...d.suppliers]}));flash("Added supplier "+s.name);},
+    addProject:(p)=>{let id;setDb(d=>{const num=d.seq+1;id="NPI-2026-0"+num;return {...d,seq:num,projects:[{...p,id,parts:p.parts||"1",plant:p.plant||"Pune",updated:todayStr()},...d.projects],audit:withAudit(d,{action:"Project created",entity:id,detail:p.title})};});flash("Project "+id+" created");return id;},
+    addAdmin:(sec,row)=>{setDb(d=>({...d,admin:{...d.admin,[sec]:[row,...d.admin[sec]]}}));flash("Added");},
+    updateAdmin:(sec,idx,row)=>{setDb(d=>({...d,admin:{...d.admin,[sec]:d.admin[sec].map((x,i)=>i===idx?row:x)}}));flash("Saved");},
+    deleteAdmin:(sec,idx)=>{setDb(d=>({...d,admin:{...d.admin,[sec]:d.admin[sec].filter((x,i)=>i!==idx)}}));flash("Deleted");},
+    markAllRead:()=>setDb(d=>{return {...d,notifs:d.notifs.map(n=>({...n,read:true}))};}),
+  };
+  const ctx={db,act,openModal:setModal,closeModal:()=>setModal(null),confirm:setConfirmO,go:setPage,roleKey,me,flash};
+  const crumb=page==="home"?"Home / My Work":LABELS[page];
+  const unread=db.notifs.filter(n=>!n.read).length;
+  const themeToggle=()=>{const el=document.documentElement,c=el.getAttribute('data-theme');el.setAttribute('data-theme',c==='dark'?'light':c==='light'?'dark':(matchMedia('(prefers-color-scheme: dark)').matches?'light':'dark'));};
+  return <AppCtx.Provider value={ctx}><div className="shell">
+    <header className="appheader">
+      <button className="hamburger" onClick={()=>setNavOpen(o=>!o)} title="Menu" aria-label="Toggle navigation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <div className="brandwrap">
+        <HoneywellMark size={26}/>
+        <span className="wordmark">Honeywell</span>
+        <span className="hdiv"/>
+        <span className="apptitle">NPI Operations Hub</span>
+        <span className="hdiv"/>
+        <span className="crumb">{crumb}</span>
+      </div>
+      <div className="hdr-right">
+        <button className="hicon" onClick={themeToggle} title="Theme">◐</button>
+        <div className="hicon-wrap">
+          <button className="hicon" title="Notifications" onClick={()=>{setNotifOpen(o=>!o);setUserMenu(false);}}><Icon n="bell" cls="" style={{width:17,height:17}}/>{unread?<span className="dot"/>:null}</button>
+          {notifOpen?<NotifPanel notifs={db.notifs} onReadAll={act.markAllRead}/>:null}
+        </div>
+        <span className="demoTag">demo · view as</span>
+        <div className="hicon-wrap">
+          <div className="roleSel">
+            <span className="av chipbtn" onClick={()=>{setUserMenu(o=>!o);setNotifOpen(false);}}>{r.init}</span>
+            <div className="who"><b>{r.name}</b><span> · {roleKey}</span></div>
+            <select value={roleKey} onChange={e=>{setRole(e.target.value);setPage("home");}}>
+              {ROLE_KEYS.map(k=><option key={k} value={k}>{k}</option>)}
+            </select>
+          </div>
+          {userMenu?<div className="usermenu">
+            <button onClick={()=>{setPage("home");setUserMenu(false);}}>My work</button>
+            <button onClick={()=>{flash("Profile & settings (demo)");setUserMenu(false);}}>Profile &amp; settings</button>
+            <button onClick={()=>{flash("Help (demo)");setUserMenu(false);}}>Help</button>
+            <button onClick={()=>{flash("Sign out (demo)");setUserMenu(false);}}>Sign out</button>
+          </div>:null}
+        </div>
+      </div>
+    </header>
+    <div className="body">
+      <aside className={"sidebar"+(navOpen?" open":"")}>
+        <nav className="sb-nav">
+          <div className="sb-sec">Workspace</div>
+          {NAV.map(n=><button key={n.id} className={"sb-item"+(page===n.id?" active":"")} onClick={()=>{setPage(n.id);setNavOpen(false);}}>
+            <Icon n={n.icon} cls=""/>{n.label}{n.id==="approvals"&&db.approvals.length?<span className="sb-badge">{db.approvals.length}</span>:null}</button>)}
+          <div className="sb-sec">Administration</div>
+          {ADMINNAV.map(n=><button key={n.id} className={"sb-item"+(page===n.id?" active":"")} onClick={()=>{setPage(n.id);setNavOpen(false);}}><Icon n={n.icon} cls=""/>{n.label}</button>)}
+        </nav>
+        <div className="sb-foot">v0.1 demo · role-based · Teams-ready</div>
+      </aside>
+      {navOpen?<div className="nav-backdrop" onClick={()=>setNavOpen(false)}/>:null}
+      <main className="content">
+        {page==="home" ? <Home roleKey={roleKey} onAct={flash} go={setPage}/> : page==="projects" ? <Projects onAct={flash}/> : page==="intake" ? <Intake onAct={flash}/> : page==="approvals" ? <Approvals onAct={flash}/> : page==="admin" ? <Admin onAct={flash}/> : page==="reports" ? <Reports onAct={flash}/> : page==="samples" ? <Samples onAct={flash}/> : page==="vendors" ? <Vendors onAct={flash}/> : page==="docs" ? <Documents onAct={flash}/> : page==="audit" ? <Audit onAct={flash}/> : page==="phases" ? <Phases/> : <Placeholder id={page}/>}
+      </main>
+    </div>
+    <footer className="appfooter">Audit trail&nbsp; ·&nbsp; approver comments&nbsp; ·&nbsp; email&nbsp;/&nbsp;<u>Teams</u> alerts&nbsp; ·&nbsp; return for rework&nbsp; ·&nbsp; role-based access</footer>
+    {toast?<div className="toast"><span className="cbadge">✓</span>{toast}</div>:null}
+    {modal}
+    {confirmO?<ConfirmDialog opts={confirmO} onClose={()=>setConfirmO(null)}/>:null}
+  </div></AppCtx.Provider>;
+}
+document.documentElement.setAttribute("data-theme","light");
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+
+</body></html>

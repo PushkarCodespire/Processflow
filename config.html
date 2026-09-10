@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://res.cdn.office.net/teams-js/2.20.0/js/MicrosoftTeams.min.js"></script>
+  <style>
+    body{font-family:Segoe UI,system-ui,sans-serif;margin:0;display:grid;place-items:center;height:100vh;color:#202020}
+    .card{text-align:center;padding:28px}
+    .h{width:44px;height:44px;background:#E1261C;color:#fff;font-weight:800;display:grid;place-items:center;margin:0 auto 14px;font-size:22px}
+    h1{font-size:18px;margin:0 0 6px}
+    p{color:#666;font-size:13px;margin:0}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="h">H</div>
+    <h1>NPI Operations Hub</h1>
+    <p>Click <b>Save</b> to add this tab to the channel.</p>
+  </div>
+  <script>
+    microsoftTeams.app.initialize().then(function () {
+      microsoftTeams.pages.config.registerOnSaveHandler(function (evt) {
+        var base = window.location.origin;
+        microsoftTeams.pages.config.setConfig({
+          contentUrl: base + "/index.html",
+          websiteUrl: base + "/index.html",
+          suggestedDisplayName: "NPI Hub",
+          entityId: "npihub-channel"
+        });
+        evt.notifySuccess();
+      });
+      microsoftTeams.pages.config.setValidityState(true);
+    });
+  </script>
+</body>
+</html>

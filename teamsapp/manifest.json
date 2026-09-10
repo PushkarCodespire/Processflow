@@ -1,0 +1,43 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "cb1da705-3736-450c-a5c5-84a4fa9a7149",
+  "developer": {
+    "name": "Codespire Solutions",
+    "websiteUrl": "https://__APP_URL__",
+    "privacyUrl": "https://__APP_URL__",
+    "termsOfUseUrl": "https://__APP_URL__"
+  },
+  "name": {
+    "short": "NPI Operations Hub",
+    "full": "Honeywell NPI Operations Hub"
+  },
+  "description": {
+    "short": "NPI intake, approvals and workflow demo.",
+    "full": "Honeywell NPI Operations Hub - new product introduction intake, multi-part submission, approvals, samples, vendors and phase workspaces. Demo build with sample data."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#E1261C",
+  "staticTabs": [
+    {
+      "entityId": "npihub-home",
+      "name": "NPI Hub",
+      "contentUrl": "https://__APP_URL__/index.html",
+      "websiteUrl": "https://__APP_URL__/index.html",
+      "scopes": ["personal"]
+    }
+  ],
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://__APP_URL__/config.html",
+      "canUpdateConfiguration": true,
+      "scopes": ["team", "groupchat"]
+    }
+  ],
+  "permissions": ["identity"],
+  "validDomains": ["__APP_URL__"]
+}
