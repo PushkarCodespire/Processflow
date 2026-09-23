@@ -6556,9 +6556,42 @@ async function loadLive(){
   return out;
 }
 
+/* ---------- keeping the standalone Hub between visits ----------
+   On SharePoint the lists ARE the record and nothing is kept here: a local copy of project
+   state beside them would be a second source of truth that goes stale the moment a card or
+   another person moves a project. Standalone - the Vercel build, a file opened locally, a
+   Teams tab on the demo - has no record at all, so every reload threw away whatever had been
+   entered. That is what this keeps, and only that.
+
+   `shape` is the seed's own version: when the demo data or the workflow behind it changes,
+   yesterday's saved copy describes a process that no longer exists, so it is dropped rather
+   than migrated. Every call is wrapped - private windows, blocked site data and a full quota
+   all throw, and none of them are a reason for the app not to open. */
+const DEMO_KEY="npiHub.standalone";
+const DEMO_SHAPE="2026-09-23.prpo-split";
+let demoSaveFailed=false;
+const demoLoad=()=>{
+  if(spx()) return null;
+  try{
+    const raw=window.localStorage.getItem(DEMO_KEY);
+    if(!raw) return null;
+    const o=JSON.parse(raw);
+    return (o&&o.shape===DEMO_SHAPE&&o.db)?o:null;
+  }catch(e){ return null; }
+};
+const demoSave=(db,role)=>{
+  if(spx()) return;
+  try{
+    window.localStorage.setItem(DEMO_KEY,JSON.stringify(
+      {shape:DEMO_SHAPE,saved:new Date().toISOString(),role:role||"",db:db}));
+    demoSaveFailed=false;
+  }catch(e){ demoSaveFailed=true; }   /* quota or blocked storage - the footer says so */
+};
+const demoClear=()=>{ try{ window.localStorage.removeItem(DEMO_KEY); }catch(e){} };
+
 function App(){
   const [page,setPage]=useState("home");
-  const [roleKey,setRole]=useState("SRC_MEMBER");
+  const [roleKey,setRole]=useState(()=>{const r=demoLoad();return (r&&r.role)||"SRC_MEMBER";});
   const [authSrc,setAuthSrc]=useState("dev");
   /* Who actually signed in, once People resolves them. Every role in ROLE_REGISTRY
      carries a persona name so the role switcher has a face to show, but a persona is
@@ -6576,12 +6609,20 @@ function App(){
   const [deepLink,setDeepLink]=useState(()=>{try{return readNpiTarget();}catch(e){return null;}});
   const [toast,setToast]=useState("");
   const flash=m=>{setToast(m);clearTimeout(window.__t);window.__t=setTimeout(()=>setToast(""),2800);};
+  /* Back to the seed. Confirmed, because it throws away every project, decision and audit row
+     entered since this browser first opened the Hub. */
+  const resetDemo=()=>setConfirmO({title:"Reset to sample data?",
+    message:"Everything entered in this browser - projects, decisions, forms and the audit trail - is discarded and the Hub reopens on the sample data it ships with. This cannot be undone.",
+    confirmLabel:"Reset",tone:"danger",
+    onConfirm:()=>{demoClear();setDb(seedDb());setRole("SRC_MEMBER");setPage("home");flash("Reset to sample data");}});
   const [modal,setModal]=useState(null);
   const [confirmO,setConfirmO]=useState(null);
   const [notifOpen,setNotifOpen]=useState(false);
   const [userMenu,setUserMenu]=useState(false);
   const [navOpen,setNavOpen]=useState(false);
-  const [db,setDb]=useState(()=>({
+  /* The seed, and what was left here last time. A saved copy wins because it is the work
+     someone did; the seed is only where a first visit starts. */
+  const seedDb=()=>({
     projects:PROJECTS.map(p=>({...p})),
     parts:PROJECTS.reduce((a,p)=>a.concat((PARTS[p.id]||genParts(p)).map((pt,i)=>({...pt,pid:p.id,_k:p.id+"::"+pt.part+"::"+i}))),[]),
     approvals:APPROVALS.map(a=>({...a})),
@@ -6596,10 +6637,19 @@ function App(){
     admin:Object.keys(ADMIN_CFG).reduce((o,k)=>{o[k]=ADMIN_CFG[k].rows.map(x=>({...x}));return o;},{}),
     notifs:SEED_NOTIFS.map(n=>({...n})),
     seq:132,
-  }));
+  });
+  const [restored]=useState(()=>demoLoad());
+  const [db,setDb]=useState(()=>(restored&&restored.db)||seedDb());
   /* live load. "off" when running standalone, so the seed data stands and every
      screen behaves exactly as it does today. */
   const [spState,setSpState]=useState(()=>spx()?"loading":"off");
+  /* Debounced: a submission can move a project, its parts and the audit in one go, and the
+     three renders that follow should write once. */
+  useEffect(()=>{
+    if(spx()) return;
+    const t=setTimeout(()=>demoSave(db,roleKey),400);
+    return ()=>clearTimeout(t);
+  },[db,roleKey]);
   const [spErrors,setSpErrors]=useState([]);
   /* A command takes seconds, not milliseconds - the footer says so rather than leaving the
      user to guess whether their click registered. */
@@ -7381,6 +7431,17 @@ function App(){
           </div>
           {spState==="live"||spState==="partial"
             ? <div style={{marginBottom:6}}>{db.projects.length} projects · {db.parts.length} parts · {db.audit.length} audit rows</div>
+            : null}
+          {/* Standalone keeps its own state, so say where it lives and give it a way back to
+              the seed - otherwise a half-finished test is impossible to clear. */}
+          {spState==="off"
+            ? <div style={{marginBottom:6,lineHeight:1.45}}>
+                {demoSaveFailed
+                  ? <span style={{color:"var(--amber)"}}>Not saving — this browser is blocking site data.</span>
+                  : <>Kept in this browser{restored&&restored.saved?" · restored from "+cDate(restored.saved):""}.{" "}
+                     <button onClick={resetDemo} style={{background:"none",border:0,padding:0,cursor:"pointer",
+                       color:"var(--teal)",font:"inherit",textDecoration:"underline"}}>Reset to sample data</button></>}
+              </div>
             : null}
           {busy>0
             ? <div style={{marginBottom:6,color:"var(--amber)",fontWeight:600}}>
