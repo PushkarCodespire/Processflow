@@ -164,8 +164,21 @@ button{font-family:inherit;cursor:pointer}
 .qgrid .xltable{table-layout:auto;min-width:760px}
 .qgrid .xltable th:nth-child(2),.qgrid .xltable td:nth-child(2){width:17%}
 .qgrid .xltable th:nth-child(3),.qgrid .xltable td:nth-child(3){width:30%}
-.qgrid .xltable th:nth-child(n+4),.qgrid .xltable td:nth-child(n+4){width:12%}
+.qgrid .xltable th:nth-child(n+4),.qgrid .xltable td:nth-child(n+4){width:13%}
+/* A currency is three characters - it needs a fraction of the room a price does. The two
+   headers wrap onto a second line rather than holding the column open. */
+.qgrid .xltable th:nth-child(6),.qgrid .xltable td:nth-child(6),
+.qgrid .xltable th:nth-child(8),.qgrid .xltable td:nth-child(8){width:74px}
+.qgrid .xltable th:nth-child(6),.qgrid .xltable th:nth-child(8){white-space:normal;line-height:1.25}
+.qgrid .xltable td:nth-child(6) .xlsel,.qgrid .xltable td:nth-child(8) .xlsel{padding-left:6px;padding-right:2px}
 .qgrid .xlwrap{max-height:420px}
+/* The PR/PO grid is narrower than the quote grid and carries one free-text column, so the
+   description takes the slack. Without this the row-number column absorbed it and the PR
+   step drew a serial column wider than the part numbers. */
+.sgrid .xltable{min-width:0;table-layout:fixed}
+.sgrid .xltable th:nth-child(2),.sgrid .xltable td:nth-child(2){width:132px}
+.sgrid .xltable th:nth-child(3),.sgrid .xltable td:nth-child(3){width:auto}
+.sgrid .xltable th:nth-child(n+4),.sgrid .xltable td:nth-child(n+4){width:120px}
 .vgrid .xltable{table-layout:auto;min-width:660px}
 .vgrid .xltable th:nth-child(2),.vgrid .xltable td:nth-child(2){width:26%}
 .vgrid .xltable th:nth-child(3),.vgrid .xltable td:nth-child(3){width:34%}
@@ -372,10 +385,13 @@ button{font-family:inherit;cursor:pointer}
 .backlink{background:none;border:none;color:var(--teal);font-family:inherit;font-size:13px;font-weight:600;padding:2px 0;margin-bottom:8px;cursor:pointer}
 .backlink:hover{text-decoration:underline}
 .detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+/* The project header carries five tiles since the two suppliers were split apart; four
+   columns left the fifth stranded on a row of its own. */
+.detail-grid.five{grid-template-columns:repeat(5,1fr)}
 .dcard{background:var(--surface);border:1px solid var(--border);padding:12px 14px;box-shadow:var(--shadow)}
 .dcard .dk{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
 .dcard .dv{font-size:14px;font-weight:500;margin-top:6px;color:var(--ink)}
-@media (max-width:1080px){ .detail-grid{grid-template-columns:1fr 1fr} }
+@media (max-width:1080px){ .detail-grid,.detail-grid.five{grid-template-columns:1fr 1fr} }
 
 /* ppap request form */
 .ppap-grid{display:grid;grid-template-columns:196px 1fr 282px;gap:16px;align-items:start}
@@ -547,6 +563,10 @@ button{font-family:inherit;cursor:pointer}
 .grp-add input:focus{border-color:var(--teal)}
 .partbtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .field2.invalid input,.field2.invalid textarea,.field2.invalid select{border-color:var(--red);background:var(--red-wash)}
+.field2.invalid .xltable td input,.field2.invalid .xltable td select{background:transparent;border-color:transparent}
+.xltable th i{color:var(--red);font-style:normal;margin-left:2px}
+.xltable td.miss{background:var(--red-wash);box-shadow:inset 0 0 0 1px var(--red)}
+.rovalue{padding:7px 9px;border:1px dashed var(--border);border-radius:6px;background:var(--panel2,transparent);color:var(--muted);font-size:12.5px}
 .ferr{color:var(--red);font-size:11.5px;margin-top:3px;font-weight:500;line-height:1.35}
 .fhint{color:var(--muted);font-size:11.5px;margin-top:3px;line-height:1.35}
 .rateinp{font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--surface);border:1px solid var(--teal);padding:5px 7px;width:100%;max-width:130px;outline:none}
@@ -983,11 +1003,12 @@ const STATUS_TASKS={
   "Returned to Sourcing":{roles:["SRC_MEMBER"],title:"Returned - revise & resubmit (F-02)",phase:"Approval",act:"Revise",form:"F-02"},
   "Sourcing Head Approval Pending":{roles:["SRC_HEAD"],title:"Sourcing Head approval (F-02d)",phase:"Approval",act:"Decide"},
   "Business Head Approval Pending":{roles:["BU_HEAD"],title:"Business Head approval (F-02e)",phase:"Approval",act:"Decide"},
-  "Finance Routing Decision Pending":{roles:["FIN_ANALYST"],title:"Finance routing - Capex or Opex (F-02c)",phase:"Approval",act:"Decide",form:"F-02c"},
-  "Finance Head Approval Pending":{roles:["FIN_HEAD"],title:"Finance Head approval (F-02f)",phase:"Approval",act:"Decide"},
+  "Finance Routing Decision Pending":{roles:["FIN_ANALYST"],title:"Account coding - GL, cost centre (F-02c)",phase:"Approval",act:"Record",form:"F-02c"},
+  "Finance Head Approval Pending":{roles:["FIN_HEAD"],title:"Finance Head approval - Capex or Opex (F-02f)",phase:"Approval",act:"Decide"},
   "Approval Pending - Capex":[{roles:["ENG_LEAD","SRC_MEMBER"],title:"Capex AEF identifiers (F-03c)",phase:"Approval",act:"Open",form:"F-03c"},{roles:["BU_MEMBER","CTRL","CTRL_HEAD"],title:"Capex compliance review",phase:"Approval",act:"Open"}],
   "Approval Pending - Opex":[{roles:["FIN_ANALYST","FIN_HEAD"],title:"Opex GL & cost centre (F-03o)",phase:"Approval",act:"Open",form:"F-03o"},{roles:["BU_MEMBER"],title:"Business case review",phase:"Approval",act:"Open"}],
-  "Development Approved":{roles:["BUYER","BUYER_LEAD"],title:"PR / PO creation (F-04)",phase:"Vendor Dev",act:"Raise PR",form:"F-04"},
+  "Development Approved":{roles:["PLANNER","PLAN_LEAD"],title:"PR creation (F-04)",phase:"Vendor Dev",act:"Raise PR",form:"F-04"},
+  "PO Creation Pending":{roles:["BUYER","BUYER_LEAD"],title:"PO creation (F-04-PO)",phase:"Vendor Dev",act:"Raise PO",form:"F-04-PO"},
   "Opex - PR Pending":{roles:["PLANNER","PLAN_LEAD"],title:"Opex PR number (F-04o)",phase:"Vendor Dev",act:"Raise PR",form:"F-04o-PR"},
   "Opex - PO Pending":{roles:["SRC_MEMBER","BUYER"],title:"Opex PO number (F-04o)",phase:"Vendor Dev",act:"Confirm",form:"F-04o-PO"},
   "PO Pending":{roles:["SRC_MEMBER","SRC_HEAD"],title:"Vendor notification & timeline (F-05)",phase:"Vendor Dev",act:"Notify",form:"F-05"},
@@ -1154,7 +1175,7 @@ const DEFAULT_QUOTE_CCY="INR";
 function f02Totals(v){
   let spend=null,nspend=null,qty=null;
   quoteToRows(v&&v.partsPricing).forEach(r=>{
-    const q=parseFloat(r[2]), a=usdOf(r[3],r[5]), b=usdOf(r[4],r[5]);
+    const q=parseFloat(r[2]), a=usdOf(r[3],r[4]), b=usdOf(r[5],r[6]);
     if(isFinite(q)&&a!=null&&b!=null){ spend=(spend||0)+q*a; nspend=(nspend||0)+q*b; qty=(qty||0)+q; }
   });
   return {spend:spend,nspend:nspend,qty:qty,save:(spend!=null&&nspend!=null)?spend-nspend:null};
@@ -1183,6 +1204,20 @@ function money(n,code){
 const num=x=>(x===""||x==null||isNaN(+x))?null:+x;
 const personFor=roleId=>(ROLE[roleId]||{}).person||"";
 const ov=(val,roleId)=>String(val||"").trim()||personFor(roleId);
+
+/* The Buyer's step is a continuation of the Planner's, not a fresh sheet: it opens on the
+   rows the Planner submitted. Three places hold them - this session's form store, the last
+   command's fields on a project read back from SharePoint, and the array F-04 left on the
+   project row - because a Teams-era project may have any one of them and none of the others. */
+const prSeed=(p)=>{
+  if(!p) return "";
+  const stored=(p.form&&p.form["F-04"]&&p.form["F-04"].sapLines)||(p.hubForm||{}).sapLines||"";
+  if(String(stored).trim()) return String(stored);
+  const arr=p.sapLines;
+  return (Array.isArray(arr)&&arr.length)
+    ? rowsToSap(arr.map(x=>[x.part||"",x.desc||"",x.pr||"",x.trun==null?"":String(x.trun),x.po||""]))
+    : "";
+};
 
 const FORM_SPECS={
   "F-10":{
@@ -1241,33 +1276,48 @@ const FORM_SPECS={
     apply:(p,v)=>({...p,finalCost:num(v.finalCost),costVariance:num(v.costVariancePercent),
       vendorRating:v.finalVendorRating,ivaluaUpdate:v.ivaluaUpdate,lessonsLearned:v.lessonsLearned}),
   },
+  /* Raising the paperwork is two jobs in two teams: the Planner raises the requisition, the
+     Buyer turns it into a purchase order. One combined form meant whichever of them opened it
+     first was asked for the other's numbers as well. */
   "F-04":{
-    id:"F-04",name:"PR / PO creation",owner:"Buyer",cap:"pr.create",
-    from:["Development Approved","Opex - PO Pending"],
-    intro:"Raise the requisitions in SAP, then bring the numbers back per part - by importing the SAP extract or typing them in. Account coding was captured at F-03 and is not re-entered here.",
+    id:"F-04",name:"PR creation",owner:"Planner",cap:"pr.create",
+    from:["Development Approved"],
+    intro:"Raise the requisitions in SAP and bring the numbers back per part - by importing the Excel extract or typing them in. Account coding was captured at F-02c and is not re-entered here.",
     sections:[
-      {title:"SAP purchase documents",note:"One row per part, matching how the SAP transaction is recorded against each part. Download to fill in from SAP, then import it back.",fields:[
-        {k:"sapLines",label:"PR / PO by part",type:"sapgrid",req:true},
-      ]},
-      {title:"SAP posting",fields:[
-        {k:"sapStatus",label:"SAP transaction",type:"choice",options:["Posted","Pending","Failed - manual fallback"]},
-        {k:"deliveryDate",label:"PO delivery date",type:"date"},
+      {title:"Purchase requisitions",note:"One row per part. Download to fill it in from SAP, then import it back.",fields:[
+        {k:"sapLines",label:"PR by part",type:"sapgrid",req:true},
       ]},
     ],
-    decision:{label:"Submit",options:[
-      {v:"Raised",label:"PR / PO raised",desc:"Hands over to Sourcing for the vendor notification.",to:"PO Pending",phase:"Vendor Dev"},
+    decision:{label:"Submit",hidden:true,options:[
+      {v:"Raised",label:"PR raised",desc:"Hands over to the Buyer to raise the purchase order.",to:"PO Creation Pending",phase:"Vendor Dev"},
     ]},
     comment:{k:"comments",label:"Comments",req:true},
     apply:(p,v)=>{
-      /* The project keeps a summary; the per-part detail travels in sapLines, which is what
-         the SAP transaction rows are built from. */
       const rr=sapRows(v.sapLines).filter(r=>r[2]);
-      let amt=null; rr.forEach(r=>{const a=parseFloat(r[4]); if(isFinite(a)) amt=(amt||0)+a;});
+      let qty=null; rr.forEach(r=>{const q=parseFloat(r[3]); if(isFinite(q)) qty=(qty||0)+q;});
       return {...p,
-        sapPR:rr.map(r=>r[2]).join(", ")||p.sapPR,
-        sapPO:rr.map(r=>r[3]).filter(Boolean).join(", ")||p.sapPO,
-        prAmount:amt, poDeliveryDate:v.deliveryDate, sapStatus:v.sapStatus,
-        sapLines:rr.map(r=>({part:r[0],material:r[1],pr:r[2],po:r[3],amount:num(r[4])}))};
+        sapPR:rr.map(r=>r[2]).join(", ")||p.sapPR, trunQty:qty,
+        sapLines:rr.map(r=>({part:r[0],desc:r[1],pr:r[2],trun:num(r[3]),po:r[4]}))};
+    },
+  },
+  "F-04-PO":{
+    id:"F-04-PO",name:"PO creation",owner:"Buyer",cap:"po.confirm",
+    from:["PO Creation Pending"],
+    intro:"The Planner has raised the requisitions. Record the purchase order against each part - import the Excel extract or type the numbers in.",
+    sections:[
+      {title:"Purchase orders",note:"The PR rows as the Planner left them, with the PO number to fill in. Download to complete it in Excel, then import it back.",fields:[
+        {k:"sapLines",label:"PO by part",type:"sapgrid",po:true,req:true,init:prSeed},
+      ]},
+    ],
+    decision:{label:"Submit",hidden:true,options:[
+      {v:"Raised",label:"PO raised",desc:"Hands over to Sourcing for the vendor notification.",to:"PO Pending",phase:"Vendor Dev"},
+    ]},
+    comment:{k:"comments",label:"Comments",req:true},
+    apply:(p,v)=>{
+      const rr=sapRows(v.sapLines).filter(r=>r[4]);
+      return {...p,
+        sapPO:rr.map(r=>r[4]).join(", ")||p.sapPO,
+        sapLines:sapRows(v.sapLines).filter(r=>r[2]).map(r=>({part:r[0],desc:r[1],pr:r[2],trun:num(r[3]),po:r[4]}))};
     },
   },
   "F-04o-PR":{
@@ -1301,9 +1351,15 @@ const FORM_SPECS={
     id:"F-05",name:"Vendor notification & timeline",owner:"Sourcing",cap:"vendor.notify",
     from:["PO Pending"],
     intro:"Notify the vendor and agree the sample timeline. The watcher reminds them on day 5 and escalates to the Sourcing Head on day 7.",
+    /* the vendor was chosen at F-02; this form only reaches them */
+    note:p=>{const v=projVendor(p);
+      return v?"Vendor: "+v.n+(v.e?" \u00b7 "+v.e:""):"No vendor was recorded at F-02 - it has to be set there first.";},
     sections:[
-      {title:"Vendors to notify",note:"One row per vendor, carried over from the vendors named at F-02 with the parts each one supplies. Every vendor gets their own deadline and quantity; the day 5 reminder and day 7 escalation run per vendor from the send date.",fields:[
-        {k:"vendorNotify",label:"Notifications",type:"notifygrid",req:true},
+      {title:"Sample request",note:"The day 5 reminder and the day 7 escalation to the Sourcing Head run from the send date.",fields:[
+        {k:"contactName",label:"Vendor contact name",type:"text",req:true},
+        {k:"contactEmail",label:"Vendor contact email",type:"email",req:true,init:p=>{const v=projVendor(p);return v?v.e:"";}},
+        {k:"sampleDeadline",label:"Sample deadline",type:"date",req:true},
+        {k:"sampleQty",label:"Sample quantity (pcs)",type:"number",req:true},
       ]},
       {title:"Instructions",fields:[
         {k:"instructions",label:"Instructions to vendor",type:"textarea"},
@@ -1314,27 +1370,18 @@ const FORM_SPECS={
       {v:"Hold",label:"Hold notification",desc:"Pauses before contacting the vendor.",to:"Held",phase:"Vendor Dev"},
     ]},
     comment:{k:"comments",label:"Comments",req:true},
-    apply:(p,v)=>{
-      const rr=notifyRows(v.vendorNotify).filter(r=>r[0]&&r[3]);
-      /* The earliest deadline is the one the watcher measures against - a project is late as
-         soon as any vendor is. */
-      const dates=rr.map(r=>r[4]).filter(Boolean).sort();
-      let qty=null; rr.forEach(r=>{const q=parseFloat(r[5]); if(isFinite(q)) qty=(qty||0)+q;});
-      return {...p,
-        vendorContactName:(rr[0]||[])[2]||p.vendorContactName,
-        vendorEmail:(rr[0]||[])[3]||p.vendorEmail,
-        sampleDeadline:dates[0]||p.sampleDeadline,
-        sampleQtyRequested:qty,
-        vendorNotifications:rr.map(r=>({vendor:r[0],parts:splitParts(r[1]),contact:r[2],
-                                        email:r[3],deadline:r[4],qty:num(r[5])}))};
-    },
+    apply:(p,v)=>({...p,
+      vendorContactName:v.contactName||p.vendorContactName,
+      vendorEmail:(v.contactEmail||"").trim()||p.vendorEmail,
+      sampleDeadline:v.sampleDeadline||p.sampleDeadline,
+      sampleQtyRequested:num(v.sampleQty)}),
   },
   "F-06":{
     id:"F-06",name:"Sample submission record",owner:"Sourcing / SQE",cap:"sample.record",saveable:true,
     from:["In Development","Re-sample Requested"],
-    intro:"Samples arrive from each vendor on their own schedule, so record them as they land. Fill the rows that have come in and submit - the project stays here until every expected sample is in. Samples also arrive automatically when a vendor replies by email.",
+    intro:"Samples rarely all land together, so record them as they arrive. Fill the rows that have come in and submit - the project stays here until every expected sample is in. Samples also arrive automatically when the vendor replies by email.",
     sections:[
-      {title:"Samples expected",note:"Seeded from the vendors notified at F-05, one row per part. Received rows are ticked; the rest stay outstanding.",fields:[
+      {title:"Samples expected",note:"Seeded from the parts notified at F-05, one row per part. Received rows are ticked; the rest stay outstanding.",fields:[
         {k:"sampleLines",label:"Sample receipts",type:"samplegrid",req:true},
       ]},
       {title:"Sample details",fields:[
@@ -1369,58 +1416,58 @@ const FORM_SPECS={
   /* The missing half of a rejection. F-07 or F-08 sends a group back, and until now the only
      thing on offer was a receipt form - so who was supplying the replacement, on what date,
      and whether the price still held were all decided off-system and never recorded.
-     A group can span several vendors, so the request is a row per vendor over that group's
-     parts, the same shape F-05 uses for the first notification. */
+     The project runs with one vendor, so the request either chases that vendor or names a
+     replacement, the same shape F-05 uses for the first notification. */
   "F-06R":{
     id:"F-06R",name:"Re-source & re-sample",owner:"Sourcing",cap:"vendor.notify",
     from:["Sample Rejected"],
     intro:"The sample failed. Decide who supplies the replacement, tell them what has to change, and agree a new deadline. Recording what then arrives is F-06.",
-    note:p=>{const n=(p&&p.rejectionCount)||0;
-      return n>=3
+    note:p=>{const n=(p&&p.rejectionCount)||0, v=projVendor(p);
+      const who=v?"Current vendor: "+v.n+(v.e?" \u00b7 "+v.e:"")+". ":"";
+      return who+(n>=3
         ? "This group has now been rejected "+n+" times. The Sourcing Head approves the re-source plan before another sample is requested."
         : n===2 ? "This group has been rejected twice. A third rejection needs the Sourcing Head's approval before it can be re-sampled again."
-        : n ? "This group has been rejected once." : null;},
+        : n ? "This group has been rejected once." : "");},
     sections:[
       {title:"Who supplies the replacement",fields:[
         {k:"resourceAction",label:"Re-source decision",type:"choice",req:true,
-          options:["Chase the same vendor","Move to another vendor on this project","Bring in a new vendor"]},
+          options:["Chase the same vendor","Replace the vendor"]},
         {k:"failureReason",label:"What the vendor is being told",type:"textarea",req:true,
           ph:"The characteristic that failed, the deviation measured, what must be different on the next sample\u2026"},
       ]},
       /* A vendor who is not on the project was never in the approved quote, so the saving the
          Finance Head signed off no longer describes this project. Saying so here is the
          difference between a known revision and a number that quietly stops being true. */
-      {title:"New vendor",note:"Only for a vendor that is not on this project yet. Their price is not in the approved F-02 quote, so the commercial case is flagged for revision.",fields:[
-        {k:"newVendorName",label:"New vendor name",type:"text",
-          req:(v)=>v.resourceAction==="Bring in a new vendor"},
+      /* One vendor per project: replacing it here replaces it for the whole project, and the
+         new vendor's price was never in the approved F-02 quote, so the case is flagged. */
+      {title:"New vendor",note:"Only when replacing the vendor. The project moves to the new vendor, and their price is not in the approved F-02 quote, so the commercial case is flagged for revision.",fields:[
+        {k:"newVendorName",label:"New vendor",type:"supplier",
+          req:(v)=>v.resourceAction==="Replace the vendor"},
+        {k:"newVendorEmail",label:"New vendor email",type:"email",
+          req:(v)=>v.resourceAction==="Replace the vendor"},
         {k:"newVendorQuoted",label:"Price against the approved quote",type:"choice",
-          req:(v)=>v.resourceAction==="Bring in a new vendor",
+          req:(v)=>v.resourceAction==="Replace the vendor",
           options:["Same or better \u2014 approved quote still holds","Different \u2014 the quote has to be revised"]},
       ]},
-      {title:"Re-sample request",note:"One row per vendor covering this group's parts, seeded from who supplies them now. Change the vendor here if the parts are moving. Each vendor gets their own deadline and quantity.",fields:[
-        {k:"resampleNotify",label:"Re-sample request",type:"notifygrid",req:true},
+      {title:"Re-sample request",note:"For this group's parts only. The other groups carry on.",fields:[
+        {k:"resampleDeadline",label:"Re-sample deadline",type:"date",req:true},
+        {k:"resampleQty",label:"Re-sample quantity (pcs)",type:"number",req:true},
       ]},
     ],
     decision:{label:"Send",options:[
-      {v:"Requested",label:"Send the re-sample request",desc:"Notifies each vendor with the new deadline. The group waits at re-sample requested until the replacements arrive.",to:"Re-sample Requested",phase:"Sample Qual"},
+      {v:"Requested",label:"Send the re-sample request",desc:"Notifies the vendor with the new deadline. The group waits at re-sample requested until the replacements arrive.",to:"Re-sample Requested",phase:"Sample Qual"},
     ]},
     comment:{k:"sourcingComments",label:"Comments",req:true},
     apply:(p,v)=>{
-      const rr=notifyRows(v.resampleNotify).filter(r=>r[0]&&r[3]);
-      /* Earliest deadline is what the watcher measures against - the group is late as soon as
-         any one vendor is. */
-      const dates=rr.map(r=>r[4]).filter(Boolean).sort();
-      const isNew=v.resourceAction==="Bring in a new vendor";
+      const replace=v.resourceAction==="Replace the vendor";
       return {...p,
-        sampleDeadline:dates[0]||p.sampleDeadline,
-        vendorContactName:(rr[0]||[])[2]||p.vendorContactName,
-        vendorEmail:(rr[0]||[])[3]||p.vendorEmail,
+        supplier:replace?((v.newVendorName||"").trim()||p.supplier):p.supplier,
+        vendorEmail:replace?((v.newVendorEmail||"").trim()||p.vendorEmail):p.vendorEmail,
+        sampleDeadline:v.resampleDeadline||p.sampleDeadline,
         resample:{action:v.resourceAction,
-          newVendor:isNew?(v.newVendorName||""):"",
-          quoteStale:isNew&&v.newVendorQuoted!=="Same or better \u2014 approved quote still holds",
-          requestedOn:todayStr(),
-          vendors:rr.map(r=>({vendor:r[0],parts:splitParts(r[1]),contact:r[2],
-                              email:r[3],deadline:r[4],qty:num(r[5])}))}};
+          newVendor:replace?(v.newVendorName||""):"",
+          quoteStale:replace&&v.newVendorQuoted!=="Same or better \u2014 approved quote still holds",
+          requestedOn:todayStr(),deadline:v.resampleDeadline||"",qty:num(v.resampleQty)}};
     },
   },
   "F-07":{
@@ -1504,22 +1551,30 @@ const FORM_SPECS={
       yieldRate:num(v.yieldRate),firstPassYield:num(v.firstPassYield),cycleTime:num(v.cycleTime),runAtRate:v.runAtRate,
       trialRepeatCount:(p.trialRepeatCount||0)+(choice&&choice.v==="Repeat"?1:0)}),
   },
+  /* The Finance Head has already said Capex or Opex at F-02f. What is captured here is the
+     coding the spend is booked against - the three identifiers the Buyer raises the PR with,
+     and the only thing still standing between an approved project and F-03. */
   "F-02c":{
-    id:"F-02c",name:"Finance routing decision",owner:"Finance Team Member",cap:"routing.decide",
+    id:"F-02c",name:"Finance account coding",owner:"Finance Team Member",cap:"routing.decide",
     from:["Finance Routing Decision Pending"],
-    intro:"Sourcing suggested a funding route. Confirm how this project is funded - the classification decides whether F-03c (Capex) or F-03o (Opex) follows.",
+    intro:"The Finance Head has approved the funding and set the route. Record the account coding this project is booked against - it travels to the Buyer with the PR/PO request.",
+    note:p=>{const r=projRoute(p);return r?"Approved as "+r+" by the Finance Head.":"";},
     sections:[
-      {title:"Finance decision",note:"The sourcing submission and quote are on the project record.",fields:[
-        {k:"financeRouting",label:"Approve as",type:"choice",options:["Capex","Opex"],req:true},
-        {k:"budgetLine",label:"Budget line / reference",type:"text"},
+      {title:"Account coding",note:"Booked against the project. GL account and cost centre are required; profit centre where the plant uses one.",fields:[
+        {k:"glAccount",label:"GL account",type:"text",req:true},
+        {k:"costCentre",label:"Cost centre",type:"text",req:true},
+        {k:"profitCentre",label:"Profit centre",type:"text"},
       ]},
     ],
-    decision:{label:"Routing decision",options:[
-      {v:"Confirm",label:"Confirm routing",desc:"Sends the project to the Finance Head gate.",to:"Finance Head Approval Pending",phase:"Approval"},
+    decision:{label:"Submit",options:[
+      /* Where it goes next is the Finance Head's decision, not this form's, so the target is
+         read off the project rather than offered as a choice. */
+      {v:"Record",label:"Record the account coding",desc:"Sends the project into approval on the route the Finance Head set.",
+       to:p=>(projRoute(p)==="Opex"?"Approval Pending - Opex":"Approval Pending - Capex"),phase:"Approval"},
       {v:"Return",label:"Return to Sourcing",desc:"Sends it back for revision with your reason.",to:"Returned to Sourcing",phase:"Approval"},
     ]},
-    comment:{k:"financeComments",label:"Comments",req:true,ph:"Why this classification..."},
-    apply:(p,v,who)=>({...p,routingDecision:v.financeRouting,budgetLine:v.budgetLine,routingDecidedBy:who}),
+    comment:{k:"financeComments",label:"Comments",req:true,ph:"Anything the Buyer needs to know about this coding..."},
+    apply:(p,v,who)=>({...p,glAccount:v.glAccount,costCentre:v.costCentre,profitCentre:v.profitCentre,codingBy:who}),
   },
   "F-03c":{
     id:"F-03c",name:"Capex AEF identifiers",owner:"AME / Engineering",cap:"aef.prepare",
@@ -1532,6 +1587,13 @@ const FORM_SPECS={
         {k:"prNumber",label:"SAP PR number",type:"text",req:true},
         {k:"poNumber",label:"SAP PO number",type:"text",req:true},
       ]},
+      /* Booked by Finance at F-02c. Shown because the Buyer raises the PR against it, asked
+         for nowhere else - one capture, so the two records cannot disagree. */
+      {title:"Account coding (for reference)",note:"Recorded by Finance at F-02c. It travels to the Buyer with the PR/PO request.",fields:[
+        {k:"refGl",label:"GL account",type:"ref",from:p=>projAcct(p).gl},
+        {k:"refCc",label:"Cost centre",type:"ref",from:p=>projAcct(p).cc},
+        {k:"refPc",label:"Profit centre",type:"ref",from:p=>projAcct(p).pc},
+      ]},
     ],
     decision:{label:"Submit",options:[
       {v:"Submit",label:"Record identifiers",desc:"Moves the project into development.",to:"Development Approved",phase:"Vendor Dev"},
@@ -1539,28 +1601,32 @@ const FORM_SPECS={
     comment:{k:"comments",label:"Comments",req:true},
     apply:(p,v,who)=>({...p,networkId:v.networkId,accoladeId:v.accoladeId,sapPR:v.prNumber,sapPO:v.poNumber}),
   },
+  /* The coding this form used to ask for is booked at F-02c now, before the project is
+     approved at all. What is left is Finance confirming it still holds and handing the PR to
+     the Planner - a real step, and the last point where the coding can be corrected. */
   "F-03o":{
-    id:"F-03o",name:"Opex GL account & cost centre",owner:"Finance",cap:"opex.code",
+    id:"F-03o",name:"Opex coding confirmation",owner:"Finance",cap:"opex.code",
     from:["Approval Pending - Opex"],
-    intro:"Opex is approved. Record the account coding so the Planner can raise the PR.",
+    intro:"Opex is approved. Confirm the account coding Finance booked at F-02c so the Planner can raise the PR.",
     sections:[
-      {title:"Finance inputs",fields:[
-        {k:"glAccount",label:"GL account",type:"text",req:true},
-        {k:"costCentre",label:"Cost centre",type:"text",req:true,ph:"e.g. PUN-SRC"},
+      {title:"Account coding (for reference)",note:"Recorded by Finance at F-02c. Correct it there if it has changed.",fields:[
+        {k:"refGl",label:"GL account",type:"ref",from:p=>projAcct(p).gl},
+        {k:"refCc",label:"Cost centre",type:"ref",from:p=>projAcct(p).cc},
+        {k:"refPc",label:"Profit centre",type:"ref",from:p=>projAcct(p).pc},
       ]},
     ],
     decision:{label:"Submit",options:[
-      {v:"Submit",label:"Record account coding",desc:"Hands over to the Planner to raise the PR.",to:"Opex - PR Pending",phase:"Vendor Dev"},
+      {v:"Submit",label:"Confirm the coding",desc:"Hands over to the Planner to raise the PR.",to:"Opex - PR Pending",phase:"Vendor Dev"},
     ]},
     comment:{k:"comments",label:"Comments",req:true},
-    apply:(p,v,who)=>({...p,glAccount:v.glAccount,costCentre:v.costCentre}),
+    apply:(p,v,who)=>p,
   },
   "F-02":{
     id:"F-02",name:"Feasibility & sourcing submission",owner:"Sourcing",cap:"feasibility.submit",
     from:["Feasibility Review","Held","Returned to Sourcing"],
     intro:"Price the localisation, assign the vendor and the approvers, and suggest the funding route. Submitting starts the approval chain.",
     sections:[
-      {title:"Sourcing quote",note:"One row per part. Quantity and existing price are carried over from intake; add the localized price and the currency that vendor quoted in. Download to price it in Excel and import it back.",fields:[
+      {title:"Sourcing quote",note:"One row per part. Quantity and existing price are carried over from intake; add the localized price and the currency each price is quoted in. Download to price it in Excel and import it back.",fields:[
         {k:"partsPricing",label:"Quote by part",type:"partsgrid",req:true},
       ]},
       /* Optional: not every feasibility has a written quote to hand, and blocking the
@@ -1568,8 +1634,9 @@ const FORM_SPECS={
       {title:"Quote & supporting documents",note:"Attach the vendor quote if you have it. It lands in the project's ProjectDocuments folder and shows on the project timeline.",fields:[
         {k:"quoteFile",label:"Vendor quote",type:"file",accept:".pdf,.xlsx,.xls,.docx,.png,.jpg"},
       ]},
-      {title:"Assign vendor",note:"Named from the suppliers already on this project's parts. Add or remove rows as needed; the address is what the vendor notification at F-05 sends to.",fields:[
-        {k:"vendors",label:"Vendors",type:"vendorlist"},
+      {title:"Vendor",note:"One vendor supplies every part on this project. The email is where the sample request at F-05 goes.",fields:[
+        {k:"vendorName",label:"New Vendor",type:"supplier",req:true},
+        {k:"vendorEmail",label:"New vendor email",type:"email",req:true},
       ]},
       {title:"Approver assignments",note:"Defaults come from the role registry - override per project where needed.",fields:[
         {k:"sourcingHeadOverride",label:"Sourcing Head",type:"person",def:"SRC_HEAD"},
@@ -1599,7 +1666,9 @@ const FORM_SPECS={
         {k:"Current annual spend",v:money(spend,"USD")},
         {k:"New annual spend",v:money(nspend,"USD")},
         {k:"Annual saving",v:money(save,"USD"),tone:save==null?"":save>=0?"good":"bad"},
-        {k:"Saving %",v:(save!=null&&spend)?((save/spend)*100).toFixed(1)+"%":"—",tone:save==null?"":save>=0?"good":"bad"},
+        /* Return on the localisation: the saving measured against what the plant spends on
+           these parts today. The old "Saving %" cell was this same number under another name. */
+        {k:"ROI",v:(save!=null&&spend)?((save/spend)*100).toFixed(1)+"%":"—",tone:save==null?"":save>=0?"good":"bad"},
       ];
     },
     decision:{label:"Feasibility decision",options:[
@@ -1614,12 +1683,8 @@ const FORM_SPECS={
     apply:(p,v,who)=>{
       const {spend,nspend,qty}=f02Totals(v);
       return {...p,
-        /* F-05 and the project card still speak of one vendor, so the first named row is the
-           primary; the full list travels alongside it. */
-        supplier:(vendorRows(v.vendors).find(r=>r[0])||[])[0]||p.supplier,
-        vendorEmail:(vendorRows(v.vendors).find(r=>r[2])||[])[2]||p.vendorEmail,
-        vendorList:vendorRows(v.vendors).filter(r=>r[0])
-          .map(r=>({name:r[0],parts:splitParts(r[1]),email:r[2]})),
+        supplier:(v.vendorName||"").trim()||p.supplier,
+        vendorEmail:(v.vendorEmail||"").trim()||p.vendorEmail,
         sourcingPrice:null,localizedPrice:null,localizedCurrency:"USD",sourcingAnnualQty:qty,
         spendINR:spend,newSpendINR:nspend,saveINR:(spend!=null&&nspend!=null)?spend-nspend:null,
         totalInvestment:num(v.capexOpexAmount),routingSuggestion:v.routingSuggestion,
@@ -1633,8 +1698,7 @@ const FORM_SPECS={
     summary:v=>{const amt=num(v.capexOpexAmount);
       const np=quoteToRows(v.partsPricing).length;
       const route=amt!=null?(v.routingSuggestion||"route not set")+" "+money(amt,v.currency):"no investment";
-      const vs=vendorRows(v.vendors).filter(r=>r[0]);
-      return np+" part(s) \u00b7 "+route+" \u00b7 "+(vs.length?vs.length+" vendor(s)":"no vendor");},
+      return np+" part(s) \u00b7 "+route+" \u00b7 "+(v.vendorName?"vendor "+v.vendorName:"no vendor");},
   },
 };
 
@@ -1643,9 +1707,15 @@ const FORM_SPECS={
    Any reject returns the project to Sourcing for revision. */
 const APPROVAL_STEPS=[
   {id:"F-02d",label:"Sourcing Head approval",role:"SRC_HEAD",who:"sourcingHead",at:"Sourcing Head Approval Pending",ok:()=>"Business Head Approval Pending"},
-  {id:"F-02e",label:"Business Head approval",role:"BU_HEAD",who:"buHead",at:"Business Head Approval Pending",ok:()=>"Finance Routing Decision Pending"},
-  {id:"F-02c",label:"Finance routing decision",role:"FIN_ANALYST",who:"financeAnalyst",at:"Finance Routing Decision Pending",ok:()=>"Finance Head Approval Pending",form:"F-02c",formOnly:true},
-  {id:"F-02f",label:"Finance Head approval",role:"FIN_HEAD",who:"financeHead",at:"Finance Head Approval Pending",ok:p=>(p.routingDecision==="Opex"?"Approval Pending - Opex":"Approval Pending - Capex")},
+  {id:"F-02e",label:"Business Head approval",role:"BU_HEAD",who:"buHead",at:"Business Head Approval Pending",ok:()=>"Finance Head Approval Pending"},
+  /* The funding decision belongs to the Finance Head, who now takes it at the same moment as
+     the approval - one gate, not an analyst's classification waiting on a head to confirm it.
+     `route` is what makes the approval ask Capex or Opex. */
+  {id:"F-02f",label:"Finance Head approval",role:"FIN_HEAD",who:"financeHead",at:"Finance Head Approval Pending",route:true,ok:()=>"Finance Routing Decision Pending"},
+  /* What is left for the Finance team is bookkeeping, not a decision: the account coding the
+     Buyer raises the PR against. It still gates the move into approval, because a PR cannot
+     be raised without it. */
+  {id:"F-02c",label:"Finance account coding",role:"FIN_ANALYST",who:"financeAnalyst",at:"Finance Routing Decision Pending",ok:p=>(projRoute(p)==="Opex"?"Approval Pending - Opex":"Approval Pending - Capex"),form:"F-02c",formOnly:true},
 ];
 /* The chain used to be the four F-02 gates only, so everything after approval - sampling,
    engineering, trial, PSW - had no chain representation at all. The full chain adds the
@@ -1714,12 +1784,13 @@ const TRANSITIONS={
      was superseded by "Returned to Sourcing", is a question for the plant. */
   "Rejected - Approval":["Sourcing Head Approval Pending","Held","Dropped"],
   "Sourcing Head Approval Pending":["Business Head Approval Pending","Returned to Sourcing","Held"],
-  "Business Head Approval Pending":["Finance Routing Decision Pending","Returned to Sourcing"],
-  "Finance Routing Decision Pending":["Finance Head Approval Pending","Returned to Sourcing"],
-  "Finance Head Approval Pending":["Approval Pending - Capex","Approval Pending - Opex","Returned to Sourcing"],
+  "Business Head Approval Pending":["Finance Head Approval Pending","Returned to Sourcing"],
+  "Finance Head Approval Pending":["Finance Routing Decision Pending","Returned to Sourcing"],
+  "Finance Routing Decision Pending":["Approval Pending - Capex","Approval Pending - Opex","Returned to Sourcing"],
   "Approval Pending - Capex":["Development Approved","Returned to Sourcing"],
   "Approval Pending - Opex":["Opex - PR Pending","Returned to Sourcing"],
-  "Development Approved":["PO Pending"],
+  "Development Approved":["PO Creation Pending"],
+  "PO Creation Pending":["PO Pending"],
   "Opex - PR Pending":["Opex - PO Pending"],
   "Opex - PO Pending":["PO Pending"],
   "PO Pending":["In Development","Held"],
@@ -1962,13 +2033,16 @@ const statusClass=s=>{s=s.toLowerCase(); if(s.indexOf("reject")>=0||s.indexOf("h
    signature), so the screen says which is which while the record stays canonical.
    Audit rows are deliberately NOT relabelled - a trail quotes what was written. */
 const STATUS_LABEL={
+  /* The value stays as SharePoint and the legacy cards know it; only the words change. The
+     routing decision moved to the Finance Head gate, so what waits here is the coding. */
+  "Finance Routing Decision Pending":"Finance – account coding pending",
   "PSW Pending Sign-off":"PSW – pending initiation",
   "PSW Sign-off Pending":"PSW – awaiting CFT signatures",
 };
 const statusLabel=s=>STATUS_LABEL[s]||s;
 
 const PROJECTS=[
-  {id:"NPI-2026-0126",title:"Localized PPAP housing",phase:"Approval",status:"Approval Pending - Capex",plant:"Pune",owner:"Hitesh Sharma",supplier:"Acme Precision",parts:4,target:"30 Sep 2026",updated:"09 Sep 2026",
+  {id:"NPI-2026-0126",title:"Localized PPAP housing",phase:"Approval",status:"Approval Pending - Capex",plant:"Pune",owner:"Hitesh Sharma",supplier:"Acme Precision",parts:4,target:"30 Sep 2026",incumbent:"Wuxi Precision Works",updated:"09 Sep 2026",
     routingSuggestion:"Capex",routingDecision:"Capex",totalInvestment:1250000,budgetLine:"CAP-PUN-26-114",
     sourcingPrice:118,localizedPrice:86,sourcingAnnualQty:12000,vendorEmail:"sales@acmeprecision.in",
     approvers:{sourcingHead:"Deepak Rao",financeHead:"Anita Desai",buHead:"Sunil Kapoor",ameHead:"Ashok Pillai",
@@ -1981,26 +2055,26 @@ const PROJECTS=[
         sourcingComments:"Three quotes taken. Acme lands at 86/unit against the incumbent 118 on a 12,000 p.a. schedule. Tooling is required for the bracket, so this is proposed as Capex."},
       "F-02c":{financeRouting:"Capex",budgetLine:"CAP-PUN-26-114",
         financeComments:"Tooling is capitalised against the Pune localisation network — confirmed as Capex, not Opex."}}},
-  {id:"NPI-2026-0121",title:"Brake bracket resourcing",phase:"Initiation",status:"Feasibility Review",plant:"Pune",owner:"Hitesh Sharma",supplier:"Bharat Forge",parts:2,target:"15 Oct 2026",updated:"08 Sep 2026"},
+  {id:"NPI-2026-0121",title:"Brake bracket resourcing",phase:"Initiation",status:"Feasibility Review",plant:"Pune",owner:"Hitesh Sharma",supplier:"Bharat Forge",parts:2,target:"15 Oct 2026",incumbent:"Endurance Tech",updated:"08 Sep 2026"},
   {id:"NPI-2026-0120",title:"Cam module NPI",phase:"Vendor Dev",status:"PO Pending",plant:"Pune",owner:"Ravi Menon",supplier:"Sundaram Fasteners",parts:3,target:"22 Oct 2026",updated:"08 Sep 2026"},
-  {id:"NPI-2026-0119",title:"Valve body localization",phase:"Approval",status:"Approval Pending - Capex",plant:"Pune",owner:"Hitesh Sharma",supplier:"Rane Group",parts:5,target:"05 Nov 2026",updated:"07 Sep 2026"},
-  {id:"NPI-2026-0118",title:"Gasket dual-source",phase:"Vendor Dev",status:"In Development",plant:"Pune",owner:"Hitesh Sharma",supplier:"Acme Precision",parts:2,target:"12 Nov 2026",updated:"07 Sep 2026"},
-  {id:"NPI-2026-0116",title:"Shaft assembly NPI",phase:"Sample Qual",status:"Sample Under Inspection",plant:"Pune",owner:"Vikram Rao",supplier:"Endurance Tech",parts:3,target:"18 Nov 2026",updated:"06 Sep 2026",groups:["Shaft group","Bearing group"]},
-  {id:"NPI-2026-0115",title:"Sensor mount ECN",phase:"Approval",status:"Rejected - Approval",plant:"Pune",owner:"Hitesh Sharma",supplier:"Minda Corp",parts:1,target:"20 Nov 2026",updated:"06 Sep 2026"},
-  {id:"NPI-2026-0112",title:"Cover plate feasibility",phase:"Initiation",status:"Held",plant:"Pune",owner:"Hitesh Sharma",supplier:"—",parts:1,target:"01 Dec 2026",updated:"05 Sep 2026"},
-  {id:"NPI-2026-0110",title:"Pump body pilot",phase:"Pilot",status:"Pilot Lots In Progress",plant:"Pune",owner:"Vikram Rao",supplier:"Shakti Pumps",parts:2,target:"10 Dec 2026",updated:"05 Sep 2026"},
-  {id:"NPI-2026-0109",title:"Bearing cap closure",phase:"Closed",status:"Project Completed",plant:"Pune",owner:"Hitesh Sharma",supplier:"NRB Bearings",parts:3,target:"28 Aug 2026",updated:"02 Sep 2026"},
-  {id:"NPI-2026-0104",title:"Flange NPI",phase:"Pilot",status:"All Lots Delivered",plant:"Pune",owner:"Ravi Menon",supplier:"Jamna Auto",parts:2,target:"14 Dec 2026",updated:"01 Sep 2026"},
-  {id:"NPI-2026-0102",title:"Gear housing localization",phase:"Vendor Dev",status:"PO Pending",plant:"Pune",owner:"Ravi Menon",supplier:"Bharat Gears",parts:4,target:"20 Dec 2026",updated:"31 Aug 2026"},
+  {id:"NPI-2026-0119",title:"Valve body localization",phase:"Approval",status:"Approval Pending - Capex",plant:"Pune",owner:"Hitesh Sharma",supplier:"Rane Group",parts:5,target:"05 Nov 2026",incumbent:"Tianjin Valve Co",updated:"07 Sep 2026"},
+  {id:"NPI-2026-0118",title:"Gasket dual-source",phase:"Vendor Dev",status:"In Development",plant:"Pune",owner:"Hitesh Sharma",supplier:"Acme Precision",parts:2,target:"12 Nov 2026",incumbent:"Talbros Engineering",updated:"07 Sep 2026"},
+  {id:"NPI-2026-0116",title:"Shaft assembly NPI",phase:"Sample Qual",status:"Sample Under Inspection",plant:"Pune",owner:"Vikram Rao",supplier:"Endurance Tech",parts:3,target:"18 Nov 2026",incumbent:"Ningbo Shaft Works",updated:"06 Sep 2026",groups:["Shaft group","Bearing group"]},
+  {id:"NPI-2026-0115",title:"Sensor mount ECN",phase:"Approval",status:"Rejected - Approval",plant:"Pune",owner:"Hitesh Sharma",supplier:"Minda Corp",parts:1,target:"20 Nov 2026",incumbent:"Minda Corp",updated:"06 Sep 2026"},
+  {id:"NPI-2026-0112",title:"Cover plate feasibility",phase:"Initiation",status:"Held",plant:"Pune",owner:"Hitesh Sharma",supplier:"—",parts:1,target:"01 Dec 2026",incumbent:"Suzhou Cover Tech",updated:"05 Sep 2026"},
+  {id:"NPI-2026-0110",title:"Pump body pilot",phase:"Pilot",status:"Pilot Lots In Progress",plant:"Pune",owner:"Vikram Rao",supplier:"Shakti Pumps",parts:2,target:"10 Dec 2026",incumbent:"Shanghai Pump Works",updated:"05 Sep 2026"},
+  {id:"NPI-2026-0109",title:"Bearing cap closure",phase:"Closed",status:"Project Completed",plant:"Pune",owner:"Hitesh Sharma",supplier:"NRB Bearings",parts:3,target:"28 Aug 2026",incumbent:"NRB Bearings",updated:"02 Sep 2026"},
+  {id:"NPI-2026-0104",title:"Flange NPI",phase:"Pilot",status:"All Lots Delivered",plant:"Pune",owner:"Ravi Menon",supplier:"Jamna Auto",parts:2,target:"14 Dec 2026",incumbent:"Qingdao Flange",updated:"01 Sep 2026"},
+  {id:"NPI-2026-0102",title:"Gear housing localization",phase:"Vendor Dev",status:"PO Pending",plant:"Pune",owner:"Ravi Menon",supplier:"Bharat Gears",parts:4,target:"20 Dec 2026",incumbent:"Zhejiang Gear",updated:"31 Aug 2026"},
   {id:"NPI-2026-0098",title:"Pin & clip NPI",phase:"Sample Qual",status:"SQE Conditional",plant:"Pune",owner:"Vikram Rao",supplier:"Sterling Tools",parts:2,target:"22 Dec 2026",updated:"30 Aug 2026"},
   {id:"NPI-2026-0095",title:"Manifold PSW sign-off",phase:"PSW",status:"PSW Pending Sign-off",plant:"Pune",owner:"Hitesh Sharma",supplier:"Endurance Tech",parts:3,target:"28 Dec 2026",updated:"29 Aug 2026"},
 ];
 const PARTS={
   "NPI-2026-0126":[
-    {part:"6152-PPAP-09",desc:"Localized housing bracket",supplier:"Acme Precision",stage:"Approval",status:"Approval Pending - Capex",h:6},
-    {part:"6152-PPAP-10",desc:"Housing cover",supplier:"Acme Precision",stage:"Approval",status:"Approval Pending - Capex",h:30},
-    {part:"6152-PPAP-11",desc:"Mounting clip",supplier:"Acme Precision",stage:"Feasibility",status:"Feasibility Review",h:52},
-    {part:"6152-PPAP-12",desc:"Gasket seal",supplier:"Acme Precision",stage:"Sampling",status:"Sample Under Inspection",h:96},
+    {part:"6152-PPAP-09",desc:"Localized housing bracket",supplier:"Acme Precision",vol:8000,cost:2170,currency:"INR",stage:"Approval",status:"Approval Pending - Capex",h:6},
+    {part:"6152-PPAP-10",desc:"Housing cover",supplier:"Acme Precision",vol:3000,cost:2057,currency:"INR",stage:"Approval",status:"Approval Pending - Capex",h:30},
+    {part:"6152-PPAP-11",desc:"Mounting clip",supplier:"Acme Precision",vol:17000,cost:2071,currency:"INR",stage:"Feasibility",status:"Feasibility Review",h:52},
+    {part:"6152-PPAP-12",desc:"Gasket seal",supplier:"Acme Precision",vol:13000,cost:2085,currency:"INR",stage:"Sampling",status:"Sample Under Inspection",h:96},
   ],
 };
 function genParts(p){
@@ -2009,6 +2083,8 @@ function genParts(p){
      the single track owns every part. */
   const gs=(p.groups||[]).filter(Boolean);
   return Array.from({length:p.parts},(_,i)=>({part:(6100+i*7)+"-"+nm[i%6]+"-0"+((i%9)+1),desc:ds[i%6]+" assembly",supplier:p.supplier,stage:stage,status:p.status,h:6+i*13,
+    /* Priced in rupees, the way intake captures a Pune part - the project page converts. */
+    vol:1000*(4+((i*7)%16)),cost:280+((i*617)%3400),currency:"INR",
     group:gs.length?gs[i%gs.length]:undefined}));
 }
 
@@ -2017,11 +2093,17 @@ function PartsTable({p,onOpen}){
   const parts=db.parts.filter(x=>x.pid===p.id);
   /* Was a summary modal. A part has a history and lots of its own, which is a page, not a
      five-row dialog - so the row opens the part instead. */
-  const openPart=(x)=>onOpen?onOpen(x.part):openModal(<InfoModal title={x.part} onClose={closeModal} pairs={[["Description",x.desc],["Supplier",x.supplier]]}/>);
+  const openPart=(x)=>onOpen?onOpen(x.part):openModal(<InfoModal title={x.part} onClose={closeModal} pairs={[["Description",x.desc],["Unit price",money(usdOf(x.cost,x.currency),"USD")]]}/>);
   const cols=[
     {key:"part",label:"Part number",w:"150px",filterType:"text",val:x=>x.part,render:x=><span className="tpid">{x.part}</span>},
     {key:"desc",label:"Description",filterType:"text",val:x=>x.desc,render:x=><span className="tcell">{x.desc}</span>},
-    {key:"supplier",label:"Supplier",filterType:"text",val:x=>x.supplier,render:x=><span>{x.supplier}</span>},
+    /* The project has one vendor, so a supplier per part repeated the same name down every
+       row. The unit price is what actually differs, shown in USD so rows quoted in different
+       currencies can be read against each other. */
+    {key:"unit",label:"Unit price (USD)",w:"140px",sortVal:x=>usdOf(x.cost,x.currency)||0,filterType:"text",
+     val:x=>{const u=usdOf(x.cost,x.currency);return u==null?"":u.toFixed(2);},
+     render:x=>{const u=usdOf(x.cost,x.currency);
+       return u==null?<span className="tmeta">—</span>:<span>{money(u,"USD")}</span>;}},
     {key:"stage",label:"Stage",w:"128px",filterType:"select",options:["All"].concat(STAGES),val:x=>x.stage,render:x=><span className="mchip">{x.stage}</span>},
     {key:"status",label:"Status",w:"186px",filterType:"text",val:x=>statusLabel(x.status),render:x=><span className={"pill "+statusClass(x.status)}>{statusLabel(x.status)}</span>},
     {key:"h",label:"SLA",w:"104px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?x.h<=12:v==="Due soon"?(x.h>12&&x.h<24):v==="On track"?x.h>=24:true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
@@ -2050,13 +2132,14 @@ function capturedFields(p,formId){
   spec.sections.forEach(sec=>sec.fields.forEach(f=>{
     const v=vals[f.k];
     if(f.type==="file")return;   /* it appears as its own attachment event instead */
+    if(f.type==="ref") return;
     if(f.type==="partsgrid"){ out.push([f.label,quoteToRows(v).length+" part(s) priced"]); return; }
     if(f.type==="samplegrid"){ const rr=sampleGridRows(v).filter(r=>r[3]);
       out.push([f.label,rr.map(r=>r[1]+" from "+r[0]+" on "+r[3]).join("; ")||"none received"]); return; }
     if(f.type==="notifygrid"){ const rr=notifyRows(v).filter(r=>r[0]);
       out.push([f.label,rr.map(r=>r[0]+" <"+r[3]+"> by "+r[4]).join("; ")||"none"]); return; }
     if(f.type==="sapgrid"){ const rr=sapRows(v);
-      out.push([f.label,rr.filter(r=>r[2]).map(r=>r[0]+" PR "+r[2]+(r[3]?" / PO "+r[3]:"")).join("; ")||"none"]); return; }
+      out.push([f.label,rr.filter(r=>r[2]).map(r=>r[0]+" PR "+r[2]+(r[3]?" x"+r[3]:"")+(r[4]?" / PO "+r[4]:"")).join("; ")||"none"]); return; }
     if(f.type==="vendorlist"){ out.push([f.label,vendorRows(v).filter(r=>r[0]).map(r=>r[0]+(r[1]?" ("+r[1]+")":"")+(r[2]?" <"+r[2]+">":"")).join("; ")||"none"]); return; }
     if(v==null||String(v).trim()==="")return;
     /* The form's own quote currency where it has one - a captured figure means nothing
@@ -2199,13 +2282,27 @@ function JourneyRail({p}){
   </div>;
 }
 
+/* The commercial case, from whichever record holds it. Submitting F-02 in this session
+   leaves the values on the project in memory; a reload has only what SharePoint stores, and
+   that is HubSummaryJSON - so a project read back from the list has to be able to rebuild the
+   case from its summary, or the whole block collapses to the vendor name after every refresh.
+   Summary amounts are rupees, which is what money() assumes. */
 function caseCellsFor(p){
   const f02=p&&p.form&&p.form["F-02"];
   const calc=f02&&FORM_SPECS["F-02"].computed?FORM_SPECS["F-02"].computed(f02):null;
+  const s=(p&&p.summary)||{}, sf=s.f02||{}, sc=s.f02c||{};
+  const decided=p.routingDecision||sc.route, route=decided||p.routingSuggestion||sf.route;
+  const invest=p.totalInvestment!=null?p.totalInvestment:(sf.invest!=null?sf.invest:null);
+  const tone=v=>v==null?"":v>=0?"good":"bad";
+  const fromSummary=(sf.spend!=null||sf.nspend!=null||sf.save!=null)?[
+    {k:"Current annual spend",v:money(sf.spend)},
+    {k:"New annual spend",v:money(sf.nspend)},
+    {k:"Annual saving",v:money(sf.save),tone:tone(sf.save)},
+    {k:"ROI",v:sf.pct!=null?sf.pct.toFixed(1)+"%":"—",tone:tone(sf.pct)}]:[];
   return [].concat(
-    (p.routingDecision||p.routingSuggestion)?[{k:"Funding route",v:p.routingDecision||p.routingSuggestion+" (suggested)"}]:[],
-    p.totalInvestment!=null?[{k:"Investment",v:money(p.totalInvestment)}]:[],
-    calc||[],
+    route?[{k:"Funding route",v:route+(decided?"":" (suggested)")}]:[],
+    invest!=null?[{k:"Investment",v:money(invest)}]:[],
+    calc||fromSummary,
     (p.supplier&&p.supplier!=="—")?[{k:"Recommended vendor",v:p.supplier}]:[]);
 }
 
@@ -2217,9 +2314,16 @@ function ChainView({p}){
   const preChain=["Feasibility Review","Held"].indexOf(p.status)>=0;
   /* Always rendered. A project between gates still has a chain worth seeing - hiding it was
      only tolerable while position was inferred and every project appeared to be on a gate. */
-  const decide=(st)=>confirm({title:st.id+" — approve "+p.id,
-    message:"Approve "+st.label.toLowerCase()+" for "+p.id+"? This writes an audit entry and moves the project on.",
-    confirmLabel:"Approve",tone:"ok",onConfirm:()=>act.decideGate(p,st,"Approved","")});
+  /* One gate also classifies the funding. Asking for it here keeps the decision and the
+     classification in the same act - the Finance Head cannot approve without saying which. */
+  const decide=(st)=>openModal(<FormModal title={st.id+" — approve "+p.id}
+    note={st.route?"The funding route decides what follows: F-03c for Capex, F-03o for Opex.":
+      "Approving "+st.label.toLowerCase()+" writes an audit entry and moves the project on."}
+    fields={(st.route?[{key:"route",label:"Approve as",type:"select",req:true,options:["Capex","Opex"]}]:[])
+      .concat([{key:"comment",label:"Approval comments",type:"textarea",full:true,
+                ph:"Why this is approved - the basis, any condition. Optional."}])}
+    submitLabel="Approve" onClose={closeModal}
+    onSubmit={v=>{act.decideGate(p,st,"Approved",v.comment||"",v.route||"");closeModal();}}/>);
   const ret=(st)=>openModal(<FormModal title={"Return "+p.id+" to Sourcing"}
     fields={[{key:"reason",label:"Reason for returning",req:true,type:"textarea",full:true,ph:"What has to change before this can be approved…"}]}
     submitLabel="Return to Sourcing" onClose={closeModal}
@@ -2528,10 +2632,14 @@ function ProjectDetail({p,onBack,initialPart,onClearPart}){
   return <>
     <button className="backlink" onClick={onBack}>‹ Back to projects</button>
     <div className="pagehead"><h1>{p.title}</h1><p><span className="mono" style={{color:"var(--teal)",fontWeight:600}}>{p.id}</span> · {p.plant} · Owner {p.owner}</p></div>
-    <div className="detail-grid">
+    <div className="detail-grid five">
       <div className="dcard"><div className="dk">Status</div><div className="dv"><span className={"pill "+statusClass(p.status)}>{statusLabel(p.status)}</span></div></div>
       <div className="dcard"><div className="dk">Phase</div><div className="dv">{p.phase}</div></div>
-      <div className="dcard"><div className="dk">Supplier</div><div className="dv">{p.supplier}</div></div>
+      {/* Two suppliers, not one: the incumbent named at intake is what the project is moving
+          away from, and the vendor chosen at F-02 is what it is moving to. A single "Supplier"
+          tile never said which of the two was on screen. */}
+      <div className="dcard"><div className="dk">Existing supplier</div><div className="dv">{p.incumbent||"—"}</div></div>
+      <div className="dcard"><div className="dk">New supplier</div><div className="dv">{(projVendor(p)||{}).n||p.supplier||"—"}</div></div>
       <div className="dcard"><div className="dk">Target PPAP</div><div className="dv">{p.target}</div></div>
     </div>
     {(()=>{const cc=caseCellsFor(p);
@@ -2542,17 +2650,17 @@ function ProjectDetail({p,onBack,initialPart,onClearPart}){
           <div key={i}><div className="ck">{c.k}</div><div className={"cv "+(c.tone||"")}>{c.v}</div></div>)}</div></div>
       </div>:null;})()}
     <JourneyRail p={p}/>
-    <GroupTracks p={p}/>
-    <ChainView p={p}/>
-    <CFTBoard p={p}/>
-    <PilotLots p={p}/>
-    {/* Parts sit above the history: they are what the project IS, and the timeline is the
-        longest block on the page - below it they were never seen. */}
+    {/* Parts sit directly under the journey: they are what the project IS, and everything
+        below them - tracks, chain, lots, history - is what is happening to them. */}
     <div className="block" style={{marginBottom:18}}>
       <div className="block-h"><h2><Icon n="projects" cls="" style={{width:16,height:16,color:"var(--teal)"}}/> Parts <span className="cnt">{n}</span></h2>
         <span className="tmeta">open a part for its own history</span></div>
       <PartsTable p={p} onOpen={setOpenPart}/>
     </div>
+    <GroupTracks p={p}/>
+    <ChainView p={p}/>
+    <CFTBoard p={p}/>
+    <PilotLots p={p}/>
     <ProjectHistory p={p}/>
   </>;
 }
@@ -2621,21 +2729,24 @@ const usd=(v)=>v==null?"\u2014":"$"+Number(v).toLocaleString("en-US",{minimumFra
    a Localization with no incumbent price has no saving to compute, while a New Product
    Development has no incumbent at all and asking for one only invites invented data.
    Keys are part-draft fields; projReq entries are project-level. */
+/* 4-7 alphanumeric with at least one letter, or exactly 7 digits - the plant's SAP
+   supplier codes take one shape or the other and nothing in between. */
+const VENDOR_CODE_RE=/^((?=.*[A-Za-z])[A-Za-z0-9]{4,7}|[0-9]{7})$/;
 const CAT_RULES={
-  "Localization":  {part:{vendorCode:"Vendor code is required for a Localization",
-                          incumbent:"Incumbent supplier is required for a Localization",
-                          cost:"Existing unit cost is required - the saving is measured against it",
+  "Localization":  {projReq:{incumbent:"Current supplier is required for a Localization",
+                             vendorCode:"Current supplier code is required for a Localization"},
+                    part:{cost:"Existing unit cost is required - the saving is measured against it",
                           vol:"Estimated annual volume is required - the saving is measured against it"}},
-  "Resourcing":    {part:{vendorCode:"Vendor code is required for a Resourcing",
-                          incumbent:"Incumbent supplier is required for a Resourcing",
-                          cost:"Existing unit cost is required - the saving is measured against it",
+  "Resourcing":    {projReq:{incumbent:"Current supplier is required for a Resourcing",
+                             vendorCode:"Current supplier code is required for a Resourcing"},
+                    part:{cost:"Existing unit cost is required - the saving is measured against it",
                           vol:"Estimated annual volume is required - the saving is measured against it"}},
-  "Cost Reduction":{part:{vendorCode:"Vendor code is required for a Cost Reduction",
-                          incumbent:"Incumbent supplier is required for a Cost Reduction",
-                          cost:"Existing unit cost is required - the reduction is measured against it",
+  "Cost Reduction":{projReq:{incumbent:"Current supplier is required for a Cost Reduction",
+                             vendorCode:"Current supplier code is required for a Cost Reduction"},
+                    part:{cost:"Existing unit cost is required - the reduction is measured against it",
                           vol:"Estimated annual volume is required - the reduction is measured against it"}},
-  "ECN Driven":    {part:{incumbent:"Incumbent supplier is required for an ECN Driven change"},
-                    projReq:{ecn:"ECN number is required for an ECN Driven project"}},
+  "ECN Driven":    {projReq:{ecn:"ECN number is required for an ECN Driven project",
+                             incumbent:"Current supplier is required for an ECN Driven change"}},
   /* A new part has no incumbent and no current price. Volume is still required because
      nobody can quote without a schedule. */
   "New Product Development":{part:{vol:"Estimated annual volume is required so vendors can quote"}},
@@ -2691,15 +2802,15 @@ function Combo({value,onChange,options,placeholder,allowNew}){
   </div>;
 }
 
-const GROUP_BY_OPTS=[["commodity","Commodity"],["vendorCode","Vendor code"],["incumbent","Incumbent supplier"],["newSupplier","New supplier"]];
-const SAMPLE_PARTS_TSV="PartNumber\tPartDescription\tCommodity\tVendorCode\tIncumbentSupplier\tNewSupplier\tUOM\tCurrency\tEstimatedAnnualVolume\tEstimatedUnitCost\n"+
-"AL-CP-001\tAluminum cooling plate top\tAluminum Casting\tACME001\tAcme Precision Industries\tBharat MetalWorks Pune\tEA\tINR\t12000\t3700\n"+
-"AL-CP-002\tAluminum cooling plate bottom\tAluminum Casting\tACME002\tAcme Precision Industries\t\tEA\tINR\t12000\t3350\n"+
-"RB-GS-001\tEPDM rubber gasket 220x180x3mm\tRubber Sealing\tSEALCO\tSealco Rubber Industries\t\tEA\tINR\t12000\t755\n"+
-"SS-BL-001\tStainless steel bolt M6x20\tHardware\t1234567\tBolt Group Pune\t\tEA\tINR\t48000\t186\n"+
-"PL-LB-001\tPE label sticker 50x30mm\tLabels\tLABEL01\tLabelTech Industries\tLabelMaster Mumbai\tRoll\tINR\t12000\t44\n"+
-"CU-WR-001\tCopper wire harness 12-gauge\tWiring\tCUWIRE1\tHarnessCorp Chennai\t\tMeters\tUSD\t24000\t15.75\n"+
-"PB-FL-001\tPolymer foam insulation block\tFoam Inserts\tFOAMP01\tPolyFoam Bengaluru\t\tKG\tEUR\t12000\t2.85";
+const GROUP_BY_OPTS=[["commodity","Commodity"]];
+const SAMPLE_PARTS_TSV="PartNumber\tPartDescription\tCommodity\tUOM\tCurrency\tEstimatedAnnualVolume\tEstimatedUnitCost\n"+
+"AL-CP-001\tAluminum cooling plate top\tAluminum Casting\tEA\tINR\t12000\t3700\n"+
+"AL-CP-002\tAluminum cooling plate bottom\tAluminum Casting\tEA\tINR\t12000\t3350\n"+
+"RB-GS-001\tEPDM rubber gasket 220x180x3mm\tRubber Sealing\tEA\tINR\t12000\t755\n"+
+"SS-BL-001\tStainless steel bolt M6x20\tHardware\tEA\tINR\t48000\t186\n"+
+"PL-LB-001\tPE label sticker 50x30mm\tLabels\tRoll\tINR\t12000\t44\n"+
+"CU-WR-001\tCopper wire harness 12-gauge\tWiring\tMeters\tUSD\t24000\t15.75\n"+
+"PB-FL-001\tPolymer foam insulation block\tFoam Inserts\tKG\tEUR\t12000\t2.85";
 
 /* The import template and the import box both used to be a textarea of tab-separated text,
    which is exactly as readable as it sounds. Both now render the same grid. impText stays the
@@ -2731,11 +2842,11 @@ function saveBlob(blob,name){
   document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
-const PARTS_COLS=["Part number","Description","Commodity","Vendor code","Incumbent supplier","New supplier","UOM","Currency","Annual volume","Unit cost"];
-const PARTS_NUM=[8,9];
+const PARTS_COLS=["Part number","Description","Commodity","UOM","Currency","Annual volume","Unit cost"];
+const PARTS_NUM=[5,6];
 /* Column index -> the option list that cell picks from, so the grid offers the same choices
    the manual form does instead of trusting free text to match. */
-const PARTS_OPTS={2:()=>NPI_COMMOD,6:()=>NPI_UOM,7:(rates)=>(rates||[]).map(r=>r.code)};
+const PARTS_OPTS={2:()=>NPI_COMMOD,3:()=>NPI_UOM,4:(rates)=>(rates||[]).map(r=>r.code)};
 const PARTS_HEAD=SAMPLE_PARTS_TSV.split("\n")[0];
 const BLANK_ROW=()=>PARTS_COLS.map(()=>"");
 function tsvToGrid(t){
@@ -2756,8 +2867,16 @@ const gridToTsv=(g)=>[PARTS_HEAD].concat(g.map(r=>r.join("\t"))).join("\n");
    only ever worked because early test projects had a single part. The quote is therefore a
    row per part, priced in whatever currency that vendor quoted, with the same Excel round
    trip the intake import uses. Stored as TSV so paste, import and the grid all agree. */
-const QUOTE_COLS=["Part number","Description","Annual quantity","Existing price","Localized price","Currency"];
-const QUOTE_NUM=[2,3,4];
+const QUOTE_COLS=["Part number","Description","Annual quantity","Existing price","Existing currency","Localized price","Localized currency"];
+const QUOTE_NUM=[2,3,5];
+/* The two prices come from different places - the incumbent price off the current PO, the
+   localized one out of the new vendor's quote - so they do not have to share a currency.
+   Each converts on its own. */
+const QUOTE_CCY=[4,6];
+/* Part number and description come from the parts list; everything the sourcer types is
+   required. One definition, read by the headers, the cell marking and the validator. */
+const QUOTE_REQ=[2,3,4,5,6];
+const quoteCellBad=(r,ci)=>QUOTE_CCY.indexOf(ci)>=0?!String(r[ci]||"").trim():!(parseFloat(r[ci])>=0);
 const QUOTE_HEAD=QUOTE_COLS.join("\t");
 const quoteToRows=(t)=>{
   const w=QUOTE_COLS.length;
@@ -2765,6 +2884,10 @@ const quoteToRows=(t)=>{
     .filter(l=>l.trim()!==""||/[\t,]/.test(l))
     .map(l=>{const sep=l.indexOf("\t")>=0?"\t":",";return l.split(sep).map(x=>x.trim());})
     .filter((r,i)=>!(i===0&&/part\s*number|partnumber/i.test(r[0]||"")))
+    /* Quotes captured before the split carry one currency for both prices. Six cells is
+       that shape - widen it by giving each price the currency the row already names,
+       rather than padding, which would read the localized price as a currency code. */
+    .map(r=>r.length===6?[r[0],r[1],r[2],r[3],r[5],r[4],r[5]]:r)
     .map(r=>{const o=r.slice(0,w);while(o.length<w)o.push("");return o;});
 };
 const rowsToQuote=(g)=>[QUOTE_HEAD].concat(g.map(r=>r.join("\t"))).join("\n");
@@ -2782,6 +2905,30 @@ const vendorRows=(t)=>String(t||"").split(/\r?\n/)
                        : [(c[0]||"").trim(),"",(c[1]||"").trim()];});
 const rowsToVendors=(g)=>g.map(r=>[r[0]||"",r[1]||"",r[2]||""].join("\t")).join("\n");
 const splitParts=(x)=>String(x||"").split(/[,;]/).map(y=>y.trim()).filter(Boolean);
+/* The project's one vendor, {n: name, e: email}: the latest of a vendor replaced at F-06R, the
+   one chosen at F-02, or - for a project from before the stored summary - the row's supplier.
+   Projects quoted before the one-vendor rule keep the first vendor they named. */
+const curVendor=(s)=>{s=s||{};const f=s.f02||{};
+  const v=s.vendor||f.vendor||(f.vendors||[])[0]||null;return v&&v.n?v:null;};
+/* GL account, cost centre and profit centre: recorded once by Finance (Opex) or AME (Capex)
+   and read back everywhere they are needed - the routing gate shows them for information, the
+   Buyer's card carries them onto the PR. */
+/* Booked by Finance at F-02c and read everywhere after it. The F-03c/F-03o entries are kept
+   in the lookup for projects coded before the capture moved. */
+const projAcct=(p)=>{const s=(p&&p.summary)||{}, c=s.f02c||{}, a=s.f03c||{}, o=s.f03o||{};
+  return {gl:c.gl||a.gl||o.gl||(p&&p.glAccount)||"",cc:c.cc||a.cc||o.cc||(p&&p.costCentre)||"",
+          pc:c.pc||a.pc||o.pc||(p&&p.profitCentre)||""};};
+/* Capex or Opex, as the Finance Head decided it - from this session's project row, or from the
+   summary when the page has been reloaded since. Falls back to what Sourcing suggested. */
+const projRoute=(p)=>{const s=(p&&p.summary)||{}, hf=(p&&p.hubForm)||{};
+  return (p&&p.routingDecision)||(s.f02f||{}).route||hf.route||(s.f02c||{}).route||
+         (p&&p.routingSuggestion)||(s.f02||{}).route||"";};
+const projVendor=(p)=>curVendor(p&&p.summary)||
+  ((p&&p.supplier&&p.supplier!=="\u2014")?{n:p.supplier,e:p.vendorEmail||""}:null);
+const isEmail=(x)=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(x||"").trim());
+/* Name, parts and address are all required: F-05 notifies each vendor at that address for
+   those parts, so a row missing any of them is a sample request that cannot be sent. */
+const vendorCellBad=(r,ci)=>ci===2?!isEmail(r[2]):!String(r[ci]||"").trim();
 
 /* A localisation project can carry hundreds of parts, and drawing every one of them makes
    the form unusable - the page scrolls for screens, and the currency column rebuilds a
@@ -2818,7 +2965,7 @@ function Pager({pg,noun}){
   </span>;
 }
 
-function VendorList({value,onChange,parts,suppliers}){
+function VendorList({value,onChange,parts,suppliers,showErr}){
   const rows=vendorRows(value);
   /* Grouped by supplier, so a vendor supplying four parts is one row listing four part
      numbers - not four rows, and not a name with no indication of what it covers. */
@@ -2844,18 +2991,18 @@ function VendorList({value,onChange,parts,suppliers}){
   return <div className="vgrid">
     <div className="xlwrap">
       <table className="xltable">
-        <thead><tr><th className="rn"/><th>Vendor</th><th>Part numbers</th><th>Vendor email</th><th className="rn"/></tr></thead>
+        <thead><tr><th className="rn"/><th>Vendor<i>*</i></th><th>Part numbers<i>*</i></th><th>Vendor email<i>*</i></th><th className="rn"/></tr></thead>
         <tbody>
           {rows.length?pg.window(rows).map(([r,ri])=>{
             const bad=splitParts(r[1]).filter(pn=>allParts.length&&allParts.indexOf(pn)<0);
             return <tr key={ri}>
               <td className="rn">{ri+1}</td>
-              <td><input list="dl-vendors" value={r[0]} placeholder="Vendor name"
+              <td className={showErr&&vendorCellBad(r,0)?"miss":""}><input list="dl-vendors" value={r[0]} placeholder="Vendor name"
                          onChange={e=>setCell(ri,0,e.target.value)} aria-label={"Vendor "+(ri+1)}/></td>
-              <td><input value={r[1]} placeholder="e.g. AL-CP-001, AL-CP-002"
+              <td className={showErr&&(vendorCellBad(r,1)||bad.length)?"miss":""}><input value={r[1]} placeholder="e.g. AL-CP-001, AL-CP-002"
                          onChange={e=>setCell(ri,1,e.target.value)} aria-label={"Parts for vendor "+(ri+1)}/>
                   {bad.length?<div className="ferr" style={{padding:"0 9px 5px"}}>not on this project: {bad.join(", ")}</div>:null}</td>
-              <td><input value={r[2]} placeholder="name@supplier.com"
+              <td className={showErr&&vendorCellBad(r,2)?"miss":""}><input type="email" value={r[2]} placeholder="name@supplier.com"
                          onChange={e=>setCell(ri,2,e.target.value)} aria-label={"Vendor "+(ri+1)+" email"}/></td>
               <td className="rn"><button className="xlx" title="Remove this vendor"
                    onClick={()=>write(rows.filter((_,i)=>i!==ri))}>&times;</button></td>
@@ -2878,14 +3025,21 @@ function VendorList({value,onChange,parts,suppliers}){
    documents library and patches SAPMaterialNumber onto each NPIParts row, writing SAPNumber
    and Amount into SAPTransactions - so a single typed PR number was never how this worked.
    Same shape as that: a row per part, filled by hand or brought in from the SAP file. */
-const SAP_COLS=["Part number","SAP material","SAP PR number","SAP PO number","Amount"];
-const SAP_NUM=[4];
+const SAP_COLS=["Part number","Description","PR number","TRUN quantity","PO number"];
+const SAP_NUM=[3];
+/* The PO number is the Buyer's column: the Planner's PR step does not show it. */
+const SAP_PO=4;
 const sapRows=(t)=>{
   const w=SAP_COLS.length;
+  /* Rows saved before the split are [part, SAP material, PR, PO, amount] - the same width
+     with three different meanings, so they are remapped rather than padded. Without this a
+     project already past F-04 would show its PO number as a TRUN quantity. */
+  const legacy=/SAP\s*material/i.test(String(t||"").split(/\r?\n/)[0]||"");
   return String(t||"").split(/\r?\n/)
     .filter(l=>l.trim()!==""||/[\t,]/.test(l))
     .map(l=>{const sep=l.indexOf("\t")>=0?"\t":",";return l.split(sep).map(x=>x.trim());})
     .filter((r,i)=>!(i===0&&/part\s*number|partnumber/i.test(r[0]||"")))
+    .map(r=>legacy?[r[0],"",r[2]||"","",r[3]||""]:r)
     .map(r=>{const o=r.slice(0,w);while(o.length<w)o.push("");return o;});
 };
 const rowsToSap=(g)=>[SAP_COLS.join("\t")].concat(g.map(r=>r.join("\t"))).join("\n");
@@ -2926,22 +3080,11 @@ function SampleGrid({value,onChange,pid,project,parts,group}){
   const rows=sampleGridRows(value);
   useEffect(()=>{
     if(rows.length) return;
-    /* One row per part per vendor, from what F-05 actually promised each vendor. */
-    const f05=project&&project.form&&project.form["F-05"];
-    let seed=[];
-    if(f05&&f05.vendorNotify){
-      /* On a re-sample the form is answering for one group, so only the parts in that group
-         are expected back - the other groups' samples are already in, or on their own clock. */
-      const only=group?parts.map(x=>x.part):null;
-      notifyRows(f05.vendorNotify).filter(r=>r[0]).forEach(r=>{
-        const ps=splitParts(r[1]).filter(pn=>!only||only.indexOf(pn)>=0);
-        if(only&&!ps.length) return;
-        (ps.length?ps:[""]).forEach(pn=>seed.push([r[0],pn,r[4]||"","","",""]));
-      });
-    }
-    if(!seed.length&&parts&&parts.length){
-      seed=parts.map(x=>[(x.supplier||"").trim(),x.part||"","","","",""]);
-    }
+    /* One row per part, all from the project's one vendor, expected on the date F-05 (or the
+       group's re-sample request) agreed. Read from the stored summary, which survives a reload. */
+    const sm=(project&&project.summary)||{}, v=projVendor(project);
+    const due=(group&&sm.g&&sm.g[group]&&sm.g[group].rs&&sm.g[group].rs.due)||(sm.f05&&sm.f05.d)||"";
+    const seed=(parts||[]).map(x=>[v?v.n:"",x.part||"",due,"","",""]);
     if(seed.length) onChange({target:{value:rowsToSampleGrid(seed)}});
   },[pid,(parts||[]).length]);
   const write=(g)=>onChange({target:{value:rowsToSampleGrid(g)}});
@@ -2950,14 +3093,16 @@ function SampleGrid({value,onChange,pid,project,parts,group}){
   const outstanding=rows.length-got;
   const pg=usePager(rows.length);
 
+  const vend=projVendor(project);
   return <div className="qgrid">
+    {vend?<div className="tmeta" style={{marginBottom:6}}>Vendor: <b>{vend.n}</b></div>:null}
     <div className="xlwrap">
       <table className="xltable">
-        <thead><tr><th className="rn"/>{SAMPLE_COLS.map(c=><th key={c}>{c}</th>)}<th className="rn"/></tr></thead>
+        <thead><tr><th className="rn"/>{SAMPLE_COLS.map((c,ci)=>ci===0?null:<th key={c}>{c}</th>)}<th className="rn"/></tr></thead>
         <tbody>
           {rows.length?pg.window(rows).map(([r,ri])=><tr key={ri} className={r[3]?"":"jnow"}>
             <td className="rn">{r[3]?"\u2713":ri+1}</td>
-            {r.map((c,ci)=><td key={ci} className={SAMPLE_NUM.indexOf(ci)>=0?"num":(ci<2?"ro":"")}>
+            {r.map((c,ci)=>ci===0?null:<td key={ci} className={SAMPLE_NUM.indexOf(ci)>=0?"num":(ci<2?"ro":"")}>
               {ci<2 ? c
                 : ci===2 ? <span className="tmeta" style={{padding:"0 9px"}}>{c||"\u2014"}</span>
                 : ci===3 ? <span className="dcell">
@@ -2969,12 +3114,12 @@ function SampleGrid({value,onChange,pid,project,parts,group}){
                 : <input value={c} onChange={e=>setCell(ri,ci,e.target.value)} aria-label={SAMPLE_COLS[ci]+" "+(ri+1)}/>}
             </td>)}
             <td className="rn">{r[3]?<span className="tmeta">in</span>:<span className="tmeta">due</span>}</td>
-          </tr>):<tr><td className="xlempty" colSpan={SAMPLE_COLS.length+2}>Nothing expected yet \u2014 F-05 sets this up.</td></tr>}
+          </tr>):<tr><td className="xlempty" colSpan={SAMPLE_COLS.length+1}>Nothing expected yet \u2014 F-05 sets this up.</td></tr>}
         </tbody>
       </table>
     </div>
     <div className="xlfoot">
-      <button className="btn" onClick={()=>{write(rows.concat([["","","","","",""]]));pg.toEnd();}}>Add row</button>
+      <button className="btn" onClick={()=>{write(rows.concat([[vend?vend.n:"","","","","",""]]));pg.toEnd();}}>Add row</button>
       <Pager pg={pg} noun="samples"/>
       <span className="xlcount">{got} received{outstanding?" \u00b7 "+outstanding+" still outstanding":" \u00b7 all in"}</span>
     </div>
@@ -3076,19 +3221,24 @@ function NotifyGrid({value,onChange,pid,project,parts,group}){
   </div>;
 }
 
-function SapGrid({value,onChange,pid,parts}){
-  const rows=sapRows(value);
-  useEffect(()=>{
-    if(rows.length||!parts||!parts.length) return;
-    onChange({target:{value:rowsToSap(parts.map(x=>[x.part||"","","","",""]))}});
-  },[pid,(parts||[]).length]);
+function SapGrid({value,onChange,pid,parts,po}){
+  /* The Planner fills PR and TRUN quantity; the Buyer sees those and adds the PO. */
+  const cols=po?SAP_COLS:SAP_COLS.slice(0,SAP_PO);
+  /* Derived, not written on mount: an effect that seeds through onChange only fires when the
+     grid mounts with the field already empty, which is not what happens when the form is
+     opened from My Work in an app that is already running - the Planner then saw "No parts on
+     this project yet" on a project with parts. Reading the rows through the part list instead
+     means the grid always draws them, and the first edit writes the whole grid back. */
+  const typed=sapRows(value);
+  const rows=(typed.length||!parts||!parts.length)
+    ? typed : parts.map(x=>[x.part||"",x.desc||"","","",""]);
   const write=(g)=>onChange({target:{value:rowsToSap(g)}});
   const setCell=(ri,ci,v)=>{const g=rows.map(r=>r.slice());g[ri][ci]=v;write(g);};
-  const withPR=rows.filter(r=>r[2]).length;
+  const withPR=rows.filter(r=>r[po?SAP_PO:2]).length;
   const pg=usePager(rows.length);
 
   const download=async()=>{
-    const aoa=[SAP_COLS].concat(rows);
+    const aoa=[cols].concat(rows.map(r=>r.slice(0,cols.length)));
     if(await ensureXlsx()){
       try{
         const wb=XLSX.utils.book_new();
@@ -3119,33 +3269,33 @@ function SapGrid({value,onChange,pid,parts}){
     rd.readAsArrayBuffer(f);
   };
 
-  return <div className="qgrid">
+  return <div className={"qgrid sgrid"+(po?" sgrid-po":"")}>
     <div className="xlwrap">
       <table className="xltable">
-        <thead><tr><th className="rn"/>{SAP_COLS.map(c=><th key={c}>{c}</th>)}</tr></thead>
+        <thead><tr><th className="rn"/>{cols.map(c=><th key={c}>{c}</th>)}</tr></thead>
         <tbody>
           {rows.length?pg.window(rows).map(([r,ri])=><tr key={ri}>
             <td className="rn">{ri+1}</td>
-            {r.map((c,ci)=><td key={ci} className={SAP_NUM.indexOf(ci)>=0?"num":(ci===0?"ro":"")}>
-              {ci===0?c:<input value={c} onChange={e=>setCell(ri,ci,e.target.value)}
-                              aria-label={SAP_COLS[ci]+" row "+(ri+1)}/>}
+            {r.slice(0,cols.length).map((c,ci)=><td key={ci} className={(SAP_NUM.indexOf(ci)>=0?"num":"")+((ci<2||(po&&ci!==SAP_PO))?" ro":"")}>
+              {(ci<2||(po&&ci!==SAP_PO))?c:<input value={c} onChange={e=>setCell(ri,ci,e.target.value)}
+                              aria-label={cols[ci]+" row "+(ri+1)}/>}
             </td>)}
-          </tr>):<tr><td className="xlempty" colSpan={SAP_COLS.length+1}>No parts on this project yet.</td></tr>}
+          </tr>):<tr><td className="xlempty" colSpan={cols.length+1}>No parts on this project yet.</td></tr>}
         </tbody>
       </table>
     </div>
     <div className="xlfoot">
       <button className="btn" onClick={download}>Download Excel</button>
-      <label className="btn" style={{position:"relative",overflow:"hidden",cursor:"pointer"}}>Import SAP file
+      <label className="btn" style={{position:"relative",overflow:"hidden",cursor:"pointer"}}>Import Excel
         <input type="file" accept=".xlsx,.xls,.csv" onChange={upload}
                style={{position:"absolute",inset:0,opacity:0,cursor:"pointer"}}/></label>
       <Pager pg={pg} noun="parts"/>
-      <span className="xlcount">{withPR} of {rows.length} part(s) have a PR</span>
+      <span className="xlcount">{withPR} of {rows.length} part(s) have a {po?"PO":"PR"}</span>
     </div>
   </div>;
 }
 
-function QuoteGrid({value,onChange,pid,rates,parts}){
+function QuoteGrid({value,onChange,pid,rates,parts,showErr}){
   const rows=quoteToRows(value);
   /* Seeded from the project's own parts the first time the form is opened, so nobody retypes
      a part list the platform already holds. Quantity and existing cost come across where
@@ -3154,7 +3304,7 @@ function QuoteGrid({value,onChange,pid,rates,parts}){
     if(rows.length||!parts||!parts.length) return;
     onChange({target:{value:rowsToQuote(parts.map(x=>[
       x.part||"", x.desc||"", x.vol==null?"":String(x.vol),
-      x.cost==null?"":String(x.cost), "", (x.currency||"USD")]))}});
+      x.cost==null?"":String(x.cost), (x.currency||"USD"), "", (x.currency||"USD")]))}});
   },[pid,(parts||[]).length]);
   const write=(g)=>onChange({target:{value:rowsToQuote(g)}});
   const setCell=(ri,ci,v)=>{const g=rows.map(r=>r.slice());g[ri][ci]=v;write(g);};
@@ -3165,8 +3315,8 @@ function QuoteGrid({value,onChange,pid,rates,parts}){
      mixing INR and EUR still adds up. */
   let cur=0,nw=0,ok=0;
   rows.forEach(r=>{
-    const q=parseFloat(r[2]),a=parseFloat(r[3]),b=parseFloat(r[4]);
-    const ua=usdOf(a,r[5]),ub=usdOf(b,r[5]);
+    const q=parseFloat(r[2]),a=parseFloat(r[3]),b=parseFloat(r[5]);
+    const ua=usdOf(a,r[4]),ub=usdOf(b,r[6]);
     if(isFinite(q)&&ua!=null&&ub!=null){cur+=q*ua;nw+=q*ub;ok++;}
   });
   const save=ok?cur-nw:null;
@@ -3207,14 +3357,15 @@ function QuoteGrid({value,onChange,pid,rates,parts}){
   return <div className="qgrid">
     <div className="xlwrap">
       <table className="xltable">
-        <thead><tr><th className="rn"/>{QUOTE_COLS.map(c=><th key={c}>{c}</th>)}</tr></thead>
+        <thead><tr><th className="rn"/>{QUOTE_COLS.map((c,ci)=><th key={c}>{c}{QUOTE_REQ.indexOf(ci)>=0?<i>*</i>:null}</th>)}</tr></thead>
         <tbody>
           {rows.length?pg.window(rows).map(([r,ri])=><tr key={ri}>
             <td className="rn">{ri+1}</td>
-            {r.map((c,ci)=><td key={ci} className={QUOTE_NUM.indexOf(ci)>=0?"num":(ci<2?"ro":"")}>
+            {r.map((c,ci)=><td key={ci} className={(QUOTE_NUM.indexOf(ci)>=0?"num":(ci<2?"ro":""))
+                +(showErr&&QUOTE_REQ.indexOf(ci)>=0&&quoteCellBad(r,ci)?" miss":"")}>
               {ci<2
                 ? c
-                : ci===5
+                : QUOTE_CCY.indexOf(ci)>=0
                 ? <select className="xlsel" value={c} onChange={e=>setCell(ri,ci,e.target.value)}>
                     <option value=""/>
                     {codes.map(o=><option key={o} value={o}>{o}</option>)}
@@ -3291,11 +3442,11 @@ function Intake(){
   const [showPErr,setShowPErr]=useState(false);
   const [dupAck,setDupAck]=useState(false);
   const [step,setStep]=useState(0);
-  const [proj,setProj]=useState({name:"",category:"",ecn:"",plant:"",plantCode:"",timeline:"",scope:""});
+  const [proj,setProj]=useState({name:"",category:"",ecn:"",plant:"",plantCode:"",timeline:"",scope:"",incumbent:"",vendorCode:""});
   const [fb,setFb]=useState({q:"",c:"",d:"",r:""});
   const [groups,setGroups]=useState([]);
   const [newGroup,setNewGroup]=useState("");
-  const blankDraft={part:"",desc:"",commodity:"",vendorCode:"",incumbent:"",newSupplier:"",uom:"EA",currency:"USD",vol:"",cost:"",group:""};
+  const blankDraft={part:"",desc:"",commodity:"",uom:"EA",currency:"USD",vol:"",cost:"",group:""};
   const [draft,setDraft]=useState(blankDraft);
   /* Rates come from the CurrencyConversions list. Empty until they load, which only means the
      USD preview holds off - it never blocks adding a part. */
@@ -3327,6 +3478,11 @@ function Intake(){
     Object.entries(catProjReq(proj.category)).forEach(([k,msg])=>{
       if(!String(proj[k]||"").trim()) e[k]=msg;
     });
+    /* SAP's own shape for a supplier code: 4-7 characters with a letter in them, or a
+       7-digit number. Checked even where the category leaves the field optional, because a
+       code that is typed at all has to be one SAP will recognise. */
+    if(!e.vendorCode&&proj.vendorCode.trim()&&!VENDOR_CODE_RE.test(proj.vendorCode.trim()))
+      e.vendorCode="Current supplier code must be 4-7 letters and numbers, or exactly 7 digits";
     return e;
   })();
   const isDup=!!draft.part.trim()&&parts.some(p=>(p.part||"").trim().toLowerCase()===draft.part.trim().toLowerCase());
@@ -3388,10 +3544,13 @@ function Intake(){
          Currency - those rows are read with the old offsets and defaulted, so a spreadsheet
          someone saved before this change still imports instead of silently shifting the
          volume into the UOM column. */
-      if(c.length>=10) out.push({part:c[0],desc:c[1],commodity:c[2],vendorCode:c[3]||"",incumbent:c[4]||"",newSupplier:c[5]||"",uom:c[6]||"EA",currency:(c[7]||"USD").toUpperCase(),vol:c[8]||"",cost:c[9]||""});
-      else if(c.length>=8) out.push({part:c[0],desc:c[1],commodity:c[2],vendorCode:c[3]||"",incumbent:c[4]||"",newSupplier:c[5]||"",uom:"EA",currency:"USD",vol:c[6]||"",cost:c[7]||""});
-      else if(c.length>=6) out.push({part:c[0],desc:c[1],commodity:c[2],vendorCode:c[3]||"",incumbent:"",newSupplier:"",uom:"EA",currency:"USD",vol:c[4]||"",cost:c[5]||""});
-      else if(c.length>=2) out.push({part:c[0],desc:c[1],commodity:"Other",vendorCode:"",incumbent:"",newSupplier:"",uom:"EA",currency:"USD",vol:"",cost:""});
+      /* 7 columns is the current template. Older sheets carried vendor columns per part; their
+         vendor cells are skipped, since the vendor is now one field on the project. */
+      if(c.length>=10) out.push({part:c[0],desc:c[1],commodity:c[2],uom:c[6]||"EA",currency:(c[7]||"USD").toUpperCase(),vol:c[8]||"",cost:c[9]||""});
+      else if(c.length>=8) out.push({part:c[0],desc:c[1],commodity:c[2],uom:"EA",currency:"USD",vol:c[6]||"",cost:c[7]||""});
+      else if(c.length===7) out.push({part:c[0],desc:c[1],commodity:c[2],uom:c[3]||"EA",currency:(c[4]||"USD").toUpperCase(),vol:c[5]||"",cost:c[6]||""});
+      else if(c.length>=6) out.push({part:c[0],desc:c[1],commodity:c[2],uom:"EA",currency:"USD",vol:c[4]||"",cost:c[5]||""});
+      else if(c.length>=2) out.push({part:c[0],desc:c[1],commodity:"Other",uom:"EA",currency:"USD",vol:"",cost:""});
     });
     return out;
   };
@@ -3458,12 +3617,12 @@ function Intake(){
     if(!rows.length){flash("Nothing to import — paste rows or load the sample file.");return;}
     let gs=[...groups];
     const mapped=rows.map(r=>{
-      let g = impGroup==="__commodity" ? (r.commodity||"Other") : impGroup==="__vendor" ? (r.newSupplier||r.incumbent||"Unassigned") : impGroup;
+      let g = impGroup==="__commodity" ? (r.commodity||"Other") : impGroup;
       if(!gs.includes(g)) gs.push(g);
       return {...r,group:g};
     });
     setGroups(gs); setParts(a=>a.concat(mapped)); setImportOpen(false); setImpText("");
-    flash("Imported "+mapped.length+" part(s) into "+(impGroup==="__commodity"?"commodity groups":impGroup==="__vendor"?"supplier groups":"\""+impGroup+"\""));
+    flash("Imported "+mapped.length+" part(s) into "+(impGroup==="__commodity"?"commodity groups":"\""+impGroup+"\""));
   };
   const usedGroups=Array.from(new Set(parts.map(p=>p.group)));
   const allGroups=groups.concat(usedGroups.filter(g=>!groups.includes(g)));
@@ -3487,6 +3646,7 @@ function Intake(){
        a dash: it is aimed at a DateTime column, and the display fallback lives in the
        store, not here. */
     const id=act.submitIntake({title:proj.name,category:proj.category,plant:proj.plant,plantCode:proj.plantCode,ecn:proj.ecn,scope:proj.scope,fb,
+      incumbent:proj.incumbent.trim(),vendorCode:proj.vendorCode.trim(),
       parts:parts.map(p=>({...p,vol:num(p.vol),cost:num(p.cost)})),groups:usedGroups,target:proj.timeline||""});
     if(!id) return; /* refused by role guard */
     if(id&&typeof id.then==="function"){
@@ -3526,6 +3686,8 @@ function Intake(){
             <div className="field2"><div className="flabel">ECN number {catProjReq(proj.category).ecn?<i>*</i>:null}</div><input value={proj.ecn} onChange={setP("ecn")} placeholder="optional"/></div>
             <div className={"field2"+(showErr&&projErr.plant?" invalid":"")}><div className="flabel">Plant <i>*</i></div><Combo value={proj.plant} onChange={setP("plant")} options={NPI_SITES} allowNew/>{showErr&&projErr.plant?<div className="ferr">{projErr.plant}</div>:null}</div>
             <div className={"field2"+(showErr&&projErr.plantCode?" invalid":"")}><div className="flabel">Plant code <i>*</i></div><input inputMode="numeric" maxLength={4} value={proj.plantCode} onChange={setP("plantCode")} placeholder="4-digit code, e.g. 1234"/>{showErr&&projErr.plantCode?<div className="ferr">{projErr.plantCode}</div>:null}</div>
+            <div className={"field2"+(showErr&&projErr.incumbent?" invalid":"")}><div className="flabel">Current supplier {catProjReq(proj.category).incumbent?<i>*</i>:null}</div><input value={proj.incumbent} onChange={setP("incumbent")} placeholder="Who supplies these parts today"/>{showErr&&projErr.incumbent?<div className="ferr">{projErr.incumbent}</div>:null}</div>
+            <div className={"field2"+(showErr&&projErr.vendorCode?" invalid":"")}><div className="flabel">Current supplier code {catProjReq(proj.category).vendorCode?<i>*</i>:null}</div><input maxLength={7} value={proj.vendorCode} onChange={setP("vendorCode")} placeholder="4-7 alphanumeric, or 7 digits"/>{showErr&&projErr.vendorCode?<div className="ferr">{projErr.vendorCode}</div>:null}</div>
             <div className="field2"><div className="flabel">Estimated completion timeline</div><input type="date" value={proj.timeline} onChange={setP("timeline")}/></div>
             <div className={"field2 wcol2"+(showErr&&projErr.scope?" invalid":"")}><div className="flabel">Project scope <i>*</i></div><textarea rows={3} value={proj.scope} onChange={setP("scope")} placeholder="Describe the scope of this NPI project..."/>{showErr&&projErr.scope?<div className="ferr">{projErr.scope}</div>:null}</div>
           </div>
@@ -3558,8 +3720,6 @@ function Intake(){
             <div className={"field2"+(showPErr&&draftErr.desc?" invalid":"")}><div className="flabel">Description <i>*</i></div><input value={draft.desc} onChange={setD("desc")}/>{showPErr&&draftErr.desc?<div className="ferr">{draftErr.desc}</div>:null}</div>
             <div className="field2"><div className="flabel">Commodity</div><Combo value={draft.commodity} onChange={setD("commodity")} options={NPI_COMMOD} allowNew/></div>
             <div className="field2"><div className="flabel">Unit of measure</div><Combo value={draft.uom} onChange={setD("uom")} options={NPI_UOM}/></div>
-            <div className={"field2"+(showPErr&&draftErr.vendorCode?" invalid":"")}><div className="flabel">Vendor code {catPartReq(proj.category).vendorCode?<i>*</i>:null}</div><input value={draft.vendorCode} onChange={setD("vendorCode")}/>{showPErr&&draftErr.vendorCode?<div className="ferr">{draftErr.vendorCode}</div>:null}</div>
-            <div className={"field2"+(showPErr&&draftErr.incumbent?" invalid":"")}><div className="flabel">Incumbent supplier {catPartReq(proj.category).incumbent?<i>*</i>:null}</div><input value={draft.incumbent} onChange={setD("incumbent")}/>{showPErr&&draftErr.incumbent?<div className="ferr">{draftErr.incumbent}</div>:null}</div>
             <div className={"field2"+(showPErr&&draftErr.vol?" invalid":"")}><div className="flabel">Estimated annual volume {catPartReq(proj.category).vol?<i>*</i>:null}</div><input type="number" min="0" step="1" inputMode="numeric" value={draft.vol} onChange={setD("vol")}/>{showPErr&&draftErr.vol?<div className="ferr">{draftErr.vol}</div>:null}</div>
             <div className={"field2"+(showPErr&&draftErr.cost?" invalid":"")}><div className="flabel">Existing unit cost {catPartReq(proj.category).cost?<i>*</i>:null}</div><input type="number" min="0" step="any" inputMode="decimal" value={draft.cost} onChange={setD("cost")}/>{showPErr&&draftErr.cost?<div className="ferr">{draftErr.cost}</div>:null}
               {/* Quoted figure stays as typed; the USD it will be stored as is shown, so a
@@ -3583,7 +3743,7 @@ function Intake(){
               {parts.map((pt,i)=>pt.group===g?<div className="pcard" key={i}>
                 <span className="pn">{pt.part}</span>
                 <span>{pt.desc}<div className="meta">Commodity: {pt.commodity||"—"}{pt.vendorCode?" · Vendor "+pt.vendorCode:""}</div></span>
-                <span className="meta">{pt.newSupplier||pt.incumbent||"—"}{pt.vol?" · Vol "+pt.vol:""}{pt.cost?" · ₹"+pt.cost:""}</span>
+                <span className="meta">{pt.commodity||"—"}{pt.vol?" · Vol "+pt.vol:""}{pt.cost?" · ₹"+pt.cost:""}</span>
                 <button className="btn no sm" onClick={()=>rmPart(i)}>Remove</button>
               </div>:null)}
             </div>)}
@@ -3594,6 +3754,7 @@ function Intake(){
             <span className="kk">Project name</span><span>{proj.name}</span>
             <span className="kk">Category</span><span>{proj.category}</span>
             <span className="kk">Plant · code</span><span>{proj.plant} · {proj.plantCode||"—"}</span>
+            <span className="kk">Current supplier</span><span>{proj.incumbent||"—"}{proj.vendorCode?" · "+proj.vendorCode:""}</span>
             <span className="kk">ECN number</span><span>{proj.ecn||"—"}</span>
             <span className="kk">Est. completion</span><span>{proj.timeline||"—"}</span>
             <span className="kk">Scope</span><span>{proj.scope}</span>
@@ -3604,7 +3765,7 @@ function Intake(){
           <div style={{marginTop:12}}>
             {allGroups.filter(g=>grpCount(g)>0).map(g=><div className="pgroup" key={g}>
               <div className="pgroup-head">{g} <span className="cnt">· {grpCount(g)} part(s)</span></div>
-              {parts.map((pt,i)=>pt.group===g?<div className="pcard" key={i}><span className="pn">{pt.part}</span><span>{pt.desc}</span><span className="meta">{pt.newSupplier||pt.incumbent||"—"}</span><span className="meta">{pt.commodity}</span></div>:null)}
+              {parts.map((pt,i)=>pt.group===g?<div className="pcard" key={i}><span className="pn">{pt.part}</span><span>{pt.desc}</span><span className="meta">{pt.commodity}</span></div>:null)}
             </div>)}
           </div>
           <div className="modal-note" style={{marginTop:14}}>On submit, one NPI project ({parts.length} parts) is created at status <b>Feasibility Review</b>. Each of the {usedGroups.length} group(s) then moves through feasibility, approval and sampling together, so the process runs once per group instead of once per part.</div>
@@ -3633,7 +3794,6 @@ function Intake(){
           <div className="imp-row">
             <div className="field2" style={{flex:1,minWidth:220}}><div className="flabel">Assign imported parts to</div><select value={impGroup} onChange={e=>setImpGroup(e.target.value)}>
               <option value="__commodity">Auto — group by commodity</option>
-              <option value="__vendor">Auto — group by supplier</option>
               {allGroups.map(g=><option key={g} value={g}>{g}</option>)}
             </select></div>
             <button className="btn" onClick={()=>setImpText(SAMPLE_PARTS_TSV)}>Load sample file</button>
@@ -4028,9 +4188,9 @@ function rptSavings(projects){
     if(!v) return;
     let any=false;
     quoteToRows(v).forEach(r=>{
-      const qty=parseFloat(r[2]),ex=parseFloat(r[3]),lo=parseFloat(r[4]),ccy=r[5]||"USD";
+      const qty=parseFloat(r[2]),ex=parseFloat(r[3]),lo=parseFloat(r[5]);
       if(!isFinite(qty)||!isFinite(ex)||!isFinite(lo)) return;
-      const a=usdOf(ex*qty,ccy),b=usdOf(lo*qty,ccy);
+      const a=usdOf(ex*qty,r[4]||"USD"),b=usdOf(lo*qty,r[6]||"USD");
       if(a==null||b==null) return;
       cur+=a; nw+=b; any=true;
     });
@@ -4762,6 +4922,87 @@ function Currency({onAct}){
     confirmLabel:"Remove "+row.code, tone:"danger",
     onConfirm:async()=>{ const r=await act.deleteRate(row);
       flash(r&&r.ok?"Removed "+row.code:((r&&r.message)||"Could not remove that currency")); }});
+  const RATE_COLS=["Code","Name","Convention","USD per unit","Quoted rate","INR per unit","As of"];
+  /* The list as a workbook, and back again. The plant keeps rates in Excel and retyping six
+     numbers by hand is where a decimal point goes missing. */
+  const exportRates=async()=>{
+    const aoa=[RATE_COLS].concat(rates.map(r=>[r.code,r.name,
+      r.conv==="I"?"Indirect — units per USD":"Direct — USD per unit",
+      r.fx,r.usdRate,r.inr,r.asOf||""]));
+    if(await ensureXlsx()){
+      try{
+        const wb=XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),"Currency rates");
+        XLSX.writeFile(wb,"NPI_Currency_Rates.xlsx");
+        flash("Exported "+rates.length+" rate(s)");
+        return;
+      }catch(e){}
+    }
+    const csv=aoa.map(r=>r.map(c=>{const v=String(c==null?"":c);
+      return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(",")).join("\r\n");
+    saveBlob(new Blob([csv],{type:"text/csv;charset=utf-8;"}),"NPI_Currency_Rates.csv");
+    flash("Exported "+rates.length+" rate(s) as CSV");
+  };
+  /* A row updates the currency with that code and adds it when there is none. Applied one at a
+     time through the same saveRate/addRate the form uses, so the validation and the audit are
+     identical whether a rate is typed or imported. */
+  /* INR per unit is a derived figure that the sheet carries for reading. Someone who edits
+     only USD per unit would otherwise import a row whose INR column still holds the old
+     number, so it is recomputed unless the sheet itself changed it. */
+  const inrPerUsd=()=>{const i=rates.find(x=>(x.code||"").toUpperCase()==="INR");
+    return parseFloat(i&&i.usdRate)||88.728003;};
+  const withInr=(row,cur)=>{
+    const fx=parseFloat(row.fx), typed=parseFloat(row.inr);
+    const kept=cur&&isFinite(typed)&&Math.abs(typed-(parseFloat(cur.inr)||0))>1e-9;
+    if(kept||!isFinite(fx)) return row;
+    return {...row,inr:row.code==="INR"?1:+(fx*inrPerUsd()).toFixed(6)};
+  };
+  const applyImport=async(rows)=>{
+    setBusy(true);
+    let saved=0,added=0,failed=[];
+    for(const raw of rows){
+      const cur=rates.find(x=>(x.code||"").toUpperCase()===raw.code);
+      const row=withInr(raw,cur);
+      const r=cur?await act.saveRate({...cur,...row}):await act.addRate(row);
+      if(r&&r.ok){ cur?saved++:added++; } else failed.push(row.code+(r&&r.message?" ("+r.message+")":""));
+    }
+    setBusy(false);
+    flash(saved+" updated, "+added+" added"+(failed.length?" · failed: "+failed.join(", "):""));
+  };
+  const importRates=async(e)=>{
+    const f=e.target.files&&e.target.files[0]; if(!f) return;
+    e.target.value="";
+    const parse=(aoa)=>aoa.map(c=>c.map(x=>String(x==null?"":x).trim()))
+      .filter((c,i)=>c[0]&&!(i===0&&/^code$/i.test(c[0])))
+      .map(c=>({code:c[0].toUpperCase(),name:c[1]||"",
+        conv:/^i/i.test(c[2]||"")?"I":"D",fx:c[3]||"",usdRate:c[4]||"",inr:c[5]||"",
+        asOf:c[6]||new Date().toISOString().slice(0,10)}))
+      .filter(r=>parseFloat(r.fx)>0)
+      /* One code twice in a sheet is a copy-paste, not two currencies. The last row wins. */
+      .filter((r,i,a)=>a.map(x=>x.code).lastIndexOf(r.code)===i);
+    const rows=await new Promise((resolve)=>{
+      const rd=new FileReader();
+      if(/\.csv$/i.test(f.name)){
+        rd.onload=ev=>resolve(parse(String(ev.target.result||"").split(/\r?\n/)
+          .filter(l=>l.trim()).map(l=>l.split(l.indexOf("\t")>=0?"\t":","))));
+        rd.readAsText(f);
+      } else {
+        rd.onload=async ev=>{
+          if(!(await ensureXlsx())) { resolve([]); return; }
+          try{
+            const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"});
+            resolve(parse(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,blankrows:false,defval:""})));
+          }catch(err){ resolve([]); }
+        };
+        rd.readAsArrayBuffer(f);
+      }
+    });
+    if(!rows.length){ flash("No usable rows in "+f.name+" — the file needs the exported columns with a positive USD per unit"); return; }
+    /* A rate change re-prices every open business case, so an import is confirmed, never silent. */
+    confirm({title:"Import "+rows.length+" rate(s)?",
+      message:rows.map(r=>r.code+" "+r.fx).join(", ")+". Rates already on the list are updated and new codes are added. Every open business case is re-priced at the new rates.",
+      confirmLabel:"Import "+rows.length+" rate(s)",tone:"",onConfirm:()=>applyImport(rows)});
+  };
   const save=async()=>{
     const fx=parseFloat(edit.fx);
     if(!isFinite(fx)||fx<=0){flash("USD per unit must be a positive number");return;}
@@ -4777,6 +5018,10 @@ function Currency({onAct}){
     <div className="block">
       <div className="block-h"><h2>Rates <span className="cnt">{shown.length}{q?" of "+rates.length:""}</span></h2>
         <span className="tmeta" style={{marginLeft:"auto",marginRight:14}}>{rates.length?"As of "+(rates[0].asOf||"\u2014"):"Loading\u2026"}</span>
+        <button className="btn sm" style={{marginRight:8}} onClick={exportRates}>Export Excel</button>
+        {writable?<label className="btn sm" style={{position:"relative",overflow:"hidden",cursor:"pointer",marginRight:8}}>Import Excel
+          <input type="file" accept=".xlsx,.xls,.csv" onChange={importRates}
+                 style={{position:"absolute",inset:0,opacity:0,cursor:"pointer"}}/></label>:null}
         {writable?<button className="admin-add" onClick={()=>setAdding({code:"",name:"",conv:"D",fx:"",usdRate:"",inr:"",asOf:new Date().toISOString().slice(0,10)})}>+ Add currency</button>:null}</div>
       {!spx()?<div className="modal-note" style={{margin:"0 14px 12px"}}>Running on sample data — {rates.length} rates. Against SharePoint this reads the whole CurrencyConversions list.</div>:null}
       <div className="dt-tools"><div className="dt-search"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Find a currency\u2026"/></div></div>
@@ -4962,11 +5207,11 @@ function Documents(){
 
 /* ---------- audit trail ---------- */
 const AUDIT=[
-  {ts:"2026-09-09 16:05:12Z",actor:"Anita Desai",role:"Finance Head",action:"F-02f Approved",entity:"NPI-2026-0126",detail:"Finance Head Approval Pending → Approval Pending - Capex",comment:"Capex released against CAP-PUN-26-114. Payback of 14 months is inside the plant threshold, so no Controllership referral is needed."},
-  {ts:"2026-09-09 15:12:40Z",actor:"Anita Desai",role:"Finance Head",action:"F-02c Confirm",entity:"NPI-2026-0126",detail:"Finance Routing Decision Pending → Finance Head Approval Pending",comment:"Tooling is capitalised against the Pune localisation network — confirmed as Capex, not Opex."},
+  {ts:"2026-09-09 16:05:12Z",actor:"Anita Desai",role:"Finance Head",action:"F-02c Record",entity:"NPI-2026-0126",detail:"Finance Routing Decision Pending → Approval Pending - Capex",comment:"Capex released against CAP-PUN-26-114. Payback of 14 months is inside the plant threshold, so no Controllership referral is needed."},
+  {ts:"2026-09-09 15:12:40Z",actor:"Anita Desai",role:"Finance Head",action:"F-02f Approved",entity:"NPI-2026-0126",detail:"Finance Head Approval Pending → Finance Routing Decision Pending",comment:"Tooling is capitalised against the Pune localisation network — confirmed as Capex, not Opex."},
   {ts:"2026-09-09 14:32:18Z",actor:"SAP Integration",role:"System",action:"PR created",entity:"NPI-2026-0120",detail:"PR #4500219",comment:"—"},
   {ts:"2026-09-09 13:52:04Z",actor:"Anita Desai",role:"Finance",action:"Approved",entity:"NPI-2026-0119",detail:"Capex ₹8,40,000",comment:"Budget confirmed"},
-  {ts:"2026-09-09 13:10:22Z",actor:"Sunil Kapoor",role:"Business Unit Head",action:"F-02e Approved",entity:"NPI-2026-0126",detail:"Business Head Approval Pending → Finance Routing Decision Pending",comment:"Supports the localisation plan for FY27. Second source to be confirmed before pilot lot 1."},
+  {ts:"2026-09-09 13:10:22Z",actor:"Sunil Kapoor",role:"Business Unit Head",action:"F-02e Approved",entity:"NPI-2026-0126",detail:"Business Head Approval Pending → Finance Head Approval Pending",comment:"Supports the localisation plan for FY27. Second source to be confirmed before pilot lot 1."},
   {ts:"2026-09-09 12:40:11Z",actor:"Vikram Rao",role:"SQE",action:"Sample marked Conditional",entity:"NPI-2026-0116 / 1120-SHF-04",detail:"F-07",comment:"Minor dim deviation"},
   {ts:"2026-09-09 11:48:03Z",actor:"Deepak Rao",role:"Sourcing Head",action:"F-02d Approved",entity:"NPI-2026-0126",detail:"Sourcing Head Approval Pending → Business Head Approval Pending",comment:"Quote verified against two alternates. Acme is the recommended source — the 27% saving holds at the 12,000 p.a. volume."},
   {ts:"2026-09-09 11:15:47Z",actor:"System",role:"System",action:"SLA breach escalation",entity:"NPI-2026-0117",detail:"→ Sourcing Head",comment:"—"},
@@ -5025,7 +5270,12 @@ function FormField({f,val,onChange,err,db,all,project,group}){
   else if(f.type==="textarea") ctrl=<textarea rows={3} {...common}/>;
   else if(f.type==="number"||f.type==="currency") ctrl=<input type="number" min="0" step={f.type==="currency"?"any":"1"} inputMode="decimal" {...common}/>;
   else if(f.type==="date") ctrl=<input type="date" {...common}/>;
-  else if(f.type==="vendorlist") ctrl=<VendorList value={val} onChange={onChange}
+  else if(f.type==="supplier") ctrl=<><input list={id+"-dl"} {...common} placeholder={f.ph||"Pick from the supplier list or type a new vendor"}/>
+    <datalist id={id+"-dl"}>{((db&&db.suppliers)||[]).map(x=>x.name).filter(Boolean).map(n=><option key={n} value={n}/>)}</datalist></>;
+  else if(f.type==="email") ctrl=<input type="email" {...common} placeholder={f.ph||"name@company.com"}/>;
+  /* Reference only: read from the project record, never typed and never submitted. */
+  else if(f.type==="ref") ctrl=<div className="rovalue">{(f.from&&project?f.from(project):"")||"Not recorded yet"}</div>;
+  else if(f.type==="vendorlist") ctrl=<VendorList value={val} onChange={onChange} showErr={!!err}
     suppliers={(db&&db.suppliers)||[]}
     parts={((db&&db.parts)||[]).filter(x=>project&&x.pid===project.id)}/>;
   else if(f.type==="samplegrid") ctrl=<SampleGrid value={val} onChange={onChange}
@@ -5034,10 +5284,10 @@ function FormField({f,val,onChange,err,db,all,project,group}){
   else if(f.type==="notifygrid") ctrl=<NotifyGrid value={val} onChange={onChange}
     pid={(project&&project.id)+(group?"::"+group:"")} project={project} group={group}
     parts={partsInGroup(db&&db.parts,project&&project.id,group)}/>;
-  else if(f.type==="sapgrid") ctrl=<SapGrid value={val} onChange={onChange}
+  else if(f.type==="sapgrid") ctrl=<SapGrid value={val} onChange={onChange} po={!!f.po}
     pid={project&&project.id}
     parts={((db&&db.parts)||[]).filter(x=>project&&x.pid===project.id)}/>;
-  else if(f.type==="partsgrid") ctrl=<QuoteGrid value={val} onChange={onChange}
+  else if(f.type==="partsgrid") ctrl=<QuoteGrid value={val} onChange={onChange} showErr={!!err}
     pid={project&&project.id} rates={(db&&db.rates)||[]}
     parts={((db&&db.parts)||[]).filter(x=>project&&x.pid===project.id)}/>;
   /* The value is the File object itself - the upload happens on submit, once, rather than on
@@ -5074,12 +5324,15 @@ function PhaseForm({formId,pid,group}){
     const o={};
     (spec?spec.sections:[]).forEach(sec=>sec.fields.forEach(f=>{
       o[f.k]=store&&store[formId]&&store[formId][f.k]!=null
-        ? store[formId][f.k] : (f.def?personFor(f.def):"");
+        ? store[formId][f.k] : (f.def?personFor(f.def):(f.init&&project?(f.init(project)||""):""));
     }));
     o[spec?spec.comment.k:"c"]="";
     return o;
   });
-  const [decision,setDecision]=useState("");
+  /* Pre-picked where the form offers no choice, so validation and the confirm dialog behave
+     exactly as they do on a form that does ask. */
+  const [decision,setDecision]=useState(
+    (spec&&spec.decision.hidden&&spec.decision.options.length===1)?spec.decision.options[0].v:"");
   const [showErr,setShowErr]=useState(false);
   if(!spec||!project) return <Denied page="phases" roleKey={roleKey}/>;
   const mayEdit=can(spec.cap)&&spec.from.indexOf(atStatus)>=0;
@@ -5093,6 +5346,7 @@ function PhaseForm({formId,pid,group}){
   const set=k=>e=>setV(o=>({...o,[k]:e.target.value}));
   const errs={};
   spec.sections.forEach(sec=>sec.fields.forEach(f=>{
+    if(f.type==="ref") return;   /* nothing to validate - it is not an input */
     if(f.type==="file"){ if(isReq(f,v)&&!v[f.k]) errs[f.k]=f.label+" is required"; return; }
     if(f.type==="samplegrid"){
       const rr=sampleGridRows(v[f.k]).filter(r=>r.some(Boolean));
@@ -5115,23 +5369,37 @@ function PhaseForm({formId,pid,group}){
     }
     if(f.type==="sapgrid"){
       const rr=sapRows(v[f.k]);
-      if(!rr.length){ errs[f.k]="No parts to raise a PR against"; return; }
-      if(!rr.some(r=>r[2])){ errs[f.k]="At least one part needs an SAP PR number"; return; }
-      const noAmt=rr.find(r=>r[2]&&!(parseFloat(r[4])>=0));
-      if(noAmt) errs[f.k]="Enter the amount for "+(noAmt[0]||"every part with a PR");
+      if(!rr.length){ errs[f.k]="No parts to raise a "+(f.po?"PO":"PR")+" against"; return; }
+      if(f.po){
+        if(!rr.some(r=>r[4])) errs[f.k]="At least one part needs a PO number";
+        return;
+      }
+      if(!rr.some(r=>r[2])){ errs[f.k]="At least one part needs a PR number"; return; }
+      const noQty=rr.find(r=>r[2]&&!(parseFloat(r[3])>0));
+      if(noQty) errs[f.k]="Enter the TRUN quantity for "+(noQty[0]||"every part with a PR");
       return;
     }
     if(f.type==="vendorlist"){
-      const vr=vendorRows(v[f.k]).filter(r=>r[0]||r[1]||r[2]);
-      const noName=vr.find(r=>!r[0]);
-      if(noName){ errs[f.k]="Every row needs a vendor name"; return; }
-      const badMail=vr.find(r=>r[2]&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r[2]));
-      if(badMail){ errs[f.k]="Check the address for "+badMail[0]; return; }
+      const vr=vendorRows(v[f.k]);
+      if(!vr.some(r=>r[0]||r[1]||r[2])){ if(isReq(f,v)) errs[f.k]="Add at least one vendor"; return; }
+      const noName=vr.findIndex(r=>vendorCellBad(r,0));
+      if(noName>=0){ errs[f.k]="Enter the vendor name on row "+(noName+1); return; }
+      const noParts=vr.find(r=>vendorCellBad(r,1));
+      if(noParts){ errs[f.k]="List the part numbers "+noParts[0]+" supplies"; return; }
+      const badMail=vr.find(r=>vendorCellBad(r,2));
+      if(badMail){ errs[f.k]=(String(badMail[2]||"").trim()?"Check the email address for ":"Enter the email address for ")+badMail[0]; return; }
+      const projParts=((db&&db.parts)||[]).filter(x=>x.pid===project.id).map(x=>x.part).filter(Boolean);
+      const stray=[];
+      vr.forEach(r=>splitParts(r[1]).forEach(pn=>{ if(projParts.length&&projParts.indexOf(pn)<0&&stray.indexOf(pn)<0)stray.push(pn); }));
+      if(stray.length){ errs[f.k]="Not on this project: "+stray.join(", "); return; }
       /* The same part quoted by two vendors is ambiguous downstream - F-05 would notify both
          for the same sample. */
       const seen={},dup=[];
       vr.forEach(r=>splitParts(r[1]).forEach(pn=>{ if(seen[pn]&&dup.indexOf(pn)<0)dup.push(pn); seen[pn]=1; }));
-      if(dup.length) errs[f.k]="Assigned to more than one vendor: "+dup.join(", ");
+      if(dup.length){ errs[f.k]="Assigned to more than one vendor: "+dup.join(", "); return; }
+      /* a part with no vendor is a part nobody will be asked to sample */
+      const orphan=projParts.filter(pn=>!seen[pn]);
+      if(orphan.length) errs[f.k]="No vendor assigned for: "+orphan.slice(0,5).join(", ")+(orphan.length>5?" and "+(orphan.length-5)+" more":"");
       return;
     }
     /* A quote is complete when every part carries a quantity and both prices. Naming the
@@ -5139,18 +5407,23 @@ function PhaseForm({formId,pid,group}){
     if(f.type==="partsgrid"){
       const rows=quoteToRows(v[f.k]);
       if(!rows.length){ errs[f.k]="Add at least one part to the quote"; return; }
-      const bad=rows.find(r=>!(parseFloat(r[2])>=0)||!(parseFloat(r[3])>=0)||!(parseFloat(r[4])>=0));
+      const bad=rows.find(r=>[2,3,5].some(ci=>quoteCellBad(r,ci)));
       if(bad) errs[f.k]="Every part needs a quantity, an existing price and a localized price \u2014 check "+(bad[0]||"the blank row");
-      else { const noccy=rows.find(r=>!String(r[5]||"").trim()); if(noccy) errs[f.k]="Set the quote currency for "+(noccy[0]||"every part"); }
+      else { const noccy=rows.find(r=>QUOTE_CCY.some(ci=>quoteCellBad(r,ci)));
+             if(noccy) errs[f.k]="Set both quote currencies for "+(noccy[0]||"every part"); }
       return;
     }
     const val=String(v[f.k]==null?"":v[f.k]).trim();
     if(isReq(f,v)&&!val) errs[f.k]=f.label+" is required";
     else if((f.type==="number"||f.type==="currency")&&val&&(!isFinite(+val)||+val<0)) errs[f.k]="Must be a positive number";
+    else if(f.type==="email"&&val&&!isEmail(val)) errs[f.k]="Enter a valid email address";
     else if(f.min&&val.length<f.min) errs[f.k]=f.label+" needs at least "+f.min+" characters ("+val.length+" so far)";
   }));
   if(!String(v[spec.comment.k]||"").trim()) errs[spec.comment.k]=spec.comment.label+" is required";  /* submit only - save skips errs entirely */
-  const chosen=spec.decision.options.find(o=>o.v===decision);
+  /* A target that reads off the project (F-02c follows the route the Finance Head set) is
+     resolved here, so validation, the button and the command all see the same status. */
+  const pick=spec.decision.options.find(o=>o.v===decision);
+  const chosen=pick?{...pick,to:(typeof pick.to==="function"?pick.to(project):pick.to)}:null;
   const calc=spec.computed?spec.computed(v):null;
   /* A File cannot be serialised into the command payload, and an attachment belongs in the
      library rather than inside a form record. So each file is uploaded as its own document and
@@ -5228,14 +5501,19 @@ function PhaseForm({formId,pid,group}){
           </div>
           {i===0&&calc? <div className="calcbox">{calc.map((c,j)=><div key={j} className={"calccell "+(c.tone||"")}><div className="ck">{c.k}</div><div className="cv">{c.v}</div></div>)}</div> : null}
         </div>)}
+        {/* A form with one way forward asks nothing: the section only ever held a single
+            radio that had to be selected before Submit would work. Hidden, it is picked for
+            the submitter, who still sees where it goes in the confirm dialog. */}
+        {spec.decision.hidden?null:<>
         <div className="fsec">{spec.decision.label}</div>
         <div className="decrow">
           {spec.decision.options.map(o=><label key={o.v} className={"decopt"+(decision===o.v?" on":"")}>
             <input type="radio" name="decision" checked={decision===o.v} onChange={()=>setDecision(o.v)} disabled={!mayEdit}/>
-            <span><span className="dl">{o.label}</span><span className="dd">{o.desc} → <b>{o.to}</b></span></span>
+            <span><span className="dl">{o.label}</span><span className="dd">{o.desc} → <b>{statusLabel(typeof o.to==="function"?o.to(project):o.to)}</b></span></span>
           </label>)}
         </div>
         {showErr&&!decision?<div className="ferr" style={{marginTop:8}}>Choose a decision</div>:null}
+        </>}
         <div className="fsec">Comments</div>
         <div className={"field2"+(showErr&&errs[spec.comment.k]?" invalid":"")}>
           <div className="flabel">{spec.comment.label} <i>*</i></div>
@@ -5413,12 +5691,13 @@ function Modal({title,onClose,children,wide}){
     </div>
   </div>;
 }
-function FormModal({title,fields,initial,submitLabel,onSubmit,onClose}){
+function FormModal({title,fields,initial,submitLabel,onSubmit,onClose,note}){
   const [v,setV]=useState(()=>{const o={};fields.forEach(f=>o[f.key]=(initial&&initial[f.key]!=null)?initial[f.key]:(f.def||(f.type==="select"?f.options[0]:"")));return o;});
   const [err,setErr]=useState("");
   const set=k=>e=>setV(s=>({...s,[k]:e.target.value}));
   const submit=()=>{const miss=fields.filter(f=>f.req&&!String(v[f.key]).trim());if(miss.length){setErr("Please complete: "+miss.map(f=>f.label).join(", "));return;}onSubmit(v);};
   return <Modal title={title} onClose={onClose}>
+    {note?<div className="modal-note">{note}</div>:null}
     <div className="form-grid">
       {fields.map(f=><div className={"field2"+(f.full?" full":"")} key={f.key}>
         <div className="flabel">{f.label} {f.req?<i>*</i>:null}</div>
@@ -5601,6 +5880,385 @@ async function spUploadDoc(file,pid,category){
   return added.ServerRelativeUrl;
 }
 
+/* ---------- what a Teams channel card says ----------
+   The router posts one card per move, to the channel of whoever acts next. What that card
+   should say depends on the stage, and most of it was captured by forms submitted earlier -
+   which the router never sees, because a command carries only its own form. So the Hub, which
+   holds the whole project, keeps a running summary on the row (HubSummaryJSON) and writes the
+   cards itself:
+     payload.card   the card for the move this command makes
+     summary.cards  the cards for every move that can come next, keyed "status|group", so a
+                    decision taken in a Teams approval - which never passes through the Hub -
+                    still gets its stage's card
+   Figures travel in their own list (m) so the router can drop them for a channel whose role
+   may not see cost. Only the Sourcing channel's stages are written; every other stage keeps
+   the router's generic card until its channel is designed. */
+const readJson=(x,fallback)=>{
+  if(!x) return fallback;
+  try{ return JSON.parse(x); }catch(e){ return fallback; }  /* a hand-edited cell must not blank the project */
+};
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const cDate=(x)=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(x||""));return m?(+m[3])+" "+MONTHS[+m[2]-1]+" "+m[1]:String(x||"");};
+const cTrim=(x,n)=>{const t=String(x==null?"":x).replace(/\s+/g," ").trim();return t.length>n?t.slice(0,n-1)+"…":t;};
+const cInr=(n)=>(n==null||!isFinite(n))?"":"₹"+Math.round(n).toLocaleString("en-IN");
+const cOrd=(n)=>n+(n%100>=11&&n%100<=13?"th":(["th","st","nd","rd"][n%10]||"th"));
+/* a blank value is left off rather than shown as "-": a card is scanned, and a row of dashes
+   is noise that pushes the useful lines below the fold on a phone */
+const cFact=(title,value)=>{const v=String(value==null?"":value).trim();
+  return (!v||v==="—"||v==="NaN")?null:{title:title,value:v};};
+const plural=(n,w)=>n+" "+w+(n===1?"":"s");
+
+/* Everything a later card needs, folded in as each form is submitted. Kept small on purpose:
+   facts, not whole forms - TracksJSON already carries the forms. */
+function summaryAfter(p,formId,v,group,extra,by){
+  const s=JSON.parse(JSON.stringify(p.summary||{}));
+  delete s.cards;
+  /* A gate decision carries no form. The Finance Head's gate carries the funding route, which
+     every later step reads, so it is kept the same way a form's values are. */
+  if(!formId&&extra&&extra.route) s.f02f={route:extra.route,by:by||""};
+  const gs=()=>{s.g=s.g||{};s.g[group||""]=s.g[group||""]||{};return s.g[group||""];};
+  if(formId==="F-01") s.intake=extra;
+  else if(formId==="F-02"){
+    const t=f02Totals(v);
+    s.f02={spend:inrOfUsd(t.spend),nspend:inrOfUsd(t.nspend),save:inrOfUsd(t.save),
+      pct:(t.save!=null&&t.spend)?t.save/t.spend*100:null,
+      invest:num(v.capexOpexAmount),route:v.routingSuggestion||"",
+      vendor:{n:(v.vendorName||"").trim(),e:(v.vendorEmail||"").trim()},
+      quote:!!v.quoteFile,subs:((s.f02&&s.f02.subs)||0)+1,by:by||""};
+    s.vendor=s.f02.vendor;
+  }
+  else if(formId==="F-02c") s.f02c={gl:v.glAccount||"",cc:v.costCentre||"",pc:v.profitCentre||"",
+    route:(s.f02f||{}).route||(s.f02c||{}).route||"",by:by||""};
+  else if(formId==="F-03c") s.f03c={net:v.networkId||"",acc:v.accoladeId||"",pr:v.prNumber||"",po:v.poNumber||""};
+  else if(formId==="F-03o") s.f03o={confirmed:true,by:by||""};
+  else if(formId==="F-04"){
+    const rr=sapRows(v.sapLines);
+    s.f04={...(s.f04||{}),pr:rr.filter(r=>r[2]).length,total:rr.length,
+      trun:rr.reduce((a,r)=>a+(num(r[3])||0),0)};
+  }
+  else if(formId==="F-04-PO"){
+    const rr=sapRows(v.sapLines);
+    s.f04={...(s.f04||{}),po:rr.filter(r=>r[4]).length,total:rr.length};
+  }
+  else if(formId==="F-04o-PR") s.f04o={...(s.f04o||{}),pr:v.prNumber||"",amount:num(v.amount)};
+  else if(formId==="F-04o-PO") s.f04o={...(s.f04o||{}),po:v.poNumber||""};
+  else if(formId==="F-05") s.f05={contact:v.contactName||"",e:v.contactEmail||"",d:v.sampleDeadline||"",q:num(v.sampleQty)};
+  else if(formId==="F-06R"){
+    const replace=v.resourceAction==="Replace the vendor";
+    gs().rs={dec:v.resourceAction||"",vendor:replace?(v.newVendorName||""):"",price:replace?(v.newVendorQuoted||""):"",
+      told:v.failureReason||"",due:v.resampleDeadline||"",qty:num(v.resampleQty)};
+    if(replace&&v.newVendorName) s.vendor={n:v.newVendorName.trim(),e:(v.newVendorEmail||"").trim()};
+  }
+  else if(formId==="F-06"){
+    /* counts and lots, not the rows: a group can hold hundreds of parts */
+    const rr=sampleGridRows(v.sampleLines).filter(r=>r.some(Boolean)), got=rr.filter(r=>r[3]);
+    const lots=[];got.forEach(r=>{if(r[5]&&lots.indexOf(r[5])<0)lots.push(r[5]);});
+    gs().smp={exp:rr.length,got:got.length,qty:got.reduce((a,r)=>a+(num(r[4])||0),0),lots:lots,
+      type:v.sampleType||"",ppap:v.ppapLevel||"",docs:v.documents||""};
+  }
+  else if(formId==="F-07") gs().sqe={res:v.dimensionalResult||"",cpk:v.cpk,notes:v.sqeNotes||"",
+    grr:v.gaugeRR||"",lab:v.labReport||""};
+  else if(formId==="F-08") gs().eng={conf:v.designConformance||"",fff:v.fitFormFunction||"",
+    dwg:v.drawingReference||"",rev:v.drawingRevision||"",revOk:v.revisionVerified||"",cp:v.controlPlan||"",
+    notes:v.engineeringNotes||""};
+  else if(formId==="F-09") gs().trial={made:num(v.qtyMade),acc:num(v.qtyAccepted),def:num(v.defectCount),
+    mode:v.defectMode||"",yield:num(v.yieldRate),rar:v.runAtRate||"",notes:v.trialNotes||""};
+  else if(formId==="F-10") gs().psw={dev:v.deviationsExist||"",desc:v.deviationDescription||"",
+    plan:v.actionPlan||"",level:v.ppapLevel||"",trun:v.trunReferenceNumber||"",partRev:v.partRevision||"",
+    reason:v.submissionReason||"",fair:v.fairChecklistComplete||"",dim:v.dimensionalComplete||""};
+  else if(formId==="F-14") s.close={cost:num(v.finalCost),variance:num(v.costVariancePercent),
+    rating:v.finalVendorRating||"",lessons:v.lessonsLearned||""};
+  return s;
+}
+
+/* The card for arriving at `to`. ctx: the project's parts and lots, the group's rejection
+   count before this move, and the status it is coming from. Null for a stage whose channel
+   has no designed card yet - the router then posts its generic one. */
+/* Pilot lots. Three lots, one after another, each ordered on its own PR, received, inspected
+   and - if it fails IQC - dispositioned by the SQE Head. Only lot 1 opening and the last lot
+   landing move the project, so the rest are EVENT cards: they name their own channel (ch) and
+   the label on the chip, because no status change exists for the router to read them from. */
+const lotTitle=(l)=>l.lot+" of 3 ("+(LOT_FORMS[lotNum(l)]||"")+")";
+const lotLine=(l)=>[l.qty?l.qty+" pcs":"",l.pr?"PR "+l.pr:"",(l.delivery&&l.delivery!=="\u2014")?l.delivery:"",
+  "IQC "+(l.iqc||"pending")].filter(Boolean).join(" \u00b7 ");
+function lotCard(kind,s,lot,ctx){
+  const f02=s.f02||{}, parts=ctx.parts||[], n=lotNum(lot);
+  const earlier=(ctx.lots||[]).filter(l=>lotNum(l)<n).sort((a,b)=>lotNum(a)-lotNum(b));
+  const V0=curVendor(s), orderFrom=V0?V0.n+(V0.e?" \u2014 "+V0.e:""):"";
+  const prev=earlier[earlier.length-1];
+  let h, f, ch;
+  if(kind==="opened"){
+    h=(prev?prev.lot+" "+(ctx.accepted?"accepted on disposition":"passed IQC")+" \u2014 ":"")
+      +(prev?lot.lot.toLowerCase():lot.lot)+" opened: raise its PR ("+LOT_FORMS[n]+")";
+    ch="BUYER";
+    f=[cFact("Lot",lotTitle(lot)),cFact("Covers",plural(parts.length,"part")),cFact("Order from",orderFrom),
+       cFact(prev&&ctx.accepted?"Disposition":"",prev&&ctx.accepted?ctx.accepted:"")]
+      .concat(earlier.map(l=>cFact(l.lot,lotLine(l))));
+  }
+  else if(kind==="ordered"){
+    h=lot.lot+" ordered \u2014 record delivery and IQC when it arrives ("+LOT_FORMS[n]+")";
+    ch="SQE_ENG";
+    f=[cFact("Lot",lotTitle(lot)),cFact("PR number",lot.pr),cFact("Ordered quantity",lot.qty),
+       cFact("Covers",plural(parts.length,"part"))];
+  }
+  else if(kind==="quarantine"){
+    h=lot.lot+" failed IQC \u2014 SQE Head to decide the disposition";
+    ch="SQE_HEAD";
+    f=[cFact("Lot",lotTitle(lot)),cFact("Delivered",lot.delivery),cFact("Quantity",lot.qty),cFact("PR number",lot.pr)];
+  }
+  else if(kind==="returned"){
+    const rework=ctx.disposition==="Rework";
+    h=lot.lot+(rework?" sent for rework":" returned to supplier")+" \u2014 arrange the "
+      +(rework?"reworked lot":"replacement")+" with the vendor";
+    ch="BUYER";
+    f=[cFact("Lot",lotTitle(lot)),cFact("Quantity",lot.qty),cFact("IQC finding",cTrim(lot.iqcNotes,200)),
+       cFact("Disposition",ctx.disposition),cFact("Vendor",orderFrom)];
+  }
+  return {h:h,f:f.filter(Boolean),m:[],ch:ch,chip:"Pilot lots \u00b7 "+lot.lot};
+}
+/* Months for the saving to repay the investment - the one number a head approving a business
+   case asks first. Only when both exist and the saving is real. */
+const cPayback=(f)=>{
+  if(!(f.invest>0&&f.save>0)) return "";
+  const mo=f.invest/(f.save/12);
+  return mo<1?"under 1 month":mo.toFixed(1)+" months";
+};
+function cardFor(s,to,group,ctx){
+  const g=group||"", gi=(s.g&&s.g[g])||{}, f02=s.f02||{};
+  const parts=ctx.parts||[], inGroup=g?parts.filter(x=>x.group===g):parts;
+  const groups=[];parts.forEach(x=>{if(x.group&&groups.indexOf(x.group)<0)groups.push(x.group);});
+  const partsLine=plural(parts.length,"part")+(groups.length>1?" in "+groups.length+" groups":"");
+  const groupLine=g?g+" ("+plural(inGroup.length,"part")+")":null;
+  const pn=inGroup.map(x=>x.part);
+  const V=curVendor(s), vendorNames=V?V.n:"", vendorLine=V?V.n+(V.e?" \u2014 "+V.e:""):"";
+  const i0=s.intake||{}, fc=s.f02c||{};
+  const money=[cFact("Annual spend",(f02.spend!=null&&f02.nspend!=null)?cInr(f02.spend)+" \u2192 "+cInr(f02.nspend):""),
+    cFact("Annual saving",f02.save!=null?cInr(f02.save)+(f02.pct!=null?" ("+f02.pct.toFixed(1)+"%)":""):""),
+    cFact("Investment",f02.invest!=null?cInr(f02.invest):"None"),cFact("Payback",cPayback(f02))];
+  const sq=gi.sqe||{}, en=gi.eng||{}, tr=gi.trial||{};
+  /* the vendor the group is with NOW - a re-source may have moved it off the F-02 vendor */
+  const groupVendor=(gi.rs&&gi.rs.vendor)||vendorNames;
+  const sqeLine=[sq.res,(sq.cpk!=null&&sq.cpk!=="")?"Cpk "+sq.cpk:""].filter(Boolean).join(" \u00b7 ");
+  const trialLine=tr.made!=null?[tr.made+" made",tr.acc!=null?tr.acc+" accepted":"",tr.yield!=null?tr.yield+"% yield":"",
+    tr.def!=null?plural(tr.def,"defect"):""].filter(Boolean).join(" \u00b7 "):"";
+  let h=null,f=[],m=[],ch="";
+  if(to==="Feasibility Review"){
+    const i=s.intake||{};
+    h="New request — please check feasibility";
+    f=[cFact("Category",i.category),cFact("ECN",i.ecn),cFact("Scope",cTrim(i.scope,180)),
+       cFact("Target completion",cDate(i.target)),cFact("Objectives",(i.obj||[]).join(", ")),
+       cFact("Parts",plural(i.parts||0,"part")+((i.groups||[]).length
+         ?" in "+plural(i.groups.length,"group")+": "+cTrim(i.groups.join(", "),120):""))];
+  }
+  else if(to==="Held"){
+    h="Project on hold";
+    f=[cFact("Parts",partsLine),cFact("Vendor",vendorNames)];
+  }
+  else if(to==="Returned to Sourcing"){
+    h="Sent back to Sourcing — revise and resubmit F-02";
+    f=[cFact("Times submitted",f02.subs||""),
+       cFact("Vendor",vendorNames),cFact("Parts",partsLine)];
+    m=[cFact("Submitted saving",f02.save!=null?cInr(f02.save)+" / year"+(f02.pct!=null?" ("+f02.pct.toFixed(1)+"%)":""):""),
+       cFact("Submitted investment",f02.invest!=null?cInr(f02.invest)+(f02.route?" · "+f02.route+" suggested":""):"")];
+  }
+  else if(to==="Sourcing Head Approval Pending"){
+    h="Feasibility submitted — Sourcing Head to approve";
+    f=[cFact("Submission",f02.subs>1?cOrd(f02.subs)+" (resubmitted)":"First"),cFact("Vendor",vendorNames),
+       cFact("Vendor quote",f02.quote?"Attached":"Not attached"),cFact("Parts",partsLine)];
+    m=[cFact("Annual spend",(f02.spend!=null&&f02.nspend!=null)?cInr(f02.spend)+" → "+cInr(f02.nspend):""),
+       cFact("Annual saving",f02.save!=null?cInr(f02.save)+(f02.pct!=null?" ("+f02.pct.toFixed(1)+"%)":""):""),
+       cFact("Investment",f02.invest!=null?cInr(f02.invest)+(f02.route?" · "+f02.route+" suggested":""):"None")];
+  }
+  else if(to==="Business Head Approval Pending"){
+    h="Sourcing Head approved \u2014 Business Head to approve the business case";
+    f=[cFact("Category",i0.category),cFact("Scope",cTrim(i0.scope,160)),cFact("Parts",partsLine),
+       cFact("Vendor",vendorNames),cFact("Target completion",cDate(i0.target)),cFact("Prepared by",f02.by)];
+    m=money.concat([cFact("Suggested route",f02.route)]);
+  }
+  /* The Finance Head decides and classifies; the Finance team then books the coding, so
+     the two cards say which of those is being asked for. */
+  else if(to==="Finance Routing Decision Pending"){
+    const rt=(s.f02f||{}).route||fc.route||"";
+    h="Funded as "+(rt||"approved")+" \u2014 record the account coding (F-02c)";
+    f=[cFact("To record","GL account, cost centre, profit centre"),cFact("Route",rt),
+       cFact("Approved by",(s.f02f||{}).by),cFact("Parts",partsLine),cFact("Vendor",vendorNames)];
+    m=money;
+  }
+  else if(to==="Finance Head Approval Pending"){
+    h="Business case approved \u2014 Finance Head to approve and fund it (F-02f)";
+    f=[cFact("To decide","Approve, and fund as Capex or Opex"),
+       cFact("Sourcing suggested",f02.route||"No suggestion"),cFact("Parts",partsLine),
+       cFact("Vendor",vendorNames),cFact("Prepared by",f02.by)];
+    m=money;
+  }
+  else if(to==="Approval Pending - Capex"){
+    h="Capex approved \u2014 record the AEF identifiers (F-03c)";
+    f=[cFact("To record","Network ID, Accolade ID, SAP PR and PO numbers"),cFact("Account coding",[fc.gl?"GL "+fc.gl:"",fc.cc?"CC "+fc.cc:"",fc.pc?"PC "+fc.pc:""].filter(Boolean).join(" \u00b7 ")),
+       cFact("Parts",partsLine),cFact("Vendor",vendorNames)];
+    m=[cFact("Approved investment",f02.invest!=null?cInr(f02.invest):"")];
+  }
+  else if(to==="Approval Pending - Opex"){
+    h="Opex approved \u2014 confirm the coding and hand it to the Planner (F-03o)";
+    f=[cFact("Account coding",[fc.gl?"GL "+fc.gl:"",fc.cc?"CC "+fc.cc:"",fc.pc?"PC "+fc.pc:""].filter(Boolean).join(" \u00b7 ")),
+       cFact("Parts",partsLine),cFact("Vendor",vendorNames)];
+    m=[cFact("Approved amount",f02.invest!=null?cInr(f02.invest):"")];
+  }
+  else if(to==="Development Approved"){
+    const a=s.f03c||{};
+    h="Development approved \u2014 raise the purchase requisitions (F-04)";
+    f=[cFact("Funding",[fc.route,a.net?"Network "+a.net:"",a.acc?"Accolade "+a.acc:""].filter(Boolean).join(" \u00b7 ")),
+       cFact("Account coding",[fc.gl?"GL "+fc.gl:"",fc.cc?"CC "+fc.cc:"",fc.pc?"PC "+fc.pc:""].filter(Boolean).join(" \u00b7 ")),
+       cFact("To record","A PR number and TRUN quantity per part"),
+       cFact("Order from",vendorLine),
+       cFact("Parts",partsLine)];
+    m=[cFact("Approved investment",f02.invest!=null?cInr(f02.invest):"")];
+  }
+  /* The Buyer picks up where the Planner left off - the PRs are raised, the POs are not. */
+  else if(to==="PO Creation Pending"){
+    const f4=s.f04||{};
+    h="Requisitions raised \u2014 create the purchase orders (F-04-PO)";
+    f=[cFact("PRs raised",f4.total?f4.pr+" of "+f4.total+" part(s)":""),
+       cFact("TRUN quantity",f4.trun?String(f4.trun):""),
+       cFact("To record","A PO number per part"),
+       cFact("Order from",vendorLine),
+       cFact("Parts",partsLine)];
+    m=[cFact("Approved investment",f02.invest!=null?cInr(f02.invest):"")];
+  }
+  else if(to==="Opex - PR Pending"){
+    const g3=s.f03o||{};
+    h="Opex approved \u2014 raise the SAP PR (F-04o-PR)";
+    f=[cFact("GL account",g3.gl),cFact("Cost centre",g3.cc),cFact("Profit centre",g3.pc),cFact("Budget line",fc.budget),
+       cFact("Vendor",vendorNames),cFact("Parts",partsLine)];
+    m=[cFact("Approved amount",f02.invest!=null?cInr(f02.invest):"")];
+  }
+  else if(to==="PO Pending"){
+    const f4=s.f04||{}, fo=s.f04o||{};
+    h="PR / PO raised \u2014 notify the vendor (F-05)";
+    f=[cFact("Parts with a PO",f4.total?(f4.po||0)+" of "+f4.total:""),cFact("PO number",fo.po),
+       cFact("TRUN quantity",f4.trun?String(f4.trun):""),
+       cFact("Vendor to notify",vendorLine)];
+  }
+  else if(to==="Opex - PO Pending"){
+    const fo=s.f04o||{}, f3=s.f03o||{};
+    h="Opex PR raised — confirm the PO (F-04o-PO)";
+    f=[cFact("PR number",fo.pr),cFact("GL account",f3.gl),cFact("Cost centre",f3.cc)];
+    m=[cFact("PR amount",fo.amount!=null?cInr(fo.amount):"")];
+  }
+  else if(to==="In Development"){
+    const f5=s.f05||{};
+    h="Vendor notified \u2014 samples on the way";
+    f=[cFact("Vendor",vendorNames),cFact("Contact",[f5.contact,f5.e].filter(Boolean).join(" \u2014 ")),
+       cFact("Sample due",cDate(f5.d)),cFact("Sample quantity",f5.q!=null?f5.q+" pcs":""),
+       cFact("Parts",partsLine)];
+  }
+  else if(to==="Sample Rejected"){
+    const n=(ctx.rej||0)+1, byEng=!!ctx.from&&ctx.from!=="Sample Under Inspection"&&ctx.from!=="Re-sample Requested";
+    h="Samples rejected"+(g?" for "+g:"")+" — choose the next step (F-06R)";
+    f=[cFact("Group",groupLine),cFact("Rejected at",byEng?"Engineering review (F-08)":"SQE validation (F-07)")]
+      .concat(byEng
+        ?[cFact("Fit / form / function",en.fff),cFact("Design conformance",en.conf),cFact("Engineering notes",cTrim(en.notes,200))]
+        :[cFact("Dimensional result",sq.res),cFact("Cpk / Ppk",sq.cpk),cFact("Inspection notes",cTrim(sq.notes,200))])
+      .concat([cFact("Rejection",cOrd(n)+" of 3"+(n>=3?" — Sourcing Head must approve the next re-sample":"")),
+               cFact("Vendor",vendorNames)]);
+  }
+  else if(to==="Re-sample Requested"){
+    const rs=gi.rs||{};
+    h="Re-sample requested"+(g?" for "+g:"");
+    f=[cFact("Group",groupLine),cFact("Decision",rs.dec),cFact("New vendor",rs.vendor),
+       cFact("Price vs approved quote",rs.price),cFact("Re-sample due",cDate(rs.due)),
+       cFact("Quantity",rs.qty||""),cFact("Vendor told",cTrim(rs.told,200))];
+  }
+  else if(to==="PSW Pending Sign-off"){
+    h=(g||"Samples")+" passed the production trial \u2014 prepare the PSW (F-10)";
+    f=[cFact("Group",groupLine),cFact("SQE result",sqeLine),
+       cFact("Drawing",[en.dwg,en.rev?"rev "+en.rev:""].filter(Boolean).join(" ")),
+       cFact("Trial",trialLine),cFact("Run-at-rate",tr.rar)];
+  }
+  else if(to==="PSW Rejected"){
+    const ps=gi.psw||{};
+    h="PSW rejected"+(g?" for "+g:"")+" — rework needed";
+    f=[cFact("Group",groupLine),cFact("PPAP level",ps.level),
+       cFact("Deviations",[ps.dev,cTrim(ps.desc,160)].filter(Boolean).join(": ")),
+       cFact("Action plan",cTrim(ps.plan,200))];
+  }
+  else if(to==="Sample Under Inspection"){
+    const sm=gi.smp||{}, rej=ctx.rej||0;
+    h=(rej?"Re-samples":"Samples")+" received"+(g?" for "+g:"")+" \u2014 SQE to inspect (F-07)";
+    f=[cFact("Group",groupLine),cFact("Vendor",groupVendor),
+       cFact("Samples received",sm.exp?sm.got+" of "+plural(sm.exp,"part")+(sm.qty?" \u00b7 "+sm.qty+" pcs":""):""),
+       cFact("Lot numbers",(sm.lots||[]).slice(0,4).join(", ")+((sm.lots||[]).length>4?" +"+(sm.lots.length-4)+" more":"")),
+       cFact("Sample type",sm.type),cFact("PPAP level",sm.ppap),cFact("Documents",cTrim(sm.docs,160)),
+       cFact("Attempt",rej?cOrd(rej+1)+" sample \u2014 "+plural(rej,"earlier rejection"):""),
+       cFact("Last rejected for",rej?cTrim((gi.rs&&gi.rs.told)||sq.notes,160):"")];
+  }
+  else if(to==="SQE Approved"||to==="SQE Conditional"){
+    const cond=to==="SQE Conditional";
+    h="SQE passed "+(g||"the samples")+(cond?" with conditions":"")+" \u2014 Engineering to review fit, form and function (F-08)";
+    f=[cFact("Group",groupLine),cFact("Vendor",groupVendor),cFact("Dimensional result",sq.res),
+       cFact("Cpk / Ppk",sq.cpk),cFact("Gauge R&R",sq.grr),cFact("Lab / test report",sq.lab),
+       cFact(cond?"Conditions":"Inspection notes",cTrim(sq.notes,200))];
+  }
+  else if(to==="Production Rejected"){
+    h="Production trial rejected"+(g?" for "+g:"")+" \u2014 Engineering to re-review (F-08)";
+    f=[cFact("Group",groupLine),cFact("Trial",trialLine),cFact("Defect mode",tr.mode),
+       cFact("Run-at-rate",tr.rar),cFact("Trial notes",cTrim(tr.notes,200))];
+  }
+  else if(to==="Engineering Approved"){
+    h="Engineering approved "+(g||"the samples")+" \u2014 run the production trial (F-09)";
+    f=[cFact("Group",groupLine),cFact("Vendor",groupVendor),
+       cFact("Drawing",[en.dwg,en.rev?"rev "+en.rev:""].filter(Boolean).join(" ")),
+       cFact("Revision verified",en.revOk),cFact("Control plan / PFMEA",en.cp),
+       cFact("Fit / form / function",en.fff),cFact("SQE result",sqeLine),
+       cFact("Engineering notes",cTrim(en.notes,200)),cFact("Previous trial",trialLine)];
+  }
+  else if(to==="Trial Repeat Required"){
+    h="Production trial to be repeated"+(g?" for "+g:"")+" (F-09)";
+    f=[cFact("Group",groupLine),cFact("Last trial",trialLine),cFact("Defect mode",tr.mode),
+       cFact("Run-at-rate",tr.rar),cFact("Trial notes",cTrim(tr.notes,200))];
+  }
+  else if(to==="PSW Sign-off Pending"){
+    const ps=gi.psw||{};
+    h="PSW ready for CFT sign-off"+(g?" \u2014 "+g:"");
+    f=[cFact("Group",groupLine),cFact("TRUN reference",ps.trun),cFact("Part revision",ps.partRev),
+       cFact("Submission reason",ps.reason),cFact("PPAP level",ps.level),cFact("FAIR checklist",ps.fair),
+       cFact("Dimensional results",ps.dim),cFact("Deviations",[ps.dev,cTrim(ps.desc,160)].filter(Boolean).join(": ")),
+       cFact("Action plan",/^Yes/.test(ps.dev||"")?cTrim(ps.plan,200):""),
+       cFact("Trial",trialLine),cFact("SQE result",sqeLine)];
+  }
+  else if(to==="FAIR Released"){
+    const all=(ctx.tracks||[]).length, done=(ctx.tracks||[]).filter(t=>t.status==="FAIR Released").length;
+    const every=!all||done>=all;
+    h=every?"All part groups released (FAIR) \u2014 start pilot lot 1 (F-11)"
+           :(g||"Group")+" released (FAIR) \u2014 pilot lots start when every group is released";
+    f=[cFact(every&&all>1?"Last released":"Group",groupLine),cFact("Groups released",all?done+" of "+all:""),cFact("Parts",partsLine),
+       cFact("Vendor",every?vendorLine:"")];
+  }
+  else if(to==="Pilot Lots In Progress"){
+    const c=lotCard("opened",s,{lot:"Lot 1"},{...ctx,lots:[]});
+    h="All part groups released \u2014 pilot lot 1 opened: raise its PR (F-11)"; f=c.f; ch=c.ch;
+  }
+  else if(to==="All Lots Delivered"||to==="Pilot Lots Failed - Hold"){
+    const lots=(ctx.lots||[]).slice().sort((a,b)=>String(a.lot).localeCompare(String(b.lot)));
+    h=to==="All Lots Delivered"?"All pilot lots delivered — close the project (F-14)"
+                               :"Pilot lot failed — Sourcing Head decision needed";
+    f=lots.map(l=>cFact(l.lot,[l.qty?l.qty+" pcs":"","IQC "+(l.iqc||"pending"),
+      (l.delivery&&l.delivery!=="—")?l.delivery:""].filter(Boolean).join(" · ")));
+  }
+  else if(to==="Dropped"){
+    h="Project dropped"; ch="SRC_MEMBER";
+    f=[cFact("Parts",partsLine),cFact("Vendor",vendorNames)];
+  }
+  else if(to==="Project Completed"){
+    const c=s.close||{};
+    h="Project completed"; ch="SRC_MEMBER";
+    f=[cFact("Vendor rating",c.rating?c.rating+" / 5":""),cFact("Lessons learned",cTrim(c.lessons,240))];
+    m=[cFact("Final cost",c.cost!=null?cInr(c.cost):""),
+       cFact("Variance vs approved",c.variance!=null?(c.variance>0?"+":"")+c.variance+"%":"")];
+  }
+  if(!h) return null;
+  return {h:h,f:f.filter(Boolean),m:m.filter(Boolean),ch:ch};
+}
+
 /* ---------- write path: the app posts intents, the router applies them ----------
    Nothing here writes a status. Every mutation becomes a row in NPICommands, and
    Svc-Command-Router authorises it against People/Roles, validates the move against
@@ -5738,7 +6396,7 @@ async function loadLive(){
 
   await Promise.all([
     grab("projects",async()=>{
-      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
+      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,GroupsJSON,TracksJSON,HubSummaryJSON,HubFormJSON,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
       return rows.filter(r=>r.ProjectID).map(r=>({
         id:r.ProjectID, title:r.Title||r.ProjectID,
         /* HubStatus is what the Hub decided; CurrentStatus is what the cards drive.
@@ -5751,9 +6409,20 @@ async function loadLive(){
            the requester, and on a legacy card-created row it is the flow's account, which is at
            least accurate rather than invented. */
         owner:r.SourcingApprovedBy||(r.Author&&r.Author.Title)||"—",
-        supplier:r.TargetVendor||r.RecommendedVendor||"—",
+        supplier:(curVendor(readJson(r.HubSummaryJSON,{}))||{}).n||r.TargetVendor||r.RecommendedVendor||"—",
+        /* The incumbent is captured at intake and lives in the summary - the list has no
+           column of its own for it. A project created by the legacy cards has no summary, so
+           it reads as unknown rather than as the new vendor. */
+        incumbent:((readJson(r.HubSummaryJSON,{}).intake)||{}).incumbent||"",
         parts:"0", target:spDate(r.TargetMassProductionDate),
-        updated:spDate(r.HubUpdated||r.Modified), hubManaged:!!r.HubManaged}));
+        updated:spDate(r.HubUpdated||r.Modified), hubManaged:!!r.HubManaged,
+        /* Stored by the router and read back here - without them the next command would
+           post a derived guess over what the row actually holds. */
+        groups:readJson(r.GroupsJSON,[]), tracks:readJson(r.TracksJSON,[]),
+        /* The last command's fields. A gate answered in Teams never touches the summary, so
+           this is the only place the Finance Head's funding choice is recorded. */
+        hubForm:readJson(r.HubFormJSON,{}),
+        summary:readJson(r.HubSummaryJSON,{})}));
     }),
     grab("parts",async()=>{
       const rows=await spq("NPIParts","$select=PartNumber,PartDescription,ProjectID,PartStatus,Stage,HubStage,GroupName,PartKey,NewSupplier,IncumbentSupplier,TargetVendor,EstimatedAnnualVolume,EstimatedUnitCost,Modified&$orderby=Modified desc&$top=2000");
@@ -5996,6 +6665,30 @@ function App(){
     }).catch(e=>{ setSpErrors([String(e.message||e)]); setSpState("error"); });
   },[]);
   useEffect(()=>{ reloadLive(); },[reloadLive]);
+  /* Decisions taken in Teams, by other people or by the flows never pass through this page, so
+     a screen loaded once goes stale - an approval given in Teams did not show here until a
+     manual reload. Re-read when the person comes back to the tab (the usual path: approve in
+     Teams, switch back) and every 3 minutes while it is in view, the approval flow's own
+     cadence. At most once a minute, and never while a command is in flight: a reload then would
+     race the optimistic update that command is about to confirm. */
+  const lastLoad=React.useRef(Date.now());
+  const busyRef=React.useRef(0);
+  busyRef.current=busy;
+  useEffect(()=>{
+    if(!spx()) return;
+    const maybe=()=>{
+      if(document.visibilityState!=="visible"||busyRef.current>0) return;
+      if(Date.now()-lastLoad.current<60000) return;
+      lastLoad.current=Date.now();
+      reloadLive();
+    };
+    const timer=setInterval(maybe,180000);
+    document.addEventListener("visibilitychange",maybe);
+    window.addEventListener("focus",maybe);
+    return ()=>{ clearInterval(timer);
+      document.removeEventListener("visibilitychange",maybe);
+      window.removeEventListener("focus",maybe); };
+  },[reloadLive]);
   /* The only writer of the FX mirror. FORM_SPECS' computed/summary functions are pure and
      cannot reach db, so they read the mirror instead - it has to track db.rates or every
      money figure silently falls back to the em-dash. */
@@ -6023,7 +6716,7 @@ function App(){
     const command=CMD_FOR_CAP[cap];
     if(!command){ flash("No command mapped for "+cap); return Promise.resolve(null); }
     setBusy(b=>b+1);
-    return sendCommand(command,payload,target)
+    return sendCommand(command,{...(payload||{}),actorRole:roleKey},target)
       .then(h=>awaitCommand(h.itemId).then(r=>({...r,commandId:h.commandId})))
       .then(r=>{
         if(r.CommandStatus==="Applied") flash(label+" saved");
@@ -6034,27 +6727,68 @@ function App(){
       .catch(e=>{ flash("Could not reach SharePoint: "+e.message); return null; })
       .then(r=>{ setBusy(b=>Math.max(0,b-1)); return r; });
   };
+  /* The summary and cards a command carries - see "what a Teams channel card says". The
+     cards for what can come NEXT are written too, keyed "status|group", because the next
+     decision is often a Teams approval that never passes through here. */
+  const cardBits=(project,o)=>{
+    const group=o.group||"", tr=group?trackOf(project,group):null;
+    const ctx={parts:o.parts||(db.parts||[]).filter(x=>x.pid===project.id),
+      lots:o.lots||(db.pilots||[]).filter(x=>x.pid===project.id),
+      rej:(tr?tr.rejectionCount:project.rejectionCount)||0,
+      tracks:o.tracks||tracksOf(project)};
+    const s=summaryAfter(project,o.formId||"",o.values||{},group,o.extra,(signedIn&&signedIn.name)||me);
+    const ahead={};
+    let ring=[o.to||o.from];
+    for(let hop=0;hop<2;hop++){
+      const next=[];
+      ring.forEach(st=>(TRANSITIONS[st]||[]).forEach(n=>{
+        const key=n+"|"+group;
+        if(!(key in ahead)){ const c=cardFor(s,n,group,{...ctx,from:st}); ahead[key]=c; if(next.indexOf(n)<0) next.push(n); }
+      }));
+      ring=next;
+    }
+    Object.keys(ahead).forEach(k=>{ if(!ahead[k]) delete ahead[k]; });
+    const card=o.to?cardFor(s,o.to,group,{...ctx,from:o.from}):null;
+    if(project.id) setDb(d=>({...d,projects:d.projects.map(p=>p.id===project.id?{...p,summary:s}:p)}));
+    return {summary:{...s,cards:ahead},...(card?{card:{...card,note:cTrim(o.note,400)}}:{})};
+  };
+  /* An event card - a pilot-lot step that moves nothing. Sent as the command's card; the
+     router posts it to the channel it names. */
+  const lotEvent=(pid,kind,lot,note,extra)=>{
+    const p=db.projects.find(x=>x.id===pid)||{summary:{}};
+    const c=lotCard(kind,p.summary||{},lot,{parts:(db.parts||[]).filter(x=>x.pid===pid),
+      lots:(db.pilots||[]).filter(x=>x.pid===pid),...(extra||{})});
+    return {card:{...c,note:cTrim(note,400)}};
+  };
   const act={
     resolveApproval:(a,decision,comment)=>{if(!approvalsFor(roleKey,[a],db).length){denied("Approval "+a.id+" · "+a.gate);return;}setDb(d=>({...d,approvals:d.approvals.filter(x=>x.id!==a.id),audit:withAudit(d,{action:decision,entity:a.pid,detail:a.gate,comment:comment||"—"}),notifs:withNotif(d,decision+" — "+a.gate+" · "+a.pid)}));flash(decision+" — "+a.pid+" recorded");},
     submitIntake:(p)=>{let id;setDb(d=>{const num=d.seq+1;id="NPI-2026-0"+num;/* groups is not decoration: from F-07 it is what the project is split into, and a project
          created without it runs a single unnamed track that matches none of its own parts.
          It was already going to the router in the command payload - it just never made it onto
          the local row, so every project created in the Hub silently lost its grouping. */
-      const proj={id,title:p.title,phase:"Initiation",status:"Feasibility Review",plant:p.plant,owner:me,supplier:(p.parts[0]&&(p.parts[0].newSupplier||p.parts[0].incumbent))||"—",parts:String(p.parts.length),groups:(p.groups||[]).filter(Boolean),category:p.category||"",plantCode:p.plantCode||"",target:p.target||"—",updated:todayStr()};
+      const proj={id,title:p.title,phase:"Initiation",status:"Feasibility Review",plant:p.plant,owner:me,supplier:"—",incumbent:p.incumbent||"",parts:String(p.parts.length),groups:(p.groups||[]).filter(Boolean),category:p.category||"",plantCode:p.plantCode||"",target:p.target||"—",updated:todayStr()};
       /* the wizard's parts have to land in db.parts too, or the project opens with an
          empty Parts tab and no cards on the parts board. Mirrors what SubmitIntake does
          server-side: one project row plus a row per part, created together. */
       const newParts=p.parts.map((pt,i)=>({...pt,pid:id,desc:pt.desc||pt.part,
-        supplier:pt.newSupplier||pt.incumbent||"—",stage:"Feasibility",status:"Feasibility Review",
+        supplier:"—",stage:"Feasibility",status:"Feasibility Review",
         h:24+((i*7)%120),_k:id+"::"+pt.part+"::"+i}));
       return {...d,seq:num,projects:[proj,...d.projects],parts:newParts.concat(d.parts),audit:withAudit(d,{action:"NPI intake submitted",entity:id,detail:p.category+" · "+p.groups.length+" group(s) · "+p.parts.length+" part(s)",comment:p.title}),notifs:withNotif(d,"New NPI project "+id+" — Feasibility Review ("+p.groups.length+" group(s), "+p.parts.length+" part(s))")};});
       /* The router owns the real ProjectID - it is derived from the SharePoint item id, which
          does not exist until the row does. The local id above is the standalone placeholder;
          when connected the caller gets a promise and shows what the router actually assigned. */
       if(!spx()) return id;
+      const fb=p.fb||{};
       return runCommand("project.create",{title:p.title,category:p.category,plant:p.plant,
         plantCode:p.plantCode,ecn:p.ecn,scope:p.scope,fb:p.fb,parts:p.parts,groups:p.groups,
-        target:p.target},"","NPI intake")
+        target:p.target,incumbent:p.incumbent||"",vendorCode:p.vendorCode||"",
+        ...cardBits({id:"",summary:{}},{formId:"F-01",from:"",to:"Feasibility Review",
+          parts:p.parts.map(x=>({part:x.part,group:x.group||""})),
+          extra:{category:p.category||"",ecn:p.ecn||"",scope:p.scope||"",target:p.target||"",
+            incumbent:p.incumbent||"",
+            obj:[["c","Cost"],["d","Delivery"],["q","Quality"],["r","Risk"]]
+              .filter(k=>String(fb[k[0]]||"").trim()).map(k=>k[1]),
+            parts:p.parts.length,groups:(p.groups||[]).filter(Boolean)}})},"","NPI intake")
         .then(r=>(r&&r.CommandStatus==="Applied")?r.commandId:null);},
     moveProject:(id,field,value)=>{
       if(navMode(roleKey,"phases")!=="w"){denied("Phase board · "+id);return;}
@@ -6098,7 +6832,15 @@ function App(){
           notifs:withNotif(d,row.lot+" disposition: "+disp+" · "+row.pid)};
       });
       flash(row.lot+" — "+disp);
-      runCommand("pilot.disposition",{projectId:row.pid,fields:{lot:row.lot,part:row.part,disposition:disp,comment:notes||""}},row.pid,row.lot+" disposition");
+      const dProject=db.projects.find(x=>x.id===row.pid);
+      const dLast=accepted&&lotNum(row)>=3&&dProject&&dProject.status==="Pilot Lots In Progress";
+      const dLots=db.pilots.filter(x=>x.pid===row.pid).map(x=>x._i===row._i?{...x,iqc:"OK",dispositionNotes:notes}:x);
+      runCommand("pilot.disposition",{projectId:row.pid,
+        ...(dLast?{fromStatus:dProject.status,toStatus:"All Lots Delivered",
+            ...cardBits(dProject,{from:dProject.status,to:"All Lots Delivered",note:notes,lots:dLots})}
+          :accepted?lotEvent(row.pid,"opened",{lot:"Lot "+(lotNum(row)+1)},notes,{lots:dLots,accepted:disp})
+          :lotEvent(row.pid,"returned",row,notes,{disposition:disp})),
+        fields:{lot:row.lot,part:row.part,disposition:disp,comment:notes||""}},row.pid,row.lot+" disposition");
     },
     /* Reference data, so it is written straight to the list - there is no transition for the
        router to validate and a command round-trip would only add a second way to fail. The
@@ -6206,6 +6948,7 @@ function App(){
          goes through the state machine like any other rather than only changing the board. */
       runCommand("pilot.raisePR",{projectId:project.id,fromStatus:project.status,
         toStatus:"Pilot Lots In Progress",toPhase:"Pilot",
+        ...cardBits(project,{from:project.status,to:"Pilot Lots In Progress"}),
         fields:{action:"open lot"}},project.id,"Pilot lot");
     },
     raiseLotPR:(row,v)=>{
@@ -6214,7 +6957,8 @@ function App(){
         audit:withAudit(d,{action:LOT_FORMS[lotNum(row)]+" PR raised",entity:row.pid+" / "+row.lot,detail:"PR "+v.pr,comment:"qty "+v.qty}),
         notifs:withNotif(d,row.lot+" PR "+v.pr+" raised · "+row.pid)}));
       flash(row.lot+" — PR "+v.pr);
-      runCommand("pilot.raisePR",{projectId:row.pid,fields:{lot:row.lot,part:row.part,pr:v.pr,qty:v.qty,comment:v.comment||""}},row.pid,row.lot+" PR");
+      runCommand("pilot.raisePR",{projectId:row.pid,...lotEvent(row.pid,"ordered",{...row,pr:v.pr,qty:v.qty},v.comment),
+        fields:{lot:row.lot,part:row.part,pr:v.pr,qty:v.qty,comment:v.comment||""}},row.pid,row.lot+" PR");
     },
     confirmLotIQC:(row,v)=>{
       if(!hasCap(roleKey,"pilot.iqc")){denied("Delivery + IQC");return;}
@@ -6239,7 +6983,18 @@ function App(){
           notifs:withNotif(d,row.lot+(ok?" passed IQC":" failed IQC — SQE disposition required")+" · "+row.pid)};
       });
       flash(row.lot+" — IQC "+(ok?"OK":"Not OK"));
-      runCommand("pilot.iqc",{projectId:row.pid,fields:{lot:row.lot,part:row.part,delivery:v.deliveryDate||"",qualityOK:ok,iqcNotes:v.iqcNotes||""}},row.pid,row.lot+" IQC");
+      const lotProject=db.projects.find(x=>x.id===row.pid);
+      const lastLot=ok&&lotNum(row)>=3&&lotProject&&lotProject.status==="Pilot Lots In Progress";
+      const lotAfter={...row,delivery:v.deliveryDate||todayStr(),iqc:ok?"OK":"Not OK",iqcNotes:v.iqcNotes};
+      const lotsAfter=db.pilots.filter(x=>x.pid===row.pid).map(x=>x._i===row._i?lotAfter:x);
+      runCommand("pilot.iqc",{projectId:row.pid,
+        ...(!ok?lotEvent(row.pid,"quarantine",lotAfter,v.iqcNotes)
+          :(!lastLot&&lotNum(row)<3)?lotEvent(row.pid,"opened",{lot:"Lot "+(lotNum(row)+1)},v.iqcNotes,{lots:lotsAfter}):{}),
+        ...(lastLot?{fromStatus:lotProject.status,toStatus:"All Lots Delivered",
+          ...cardBits(lotProject,{from:lotProject.status,to:"All Lots Delivered",note:v.iqcNotes,
+            lots:db.pilots.filter(x=>x.pid===row.pid).map(x=>x._i===row._i
+              ?{...x,delivery:v.deliveryDate||todayStr(),iqc:"OK"}:x)})}:{}),
+        fields:{lot:row.lot,part:row.part,delivery:v.deliveryDate||"",qualityOK:ok,iqcNotes:v.iqcNotes||""}},row.pid,row.lot+" IQC");
     },
     signPSW:(project,group,roleId,decision,comment)=>{
       if(roleKey!==roleId){denied("PSW signature as "+ROLE[roleId].label);return;}
@@ -6278,7 +7033,16 @@ function App(){
             +(released?(group&&now.status!=="FAIR Released"?" — "+group+" released, project still "+now.status:" — FAIR released"):""))};
       });
       flash("PSW "+decision+" — "+ent);
-      runCommand("psw.sign",{projectId:project.id,...trackBitsFor(project,group,(t)=>{
+      const pswFrom=group?((trackOf(project,group)||{}).status||""):project.status;
+      const pswCur=(group?(trackOf(project,group)||{}).psw:project.psw)||{};
+      const pswSigs={...(pswCur.signatures||{}),[roleId]:{decision:decision}};
+      const pswAll=ROLE_REGISTRY.filter(r=>isCFT(r.id,db)).every(r=>pswSigs[r.id]&&pswSigs[r.id].decision==="Signed");
+      const pswTo=decision==="Rejected"?"PSW Rejected":(pswAll&&pswFrom==="PSW Sign-off Pending")?"FAIR Released":"";
+      runCommand("psw.sign",{projectId:project.id,
+        ...(pswTo?{fromStatus:pswFrom,toStatus:pswTo,
+          ...cardBits(project,{group:group,from:pswFrom,to:pswTo,note:comment,
+            tracks:tracksOf(project).map(t=>t.g===group?{...t,status:pswTo}:t)})}:{}),
+        ...trackBitsFor(project,group,(t)=>{
           const cur=t.psw||{},sigs={...(cur.signatures||{}),[roleId]:{decision,by:me,at:todayStr(),comment}};
           const signers=ROLE_REGISTRY.filter(r=>isCFT(r.id,db));
           const all=signers.every(r=>sigs[r.id]&&sigs[r.id].decision==="Signed");
@@ -6309,6 +7073,8 @@ function App(){
           status:decision==="Rejected"?"PSW Rejected":t.status})),
         fromStatus:group?(trackOf(project,group)||{}).status:project.status,
         toStatus:decision==="Rejected"?"PSW Rejected":"",
+        ...(decision==="Rejected"?cardBits(project,{group:group,
+          from:group?(trackOf(project,group)||{}).status:project.status,to:"PSW Rejected",note:comment}):{}),
         fields:{role:roleId,decision:decision,comment:comment||"",group:group||""}},project.id,"Deviation "+decision);
     },
     reinitiatePSW:(project,group)=>{
@@ -6331,17 +7097,24 @@ function App(){
         toStatus:"PSW Pending Sign-off",toPhase:"PSW",
         fields:{action:"re-initiate",cleared:"signatures",group:group||""}},project.id,"PSW re-initiation");
     },
-    decideGate:(project,step,decision,comment)=>{
+    decideGate:(project,step,decision,comment,route)=>{
       const who=(project.approvers&&project.approvers[step.who])||personFor(step.role);
       if(!(roleKey===step.role||who===me)){denied(step.id+" · "+step.label);return;}
-      const to=decision==="Approved"?(typeof step.ok==="function"?step.ok(project):step.ok):"Returned to Sourcing";
+      /* The route has to be on the project before ok() reads it - this gate decides where the
+         project goes next AND what it is funded as, and the second answers the first. */
+      const decided=(step.route&&decision==="Approved")?{...project,routingDecision:route||project.routingDecision}:project;
+      const to=decision==="Approved"?(typeof step.ok==="function"?step.ok(decided):step.ok):"Returned to Sourcing";
       if(!canTransition(project.status,to)){flash("Not a legal move from "+project.status);return;}
-      setDb(d=>({...d,projects:d.projects.map(p=>p.id===project.id?{...p,status:to,updated:todayStr()}:p),
+      setDb(d=>({...d,projects:d.projects.map(p=>p.id===project.id?{...p,status:to,updated:todayStr(),
+        ...(step.route&&route?{routingDecision:route}:{})}:p),
         parts:syncParts(d.parts,project.id,"",to,project.phase),
         audit:withAudit(d,{action:step.id+" "+decision,entity:project.id,detail:project.status+" → "+to,comment:comment||"—"}),
         notifs:withNotif(d,step.label+" "+decision.toLowerCase()+" · "+project.id+" → "+to)}));
       runCommand("approve.gate",{projectId:project.id,fromStatus:project.status,toStatus:to,
-        fields:{step:step.id,decision:decision,comment:comment||""}},project.id,step.id+" "+decision);
+        ...cardBits(decided,{from:project.status,to:to,note:comment,
+          extra:(step.route&&route)?{route:route}:undefined}),
+        fields:{step:step.id,decision:decision,comment:comment||"",...(step.route?{route:route||""}:{})}},
+        project.id,step.id+" "+decision);
     },
     submitForm:(formId,project,values,choice,group)=>{
       const spec=FORM_SPECS[formId];
@@ -6392,11 +7165,13 @@ function App(){
       /* No toStatus on a recommendation: the router keeps the current status and stores the
          evidence, and Svc-Gate-Approval picks it up and asks the head. `recommend` is what the
          head's approval will apply. */
+      const cards=cardBits(project,{formId:formId,values:values,from:project.status,
+        to:(leader||staysPut)?"":choice.to,note:values[spec.comment.k]});
       runCommand(spec.cap, leader
-        ? {projectId:project.id,fromStatus:project.status,
+        ? {projectId:project.id,fromStatus:project.status,...cards,
            fields:{...values,form:spec.id,decision:choice.v,
                    recommend:choice.to,recommendPhase:choice.phase||"",awaiting:leader}}
-        : {projectId:project.id,fromStatus:project.status,toStatus:choice.to,
+        : {projectId:project.id,fromStatus:project.status,toStatus:choice.to,...cards,
            toPhase:choice.phase||"",fields:{...values,form:spec.id,decision:choice.v}},
         project.id, leader?(spec.id+" recommendation"):spec.id);
     },
@@ -6478,11 +7253,13 @@ function App(){
     const lead=rollUp(nextTracks);
     const trackBits={group:track.g,tracksJson:JSON.stringify(nextTracks),
       projectStatus:lead.status,projectPhase:lead.phase||""};
+    const cards=cardBits(project,{formId:formId,values:values,group:track.g,from:track.status,
+      to:held?"":choice.to,note:values[spec.comment.k]});
     runCommand(spec.cap, leader
-      ? {projectId:project.id,...trackBits,fromStatus:track.status,
+      ? {projectId:project.id,...trackBits,...cards,fromStatus:track.status,
          fields:{...values,form:spec.id,decision:choice.v,group:track.g,
                  recommend:choice.to,recommendPhase:choice.phase||"",awaiting:leader}}
-      : {projectId:project.id,...trackBits,fromStatus:track.status,
+      : {projectId:project.id,...trackBits,...cards,fromStatus:track.status,
          toStatus:choice.to,toPhase:choice.phase||"",
          fields:{...values,form:spec.id,decision:choice.v,group:track.g}},
       project.id,(leader?(spec.id+" recommendation"):spec.id)+" \u00b7 "+track.g);
@@ -6618,7 +7395,8 @@ function App(){
       </aside>
       {navOpen?<div className="nav-backdrop" onClick={()=>setNavOpen(false)}/>:null}
       <main className="content">
-        {formOpen ? <PhaseForm formId={formOpen.fid} pid={formOpen.pid} group={formOpen.group}/> : !navMode(roleKey,page) ? <Denied page={page} roleKey={roleKey}/> : page==="home" ? <Home roleKey={roleKey} onAct={flash} go={setPage}/> : page==="projects" ? <Projects onAct={flash}/> : page==="intake" ? <Intake onAct={flash}/> : page==="approvals" ? <Approvals onAct={flash}/> : page==="admin" ? <Admin onAct={flash}/> : page==="reports" ? <Reports onAct={flash}/> : page==="samples" ? <Samples onAct={flash}/> : page==="vendors" ? <Vendors onAct={flash}/> : page==="docs" ? <Documents onAct={flash}/> : page==="currency" ? <Currency onAct={flash}/> : page==="audit" ? <Audit onAct={flash}/> : page==="phases" ? <Phases/> : <Placeholder id={page}/>}
+        {formOpen ? <PhaseForm key={formOpen.fid+"::"+formOpen.pid+"::"+(formOpen.group||"")}
+          formId={formOpen.fid} pid={formOpen.pid} group={formOpen.group}/> : !navMode(roleKey,page) ? <Denied page={page} roleKey={roleKey}/> : page==="home" ? <Home roleKey={roleKey} onAct={flash} go={setPage}/> : page==="projects" ? <Projects onAct={flash}/> : page==="intake" ? <Intake onAct={flash}/> : page==="approvals" ? <Approvals onAct={flash}/> : page==="admin" ? <Admin onAct={flash}/> : page==="reports" ? <Reports onAct={flash}/> : page==="samples" ? <Samples onAct={flash}/> : page==="vendors" ? <Vendors onAct={flash}/> : page==="docs" ? <Documents onAct={flash}/> : page==="currency" ? <Currency onAct={flash}/> : page==="audit" ? <Audit onAct={flash}/> : page==="phases" ? <Phases/> : <Placeholder id={page}/>}
       </main>
     </div>
     <footer className="appfooter">Audit trail&nbsp; ·&nbsp; approver comments&nbsp; ·&nbsp; email&nbsp;/&nbsp;<u>Teams</u> alerts&nbsp; ·&nbsp; return for rework&nbsp; ·&nbsp; role-based access</footer>
