@@ -388,10 +388,11 @@ button{font-family:inherit;cursor:pointer}
 /* The project header carries five tiles since the two suppliers were split apart; four
    columns left the fifth stranded on a row of its own. */
 .detail-grid.five{grid-template-columns:repeat(5,1fr)}
+.detail-grid.six{grid-template-columns:repeat(6,1fr)}
 .dcard{background:var(--surface);border:1px solid var(--border);padding:12px 14px;box-shadow:var(--shadow)}
 .dcard .dk{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
 .dcard .dv{font-size:14px;font-weight:500;margin-top:6px;color:var(--ink)}
-@media (max-width:1080px){ .detail-grid,.detail-grid.five{grid-template-columns:1fr 1fr} }
+@media (max-width:1080px){ .detail-grid,.detail-grid.five,.detail-grid.six{grid-template-columns:1fr 1fr} }
 
 /* ppap request form */
 .ppap-grid{display:grid;grid-template-columns:196px 1fr 282px;gap:16px;align-items:start}
@@ -1137,7 +1138,7 @@ function tasksFor(roleId,db){
         const np=u.g?partsInGroup(db.parts,p.id,u.g).length:0;
         out.push({pid:p.id,group:u.g,title:rule.title+(u.g?" \u00b7 "+u.g:""),
           phase:rule.phase,act:rule.act,form:rule.form,h:6+((i*17)%136),
-          meta:[p.title,u.g?(u.g+" \u00b7 "+np+" part(s)"):(p.supplier!=="\u2014"?p.supplier:p.plant)]});
+          meta:[p.title+" · "+plantLine(p),u.g?(u.g+" \u00b7 "+np+" part(s)"):(p.supplier!=="\u2014"?p.supplier:"")]});
       });
     });
   });
@@ -2042,7 +2043,7 @@ const STATUS_LABEL={
 const statusLabel=s=>STATUS_LABEL[s]||s;
 
 const PROJECTS=[
-  {id:"NPI-2026-0126",title:"Localized PPAP housing",phase:"Approval",status:"Approval Pending - Capex",plant:"Pune",owner:"Hitesh Sharma",supplier:"Acme Precision",parts:4,target:"30 Sep 2026",incumbent:"Wuxi Precision Works",updated:"09 Sep 2026",
+  {id:"NPI-2026-0126",title:"Localized PPAP housing",phase:"Approval",status:"Approval Pending - Capex",plant:"Pune",plantCode:"1201",owner:"Hitesh Sharma",supplier:"Acme Precision",parts:4,target:"30 Sep 2026",incumbent:"Wuxi Precision Works",updated:"09 Sep 2026",
     routingSuggestion:"Capex",routingDecision:"Capex",totalInvestment:1250000,budgetLine:"CAP-PUN-26-114",
     sourcingPrice:118,localizedPrice:86,sourcingAnnualQty:12000,vendorEmail:"sales@acmeprecision.in",
     approvers:{sourcingHead:"Deepak Rao",financeHead:"Anita Desai",buHead:"Sunil Kapoor",ameHead:"Ashok Pillai",
@@ -2055,19 +2056,19 @@ const PROJECTS=[
         sourcingComments:"Three quotes taken. Acme lands at 86/unit against the incumbent 118 on a 12,000 p.a. schedule. Tooling is required for the bracket, so this is proposed as Capex."},
       "F-02c":{financeRouting:"Capex",budgetLine:"CAP-PUN-26-114",
         financeComments:"Tooling is capitalised against the Pune localisation network — confirmed as Capex, not Opex."}}},
-  {id:"NPI-2026-0121",title:"Brake bracket resourcing",phase:"Initiation",status:"Feasibility Review",plant:"Pune",owner:"Hitesh Sharma",supplier:"Bharat Forge",parts:2,target:"15 Oct 2026",incumbent:"Endurance Tech",updated:"08 Sep 2026"},
-  {id:"NPI-2026-0120",title:"Cam module NPI",phase:"Vendor Dev",status:"PO Pending",plant:"Pune",owner:"Ravi Menon",supplier:"Sundaram Fasteners",parts:3,target:"22 Oct 2026",updated:"08 Sep 2026"},
-  {id:"NPI-2026-0119",title:"Valve body localization",phase:"Approval",status:"Approval Pending - Capex",plant:"Pune",owner:"Hitesh Sharma",supplier:"Rane Group",parts:5,target:"05 Nov 2026",incumbent:"Tianjin Valve Co",updated:"07 Sep 2026"},
-  {id:"NPI-2026-0118",title:"Gasket dual-source",phase:"Vendor Dev",status:"In Development",plant:"Pune",owner:"Hitesh Sharma",supplier:"Acme Precision",parts:2,target:"12 Nov 2026",incumbent:"Talbros Engineering",updated:"07 Sep 2026"},
-  {id:"NPI-2026-0116",title:"Shaft assembly NPI",phase:"Sample Qual",status:"Sample Under Inspection",plant:"Pune",owner:"Vikram Rao",supplier:"Endurance Tech",parts:3,target:"18 Nov 2026",incumbent:"Ningbo Shaft Works",updated:"06 Sep 2026",groups:["Shaft group","Bearing group"]},
-  {id:"NPI-2026-0115",title:"Sensor mount ECN",phase:"Approval",status:"Rejected - Approval",plant:"Pune",owner:"Hitesh Sharma",supplier:"Minda Corp",parts:1,target:"20 Nov 2026",incumbent:"Minda Corp",updated:"06 Sep 2026"},
-  {id:"NPI-2026-0112",title:"Cover plate feasibility",phase:"Initiation",status:"Held",plant:"Pune",owner:"Hitesh Sharma",supplier:"—",parts:1,target:"01 Dec 2026",incumbent:"Suzhou Cover Tech",updated:"05 Sep 2026"},
-  {id:"NPI-2026-0110",title:"Pump body pilot",phase:"Pilot",status:"Pilot Lots In Progress",plant:"Pune",owner:"Vikram Rao",supplier:"Shakti Pumps",parts:2,target:"10 Dec 2026",incumbent:"Shanghai Pump Works",updated:"05 Sep 2026"},
-  {id:"NPI-2026-0109",title:"Bearing cap closure",phase:"Closed",status:"Project Completed",plant:"Pune",owner:"Hitesh Sharma",supplier:"NRB Bearings",parts:3,target:"28 Aug 2026",incumbent:"NRB Bearings",updated:"02 Sep 2026"},
-  {id:"NPI-2026-0104",title:"Flange NPI",phase:"Pilot",status:"All Lots Delivered",plant:"Pune",owner:"Ravi Menon",supplier:"Jamna Auto",parts:2,target:"14 Dec 2026",incumbent:"Qingdao Flange",updated:"01 Sep 2026"},
-  {id:"NPI-2026-0102",title:"Gear housing localization",phase:"Vendor Dev",status:"PO Pending",plant:"Pune",owner:"Ravi Menon",supplier:"Bharat Gears",parts:4,target:"20 Dec 2026",incumbent:"Zhejiang Gear",updated:"31 Aug 2026"},
-  {id:"NPI-2026-0098",title:"Pin & clip NPI",phase:"Sample Qual",status:"SQE Conditional",plant:"Pune",owner:"Vikram Rao",supplier:"Sterling Tools",parts:2,target:"22 Dec 2026",updated:"30 Aug 2026"},
-  {id:"NPI-2026-0095",title:"Manifold PSW sign-off",phase:"PSW",status:"PSW Pending Sign-off",plant:"Pune",owner:"Hitesh Sharma",supplier:"Endurance Tech",parts:3,target:"28 Dec 2026",updated:"29 Aug 2026"},
+  {id:"NPI-2026-0121",title:"Brake bracket resourcing",phase:"Initiation",status:"Feasibility Review",plant:"Pune",plantCode:"1201",owner:"Hitesh Sharma",supplier:"Bharat Forge",parts:2,target:"15 Oct 2026",incumbent:"Endurance Tech",updated:"08 Sep 2026"},
+  {id:"NPI-2026-0120",title:"Cam module NPI",phase:"Vendor Dev",status:"PO Pending",plant:"Pune",plantCode:"1201",owner:"Ravi Menon",supplier:"Sundaram Fasteners",parts:3,target:"22 Oct 2026",updated:"08 Sep 2026"},
+  {id:"NPI-2026-0119",title:"Valve body localization",phase:"Approval",status:"Approval Pending - Capex",plant:"Pune",plantCode:"1201",owner:"Hitesh Sharma",supplier:"Rane Group",parts:5,target:"05 Nov 2026",incumbent:"Tianjin Valve Co",updated:"07 Sep 2026"},
+  {id:"NPI-2026-0118",title:"Gasket dual-source",phase:"Vendor Dev",status:"In Development",plant:"Pune",plantCode:"1201",owner:"Hitesh Sharma",supplier:"Acme Precision",parts:2,target:"12 Nov 2026",incumbent:"Talbros Engineering",updated:"07 Sep 2026"},
+  {id:"NPI-2026-0116",title:"Shaft assembly NPI",phase:"Sample Qual",status:"Sample Under Inspection",plant:"Pune",plantCode:"1201",owner:"Vikram Rao",supplier:"Endurance Tech",parts:3,target:"18 Nov 2026",incumbent:"Ningbo Shaft Works",updated:"06 Sep 2026",groups:["Shaft group","Bearing group"]},
+  {id:"NPI-2026-0115",title:"Sensor mount ECN",phase:"Approval",status:"Rejected - Approval",plant:"Pune",plantCode:"1201",owner:"Hitesh Sharma",supplier:"Minda Corp",parts:1,target:"20 Nov 2026",incumbent:"Minda Corp",updated:"06 Sep 2026"},
+  {id:"NPI-2026-0112",title:"Cover plate feasibility",phase:"Initiation",status:"Held",plant:"Pune",plantCode:"1201",owner:"Hitesh Sharma",supplier:"—",parts:1,target:"01 Dec 2026",incumbent:"Suzhou Cover Tech",updated:"05 Sep 2026"},
+  {id:"NPI-2026-0110",title:"Pump body pilot",phase:"Pilot",status:"Pilot Lots In Progress",plant:"Pune",plantCode:"1201",owner:"Vikram Rao",supplier:"Shakti Pumps",parts:2,target:"10 Dec 2026",incumbent:"Shanghai Pump Works",updated:"05 Sep 2026"},
+  {id:"NPI-2026-0109",title:"Bearing cap closure",phase:"Closed",status:"Project Completed",plant:"Pune",plantCode:"1201",owner:"Hitesh Sharma",supplier:"NRB Bearings",parts:3,target:"28 Aug 2026",incumbent:"NRB Bearings",updated:"02 Sep 2026"},
+  {id:"NPI-2026-0104",title:"Flange NPI",phase:"Pilot",status:"All Lots Delivered",plant:"Pune",plantCode:"1201",owner:"Ravi Menon",supplier:"Jamna Auto",parts:2,target:"14 Dec 2026",incumbent:"Qingdao Flange",updated:"01 Sep 2026"},
+  {id:"NPI-2026-0102",title:"Gear housing localization",phase:"Vendor Dev",status:"PO Pending",plant:"Pune",plantCode:"1201",owner:"Ravi Menon",supplier:"Bharat Gears",parts:4,target:"20 Dec 2026",incumbent:"Zhejiang Gear",updated:"31 Aug 2026"},
+  {id:"NPI-2026-0098",title:"Pin & clip NPI",phase:"Sample Qual",status:"SQE Conditional",plant:"Pune",plantCode:"1201",owner:"Vikram Rao",supplier:"Sterling Tools",parts:2,target:"22 Dec 2026",updated:"30 Aug 2026"},
+  {id:"NPI-2026-0095",title:"Manifold PSW sign-off",phase:"PSW",status:"PSW Pending Sign-off",plant:"Pune",plantCode:"1201",owner:"Hitesh Sharma",supplier:"Endurance Tech",parts:3,target:"28 Dec 2026",updated:"29 Aug 2026"},
 ];
 const PARTS={
   "NPI-2026-0126":[
@@ -2427,7 +2428,7 @@ function PartDetail({pid,part,onBack}){
   return <>
     <button className="backlink" onClick={onBack}>‹ Back to {proj?proj.title:"project"}</button>
     <div className="pagehead"><h1>{x.part}</h1>
-      <p>{x.desc} · <span className="mono" style={{color:"var(--teal)",fontWeight:600}}>{pid}</span>{proj?" · "+proj.title:""}</p></div>
+      <p>{x.desc} · <span className="mono" style={{color:"var(--teal)",fontWeight:600}}>{pid}</span>{proj?" · "+proj.title:""}{proj?" · "+plantLine(proj):""}</p></div>
     <div className="detail-grid">
       <div className="dcard"><div className="dk">Status</div><div className="dv"><span className={"pill "+statusClass(x.status)}>{statusLabel(x.status)}</span></div></div>
       <div className="dcard"><div className="dk">Stage</div><div className="dv">{x.stage}</div></div>
@@ -2631,10 +2632,11 @@ function ProjectDetail({p,onBack,initialPart,onClearPart}){
     onBack={()=>{setOpenPart(null);if(onClearPart)onClearPart();}}/>;
   return <>
     <button className="backlink" onClick={onBack}>‹ Back to projects</button>
-    <div className="pagehead"><h1>{p.title}</h1><p><span className="mono" style={{color:"var(--teal)",fontWeight:600}}>{p.id}</span> · {p.plant} · Owner {p.owner}</p></div>
-    <div className="detail-grid five">
+    <div className="pagehead"><h1>{p.title}</h1><p><span className="mono" style={{color:"var(--teal)",fontWeight:600}}>{p.id}</span> · {plantLine(p)} · Owner {p.owner}</p></div>
+    <div className="detail-grid six">
       <div className="dcard"><div className="dk">Status</div><div className="dv"><span className={"pill "+statusClass(p.status)}>{statusLabel(p.status)}</span></div></div>
       <div className="dcard"><div className="dk">Phase</div><div className="dv">{p.phase}</div></div>
+      <div className="dcard"><div className="dk">Plant</div><div className="dv">{plantLine(p)}</div></div>
       {/* Two suppliers, not one: the incumbent named at intake is what the project is moving
           away from, and the vendor chosen at F-02 is what it is moving to. A single "Supplier"
           tile never said which of the two was on screen. */}
@@ -2687,7 +2689,7 @@ function Projects(){
     {key:"phase",label:"Phase",w:"126px",filterType:"select",options:["All","Initiation","Approval","Vendor Dev","Sample Qual","PSW","Pilot","Closed"],val:x=>x.phase,render:x=><span className="mchip">{x.phase}</span>},
     {key:"status",label:"Status",w:"188px",filterType:"text",val:x=>statusLabel(x.status),render:x=><span className={"pill "+statusClass(x.status)}>{statusLabel(x.status)}</span>},
     {key:"parts",label:"Parts",w:"78px",sortVal:x=>x.parts,filterType:"text",val:x=>x.parts,render:x=><span>{x.parts}</span>},
-    {key:"plant",label:"Plant",w:"92px",filterType:"select",options:["All","Pune","Bengaluru","Chennai"],val:x=>x.plant,render:x=><span>{x.plant}</span>},
+    {key:"plant",label:"Plant",w:"140px",filterType:"select",options:["All","Pune","Bengaluru","Chennai"],val:x=>x.plant,render:x=><span>{plantLine(x)}</span>},
     {key:"owner",label:"Owner",w:"150px",hidden:true,filterType:"text",val:x=>x.owner,render:x=><span>{x.owner}</span>},
     {key:"target",label:"Target PPAP",w:"128px",hidden:true,filterType:"text",val:x=>x.target,render:x=><span className="tmeta">{x.target}</span>},
     {key:"updated",label:"Updated",w:"120px",hidden:true,filterType:"text",val:x=>x.updated,render:x=><span className="tmeta">{x.updated}</span>},
@@ -2875,7 +2877,11 @@ const QUOTE_NUM=[2,3,5];
 const QUOTE_CCY=[4,6];
 /* Part number and description come from the parts list; everything the sourcer types is
    required. One definition, read by the headers, the cell marking and the validator. */
-const QUOTE_REQ=[2,3,4,5,6];
+/* Quantity, the existing price and the currency it was bought in are intake's figures -
+   shown here because the saving is measured against them, but not asked for again. Only the
+   localized pair is the sourcer's to fill, so only that pair is required. */
+const QUOTE_EDIT=[5,6];
+const QUOTE_REQ=[2,5,6];
 const quoteCellBad=(r,ci)=>QUOTE_CCY.indexOf(ci)>=0?!String(r[ci]||"").trim():!(parseFloat(r[ci])>=0);
 const QUOTE_HEAD=QUOTE_COLS.join("\t");
 const quoteToRows=(t)=>{
@@ -2915,6 +2921,12 @@ const curVendor=(s)=>{s=s||{};const f=s.f02||{};
    Buyer's card carries them onto the PR. */
 /* Booked by Finance at F-02c and read everywhere after it. The F-03c/F-03o entries are kept
    in the lookup for projects coded before the capture moved. */
+/* The plant is a code AND a name at Honeywell, and the code is what SAP, the PR and every
+   Honeywell system key on - so a screen that shows only "Pune" is missing the identifier the
+   plant actually works by. One helper, so the two never drift apart on different screens. */
+const plantLine=(p)=>{const nm=(p&&p.plant&&p.plant!=="—")?p.plant:"", cd=(p&&p.plantCode)||"";
+  return cd?(nm?nm+" · "+cd:"Plant "+cd):(nm||"—");};
+
 const projAcct=(p)=>{const s=(p&&p.summary)||{}, c=s.f02c||{}, a=s.f03c||{}, o=s.f03o||{};
   return {gl:c.gl||a.gl||o.gl||(p&&p.glAccount)||"",cc:c.cc||a.cc||o.cc||(p&&p.costCentre)||"",
           pc:c.pc||a.pc||o.pc||(p&&p.profitCentre)||""};};
@@ -3296,16 +3308,14 @@ function SapGrid({value,onChange,pid,parts,po}){
 }
 
 function QuoteGrid({value,onChange,pid,rates,parts,showErr}){
-  const rows=quoteToRows(value);
-  /* Seeded from the project's own parts the first time the form is opened, so nobody retypes
-     a part list the platform already holds. Quantity and existing cost come across where
-     intake captured them. */
-  useEffect(()=>{
-    if(rows.length||!parts||!parts.length) return;
-    onChange({target:{value:rowsToQuote(parts.map(x=>[
-      x.part||"", x.desc||"", x.vol==null?"":String(x.vol),
-      x.cost==null?"":String(x.cost), (x.currency||"USD"), "", (x.currency||"USD")]))}});
-  },[pid,(parts||[]).length]);
+  /* Derived from the project's own parts rather than written on mount: an effect only fires
+     when the grid mounts with the field already empty, which is not what happens when the form
+     is opened from My Work in an app that is already running. Quantity and existing cost come
+     across as intake captured them; the first edit writes the whole grid back. */
+  const typed=quoteToRows(value);
+  const rows=(typed.length||!parts||!parts.length) ? typed : parts.map(x=>[
+    x.part||"", x.desc||"", x.vol==null?"":String(x.vol),
+    x.cost==null?"":String(x.cost), (x.currency||"USD"), "", (x.currency||"USD")]);
   const write=(g)=>onChange({target:{value:rowsToQuote(g)}});
   const setCell=(ri,ci,v)=>{const g=rows.map(r=>r.slice());g[ri][ci]=v;write(g);};
   const codes=(rates||[]).map(r=>r.code);
@@ -3335,11 +3345,21 @@ function QuoteGrid({value,onChange,pid,rates,parts,showErr}){
       return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(",")).join("\r\n");
     saveBlob(new Blob([csv],{type:"text/csv;charset=utf-8;"}),(pid||"NPI")+"_Sourcing_Quote.csv");
   };
+  /* An import prices the quote; it does not re-state the project. Only the localized pair
+     is taken, matched on part number, so a sheet that came back with an edited quantity
+     or existing price cannot quietly rewrite what intake captured - the same rule the
+     grid enforces on screen. Parts the sheet does not name keep what they have. */
+  const applyImport=(text)=>{
+    const imp=quoteToRows(text), key=x=>String(x||"").trim().toUpperCase();
+    const by={}; imp.forEach(r=>{ if(r[0]) by[key(r[0])]=r; });
+    write(rows.map(r=>{const m=by[key(r[0])];
+      return m?[r[0],r[1],r[2],r[3],r[4],m[5]||"",m[6]||r[6]]:r;}));
+  };
   const upload=async(e)=>{
     const f=e.target.files&&e.target.files[0]; if(!f) return;
     if(/\.csv$/i.test(f.name)){
       const rd=new FileReader();
-      rd.onload=ev=>onChange({target:{value:String(ev.target.result||"")}});
+      rd.onload=ev=>applyImport(String(ev.target.result||""));
       rd.readAsText(f); return;
     }
     if(!(await ensureXlsx())) return;
@@ -3348,7 +3368,7 @@ function QuoteGrid({value,onChange,pid,rates,parts,showErr}){
       try{
         const wb=XLSX.read(new Uint8Array(ev.target.result),{type:"array"});
         const aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,blankrows:false,defval:""});
-        onChange({target:{value:aoa.map(r=>r.map(c=>String(c==null?"":c)).join("\t")).join("\n")}});
+        applyImport(aoa.map(r=>r.map(c=>String(c==null?"":c)).join("\t")).join("\n"));
       }catch(err){}
     };
     rd.readAsArrayBuffer(f);
@@ -3361,9 +3381,9 @@ function QuoteGrid({value,onChange,pid,rates,parts,showErr}){
         <tbody>
           {rows.length?pg.window(rows).map(([r,ri])=><tr key={ri}>
             <td className="rn">{ri+1}</td>
-            {r.map((c,ci)=><td key={ci} className={(QUOTE_NUM.indexOf(ci)>=0?"num":(ci<2?"ro":""))
+            {r.map((c,ci)=><td key={ci} className={(QUOTE_NUM.indexOf(ci)>=0?"num":"")+(QUOTE_EDIT.indexOf(ci)<0?" ro":"")
                 +(showErr&&QUOTE_REQ.indexOf(ci)>=0&&quoteCellBad(r,ci)?" miss":"")}>
-              {ci<2
+              {QUOTE_EDIT.indexOf(ci)<0
                 ? c
                 : QUOTE_CCY.indexOf(ci)>=0
                 ? <select className="xlsel" value={c} onChange={e=>setCell(ri,ci,e.target.value)}>
@@ -5407,10 +5427,10 @@ function PhaseForm({formId,pid,group}){
     if(f.type==="partsgrid"){
       const rows=quoteToRows(v[f.k]);
       if(!rows.length){ errs[f.k]="Add at least one part to the quote"; return; }
-      const bad=rows.find(r=>[2,3,5].some(ci=>quoteCellBad(r,ci)));
-      if(bad) errs[f.k]="Every part needs a quantity, an existing price and a localized price \u2014 check "+(bad[0]||"the blank row");
-      else { const noccy=rows.find(r=>QUOTE_CCY.some(ci=>quoteCellBad(r,ci)));
-             if(noccy) errs[f.k]="Set both quote currencies for "+(noccy[0]||"every part"); }
+      const bad=rows.find(r=>quoteCellBad(r,5));
+      if(bad) errs[f.k]="Every part needs a localized price \u2014 check "+(bad[0]||"the blank row");
+      else { const noccy=rows.find(r=>quoteCellBad(r,6));
+             if(noccy) errs[f.k]="Set the currency the localized price is quoted in for "+(noccy[0]||"every part"); }
       return;
     }
     const val=String(v[f.k]==null?"":v[f.k]).trim();
@@ -5464,12 +5484,12 @@ function PhaseForm({formId,pid,group}){
     <button className="backlink" onClick={closeForm}>‹ Back to phase workspaces</button>
     <div className="pagehead">
       <h1>{spec.id} · {spec.name}</h1>
-      <p><span className="mono" style={{color:"var(--teal)",fontWeight:600}}>{project.id}</span> · {project.title} · {grp?grpParts.length+" part(s) in "+grp:project.parts+" part(s)"} · owner {project.owner}</p>
+      <p><span className="mono" style={{color:"var(--teal)",fontWeight:600}}>{project.id}</span> · {project.title} · {plantLine(project)} · {grp?grpParts.length+" part(s) in "+grp:project.parts+" part(s)"} · owner {project.owner}</p>
     </div>
     <div className="formmeta">
       <span className={"pill "+statusClass(atStatus)}>{statusLabel(atStatus)}</span>
       {grp?<span className="mchip grpchip">{grp}</span>:null}
-      <span className="mchip">{project.plant}</span>
+      <span className="mchip">{plantLine(project)}</span>
       <span className="mchip">{spec.owner}</span>
     </div>
     {/* Which parts this verdict covers is the whole point of answering per group - it is
@@ -5538,7 +5558,7 @@ function PickProject({spec,rows,onPick,onClose}){
     <div style={{border:"1px solid var(--border)",marginTop:12}}>
       {rows.map(p=><div className="pickrow" key={p.id} onClick={()=>onPick(p.id)}>
         <span className="tpid">{p.id}</span>
-        <span className="pk"><div className="pt">{p.title}</div><div className="ps">{p.parts} part(s) · {p.supplier} · {p.plant}</div></span>
+        <span className="pk"><div className="pt">{p.title}</div><div className="ps">{p.parts} part(s) · {p.supplier} · {plantLine(p)}</div></span>
         <span className={"pill "+statusClass(p.status)}>{statusLabel(p.status)}</span>
       </div>)}
     </div>
