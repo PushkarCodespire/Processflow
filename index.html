@@ -567,6 +567,9 @@ button{font-family:inherit;cursor:pointer}
 .field2.invalid .xltable td input,.field2.invalid .xltable td select{background:transparent;border-color:transparent}
 .xltable th i{color:var(--red);font-style:normal;margin-left:2px}
 .xltable td.miss{background:var(--red-wash);box-shadow:inset 0 0 0 1px var(--red)}
+/* The email under each name on the intake team step - secondary, and never mistaken for
+   the name field above it. */
+.teammail{margin-top:5px;font-size:12px;color:var(--muted)}
 .rovalue{padding:7px 9px;border:1px dashed var(--border);border-radius:6px;background:var(--panel2,transparent);color:var(--muted);font-size:12.5px}
 .ferr{color:var(--red);font-size:11.5px;margin-top:3px;font-weight:500;line-height:1.35}
 .fhint{color:var(--muted);font-size:11.5px;margin-top:3px;line-height:1.35}
@@ -1650,18 +1653,6 @@ const FORM_SPECS={
         {k:"vendorName",label:"New Vendor",type:"supplier",req:true},
         {k:"vendorEmail",label:"New vendor email",type:"email",req:true},
       ]},
-      {title:"Approver assignments",note:"Defaults come from the role registry - override per project where needed.",fields:[
-        {k:"sourcingHeadOverride",label:"Sourcing Head",type:"person",def:"SRC_HEAD"},
-        {k:"financeHeadOverride",label:"Finance Head",type:"person",def:"FIN_HEAD"},
-        {k:"buHeadOverride",label:"BU Head",type:"person",def:"BU_HEAD"},
-        {k:"ameHeadOverride",label:"AME Head",type:"person",def:"ENG_LEAD"},
-        {k:"iqaOverride",label:"Incoming Quality (IQA)",type:"person",def:"SQE_ENG"},
-        {k:"sqeOverride",label:"Supplier Quality (SQE)",type:"person",def:"SQE_HEAD"},
-        {k:"prodEngOverride",label:"Production Engineer",type:"person",def:"PROD_ENG"},
-        {k:"ameMfgOverride",label:"AME / Manufacturing",type:"person",def:"MFG_HEAD"},
-        {k:"plannerOverride",label:"Planner",type:"person",def:"PLANNER"},
-        {k:"buyerOverride",label:"Buyer",type:"person",def:"BUYER"},
-      ]},
       {title:"Routing suggestion",note:"Finance confirms the final Capex / Opex classification at the next gate.",fields:[
         /* An investment figure with no funding route is the one combination Finance cannot
            act on - F-02c has to route it and nothing says which way. No figure at all is a
@@ -1703,10 +1694,9 @@ const FORM_SPECS={
         sourcingPrice:null,localizedPrice:null,localizedCurrency:"USD",sourcingAnnualQty:qty,
         spendINR:spend,newSpendINR:nspend,saveINR:(spend!=null&&nspend!=null)?spend-nspend:null,
         totalInvestment:num(v.capexOpexAmount),routingSuggestion:v.routingSuggestion,
-        approvers:{sourcingHead:ov(v.sourcingHeadOverride,"SRC_HEAD"),financeHead:ov(v.financeHeadOverride,"FIN_HEAD"),
-          buHead:ov(v.buHeadOverride,"BU_HEAD"),ameHead:ov(v.ameHeadOverride,"ENG_LEAD"),iqa:ov(v.iqaOverride,"SQE_ENG"),
-          sqe:ov(v.sqeOverride,"SQE_HEAD"),prodEng:ov(v.prodEngOverride,"PROD_ENG"),ameMfg:ov(v.ameMfgOverride,"MFG_HEAD"),
-          planner:ov(v.plannerOverride,"PLANNER"),buyer:ov(v.buyerOverride,"BUYER")},
+        /* Named once, on the intake team step. Re-deriving them here from the project's own
+           team keeps a project raised before that step had approvers at all. */
+        approvers:p.approvers||approversFromTeam(p.team||{}),
         sourcingApprovedBy:who,sourcingDecisionDate:todayStr()};
     },
     /* Both halves are optional now, so neither is assumed present. */
@@ -2767,7 +2757,7 @@ function Projects(){
 }
 
 /* ---------- new request (NPI intake stepper) ---------- */
-const WIZ_STEPS=["Project","4-Blocker","Parts & Groups","Review"];
+const WIZ_STEPS=["Project","Team","4-Blocker","Parts & Groups","Review"];
 const NPI_CATS=["New Product Development","Localization","Resourcing","ECN Driven","Cost Reduction"];
 const NPI_SITES=["Pune","Bangalore","Chennai","Mumbai"];
 const NPI_COMMOD=["Mechanical","Electronic","Plastic","Metal","Composite","Other"];
@@ -3002,6 +2992,37 @@ const plantCodeOf=(p)=>{
 };
 const plantLine=(p)=>{const nm=(p&&p.plant&&p.plant!=="—")?p.plant:"", cd=plantCodeOf(p);
   return cd?(nm?nm+" · "+cd:"Plant "+cd):(nm||"—");};
+
+/* The configured team for a plant, keyed by role code. Read off the Team by plant table -
+   the same table Admin edits - so a project that starts today picks up whatever the plant
+   currently holds, and one that started last month keeps the team it was given. */
+let TEAM_CFG=[];
+const roleIdOfLabel=(label)=>{const l=String(label||"").trim().toLowerCase();
+  const r=ROLE_REGISTRY.find(x=>String(x.label).toLowerCase()===l); return r?r.id:"";};
+const teamForPlant=(plant)=>{
+  const nm=String(plant||"").trim().toLowerCase(), out={};
+  TEAM_CFG.forEach(row=>{
+    if(String(row.status||"Active")==="Inactive") return;
+    if(String(row.plant||"").trim().toLowerCase()!==nm) return;
+    const id=roleIdOfLabel(row.role); if(!id||out[id]) return;
+    out[id]={n:String(row.person||"").trim(),e:String(row.email||"").trim()};
+  });
+  return out;
+};
+/* The roles a project names a person for, in the order the work reaches them. */
+const TEAM_ROLES=["SRC_MEMBER","SRC_HEAD","BU_MEMBER","BU_HEAD","FIN_ANALYST","FIN_HEAD",
+  "CTRL","CTRL_HEAD","ENG","ENG_LEAD","SQE_ENG","SQE_HEAD","PROD_ENG","MFG_HEAD",
+  "PLANNER","PLAN_LEAD","BUYER","BUYER_LEAD"];
+/* The project's own team, falling back to the role registry for a role nobody was named for -
+   a gate with no assignee would otherwise have nobody to ask. */
+const teamMember=(p,roleId)=>{const t=(p&&p.team)||{}, m=t[roleId];
+  return (m&&m.n)?m:{n:personFor(roleId),e:""};};
+/* The approver map the chain and the gate flow already read, derived from the team so the two
+   cannot describe different people. */
+const approversFromTeam=(team)=>{const n=id=>((team||{})[id]||{}).n||personFor(id);
+  return {sourcingHead:n("SRC_HEAD"),financeHead:n("FIN_HEAD"),buHead:n("BU_HEAD"),
+    ameHead:n("ENG_LEAD"),iqa:n("SQE_ENG"),sqe:n("SQE_HEAD"),prodEng:n("PROD_ENG"),
+    ameMfg:n("MFG_HEAD"),planner:n("PLANNER"),buyer:n("BUYER")};};
 
 const projAcct=(p)=>{const s=(p&&p.summary)||{}, c=s.f02c||{}, a=s.f03c||{}, o=s.f03o||{};
   return {gl:c.gl||a.gl||o.gl||(p&&p.glAccount)||"",cc:c.cc||a.cc||o.cc||(p&&p.costCentre)||"",
@@ -3544,6 +3565,11 @@ function Intake(){
   const [dupAck,setDupAck]=useState(false);
   const [step,setStep]=useState(0);
   const [proj,setProj]=useState({name:"",category:"",ecn:"",plant:"",plantCode:"",timeline:"",scope:"",incumbent:"",vendorCode:""});
+  /* Who will run this project, role by role. Seeded from the plant's configured team the
+     moment a plant is chosen, then editable here - the plant's table is the default, not a
+     rule, because a project can be handed to someone else without re-configuring the plant. */
+  const [team,setTeam]=useState({});
+  const [teamTouched,setTeamTouched]=useState(false);
   const [fb,setFb]=useState({q:"",c:"",d:"",r:""});
   const [groups,setGroups]=useState([]);
   const [newGroup,setNewGroup]=useState("");
@@ -3731,12 +3757,16 @@ function Intake(){
   const readyToSubmit=parts.length>0&&Object.keys(projErr).length===0;
   const next=()=>{
     if(step===0&&Object.keys(projErr).length){ setShowErr(true); flash(projErr[Object.keys(projErr)[0]]); return; }
-    if(step===2&&!parts.length){ flash("Add at least one part before continuing."); return; }
-    setShowErr(false); setStep(s=>Math.min(s+1,3));
+    if(step===3&&!parts.length){ flash("Add at least one part before continuing."); return; }
+    setShowErr(false); setStep(s=>Math.min(s+1,4));
   };
   const back=()=>setStep(s=>Math.max(s-1,0));
+  const [sending,setSending]=useState(false);
+  const sendingRef=useRef(false);
   const submit=()=>{
+    if(sendingRef.current) return;
     if(!readyToSubmit){flash("Add at least one part and complete the required project fields.");return;}
+    sendingRef.current=true; setSending(true);
     /* groups is the list of group NAMES, not a count - SharePoint needs the names
        to create the PartGroups rows, and every part carries its group as a string.
        vol/cost are coerced to number-or-null and target is sent raw: the inputs are
@@ -3748,8 +3778,12 @@ function Intake(){
        store, not here. */
     const id=act.submitIntake({title:proj.name,category:proj.category,plant:proj.plant,plantCode:proj.plantCode,ecn:proj.ecn,scope:proj.scope,fb,
       incumbent:proj.incumbent.trim(),vendorCode:proj.vendorCode.trim(),
+      /* Blank rows are dropped rather than stored as empty names: a role nobody was named for
+         falls back to the registry, and an empty string would shadow that. */
+      team:Object.keys(team).reduce((o,k)=>{const m=team[k]||{};
+        if(String(m.n||"").trim()) o[k]={n:m.n.trim(),e:String(m.e||"").trim()}; return o;},{}),
       parts:parts.map(p=>({...p,vol:num(p.vol),cost:num(p.cost)})),groups:usedGroups,target:proj.timeline||""});
-    if(!id) return; /* refused by role guard */
+    if(!id){ sendingRef.current=false; setSending(false); return; } /* refused by role guard */
     if(id&&typeof id.then==="function"){
       setCreatedId(null); setSubmitted(true);
       id.then(real=>setCreatedId(real||"")); 
@@ -3785,7 +3819,9 @@ function Intake(){
             <div className={"field2"+(showErr&&projErr.name?" invalid":"")}><div className="flabel">Project name <i>*</i></div><input value={proj.name} onChange={setP("name")} placeholder="e.g. New Mounting Bracket NPI"/>{showErr&&projErr.name?<div className="ferr">{projErr.name}</div>:null}</div>
             <div className={"field2"+(showErr&&projErr.category?" invalid":"")}><div className="flabel">Project category <i>*</i></div><Combo value={proj.category} onChange={setP("category")} options={NPI_CATS} allowNew/>{showErr&&projErr.category?<div className="ferr">{projErr.category}</div>:null}</div>
             <div className="field2"><div className="flabel">ECN number {catProjReq(proj.category).ecn?<i>*</i>:null}</div><input value={proj.ecn} onChange={setP("ecn")} placeholder="optional"/></div>
-            <div className={"field2"+(showErr&&projErr.plant?" invalid":"")}><div className="flabel">Plant <i>*</i></div><Combo value={proj.plant} onChange={e=>{const v=(e&&e.target)?e.target.value:e;/* Combo hands back an event, the way an input does */setProj(o=>({...o,plant:v,plantCode:plantCodeOf({plant:v})}));}} options={plantOpts.length?plantOpts:NPI_SITES} allowNew/>{showErr&&projErr.plant?<div className="ferr">{projErr.plant}</div>:null}</div>
+            <div className={"field2"+(showErr&&projErr.plant?" invalid":"")}><div className="flabel">Plant <i>*</i></div><Combo value={proj.plant} onChange={e=>{const v=(e&&e.target)?e.target.value:e;/* Combo hands back an event, the way an input does */
+              setProj(o=>({...o,plant:v,plantCode:plantCodeOf({plant:v})}));
+              if(!teamTouched) setTeam(teamForPlant(v));}} options={plantOpts.length?plantOpts:NPI_SITES} allowNew/>{showErr&&projErr.plant?<div className="ferr">{projErr.plant}</div>:null}</div>
             <div className="field2"><div className="flabel">Plant code</div><div className="rovalue">{proj.plantCode||(proj.plant?"Not configured for "+proj.plant:"Choose a plant first")}</div></div>
             <div className={"field2"+(showErr&&projErr.incumbent?" invalid":"")}><div className="flabel">Current supplier {catProjReq(proj.category).incumbent?<i>*</i>:null}</div><input value={proj.incumbent} onChange={setP("incumbent")} placeholder="Who supplies these parts today"/>{showErr&&projErr.incumbent?<div className="ferr">{projErr.incumbent}</div>:null}</div>
             <div className={"field2"+(showErr&&projErr.vendorCode?" invalid":"")}><div className="flabel">Current supplier code {catProjReq(proj.category).vendorCode?<i>*</i>:null}</div><input maxLength={7} value={proj.vendorCode} onChange={setP("vendorCode")} placeholder="4-7 alphanumeric, or 7 digits"/>{showErr&&projErr.vendorCode?<div className="ferr">{projErr.vendorCode}</div>:null}</div>
@@ -3793,7 +3829,34 @@ function Intake(){
             <div className={"field2 wcol2"+(showErr&&projErr.scope?" invalid":"")}><div className="flabel">Project scope <i>*</i></div><textarea rows={3} value={proj.scope} onChange={setP("scope")} placeholder="Describe the scope of this NPI project..."/>{showErr&&projErr.scope?<div className="ferr">{projErr.scope}</div>:null}</div>
           </div>
         </div>:null}
+        {/* The team, role by role. One person each: every approval, every task and every
+            notification in this project goes to exactly one of these names, and a role left
+            unassigned falls back to whoever the role registry names. */}
         {step===1?<div>
+          <div className="fsec" style={{marginTop:0}}>Project team</div>
+          <div className="modal-note" style={{marginBottom:12}}>
+            {proj.plant
+              ? <>Defaults come from <b>{proj.plant}</b> in Team by plant. Change anyone here and only this project is affected.</>
+              : <>Choose a plant on the previous step and its configured team appears here.</>}
+          </div>
+          <div className="fgrid2">
+            {TEAM_ROLES.map(id=>{const r=ROLE[id]||{}; const m=team[id]||{};
+              return <div className="field2" key={id}>
+                <div className="flabel">{r.label||id}</div>
+                <input value={m.n||""} placeholder={personFor(id)||"Unassigned"}
+                  onChange={e=>{const v=e.target.value; setTeamTouched(true);
+                    setTeam(t=>({...t,[id]:{...(t[id]||{}),n:v}}));}}/>
+                <input className="teammail" value={m.e||""} placeholder="email"
+                  onChange={e=>{const v=e.target.value; setTeamTouched(true);
+                    setTeam(t=>({...t,[id]:{...(t[id]||{}),e:v}}));}}/>
+              </div>;})}
+          </div>
+          <div className="det-actions" style={{marginTop:14}}>
+            <button className="btn" onClick={()=>{setTeam(teamForPlant(proj.plant));setTeamTouched(false);}}
+              disabled={!proj.plant}>Reset to the plant’s team</button>
+          </div>
+        </div>:null}
+        {step===2?<div>
           <div className="fsec" style={{marginTop:0}}>4-Blocker</div>
           <div className="fgrid2">
             <div className="field2"><div className="flabel">Quality</div><textarea rows={3} value={fb.q} onChange={setF("q")} placeholder="Key quality considerations..."/></div>
@@ -3802,7 +3865,7 @@ function Intake(){
             <div className="field2"><div className="flabel">Risk</div><textarea rows={3} value={fb.r} onChange={setF("r")} placeholder="Risk factors..."/></div>
           </div>
         </div>:null}
-        {step===2?<div>
+        {step===3?<div>
           <div className="fsec fsec-row" style={{marginTop:0}}><span>Groups</span><span style={{textTransform:"none",fontWeight:400,letterSpacing:0,color:"var(--muted)",fontSize:11.5}}>Feasibility, approval &amp; sampling run once per group — not per part.</span></div>
           <div className="grp-bar">
             {allGroups.map(g=><span className="grp-chip" key={g}>{g} <b>{grpCount(g)}</b>{grpCount(g)===0?<span className="x" title="Remove group" onClick={()=>rmGroup(g)}>×</span>:null}</span>)}
@@ -3849,13 +3912,16 @@ function Intake(){
               </div>:null)}
             </div>)}
         </div>:null}
-        {step===3?<div>
+        {step===4?<div>
           <div className="fsec" style={{marginTop:0}}>Review &amp; submit</div>
           <div className="kv">
             <span className="kk">Project name</span><span>{proj.name}</span>
             <span className="kk">Category</span><span>{proj.category}</span>
             <span className="kk">Plant · code</span><span>{proj.plant} · {proj.plantCode||"—"}</span>
             <span className="kk">Current supplier</span><span>{proj.incumbent||"—"}{proj.vendorCode?" · "+proj.vendorCode:""}</span>
+            <span className="kk">Team</span><span>{(()=>{const named=TEAM_ROLES.filter(id=>(team[id]||{}).n);
+              return named.length?named.length+" role(s) named · "+((team.SRC_HEAD||{}).n||personFor("SRC_HEAD"))+" (Sourcing Head), "
+                +((team.FIN_HEAD||{}).n||personFor("FIN_HEAD"))+" (Finance Head)":"from the role registry";})()}</span>
             <span className="kk">ECN number</span><span>{proj.ecn||"—"}</span>
             <span className="kk">Est. completion</span><span>{proj.timeline||"—"}</span>
             <span className="kk">Scope</span><span>{proj.scope}</span>
@@ -3874,7 +3940,7 @@ function Intake(){
       </div></div>
       <div className="wiz-nav">
         <span className="wiz-left"><button className="btn" disabled={step===0} onClick={back}>Back</button><button className="btn no" onClick={resetForm}>Reset Form</button></span>
-        {step<3?<button className="btn primary" onClick={next}>Next</button>:<button className="btn primary" onClick={submit} disabled={!readyToSubmit}>Submit NPI Project</button>}
+        {step<4?<button className="btn primary" onClick={next}>Next</button>:<button className="btn primary" onClick={submit} disabled={!readyToSubmit||sending}>{sending?"Submitting…":"Submit NPI Project"}</button>}
       </div>
     </div>
     {importOpen?<div className="modal-back" onClick={()=>setImportOpen(false)}>
@@ -4025,6 +4091,15 @@ const ADMIN_CFG={
     rows:ROLE_REGISTRY.filter(r=>r.id!=="VENDOR").map(r=>({name:r.person,
       email:r.person.toLowerCase().replace(/[^a-z ]/g,"").split(" ").join(".")+"@honeywell.com",
       role:r.label,plant:"Pune",status:"Active"}))},
+  /* Who holds each role AT EACH PLANT. The People list says a person exists; this says what
+     they are on the hook for and where, which is what a new project copies its team from.
+     One person per role per plant - the team a project runs with is a list of names, not a
+     group mailbox, and every notification and approval goes to exactly one of them. */
+  team:{title:"Team by plant",add:"assignment",
+    cols:[_t("plant","Plant","120px"),_chip("role","Role","200px"),_t("person","Person","170px"),_t("email","Email"),_stat()],
+    rows:ROLE_REGISTRY.filter(r=>r.id!=="VENDOR").map(r=>({plant:"Pune",role:r.label,person:r.person,
+      email:r.person.toLowerCase().replace(/[^a-z ]/g,"").split(" ").join(".")+"@honeywell.com",
+      status:"Active"}))},
   roles:{title:"Roles & assignments",add:"role",cols:[_chip("role","Role","190px"),_t("code","Role code","150px","tpid"),_t("legacy","Channel role","150px","mono"),_t("aad","AAD group","210px","mono"),{key:"cft",label:"CFT signatory",w:"128px",filterType:"select",options:["All","Yes","—"],val:x=>x.cft,render:x=><span className={"pill "+(x.cft==="Yes"?"p-green":"p-gray")}>{x.cft}</span>},_t("members","Members","96px"),_t("backup","Backup approver","160px")],
     rows:ROLE_REGISTRY.map(r=>({role:r.label,code:r.id,aad:r.aad,cft:r.cft?"Yes":"—",members:"1",
       backup:r.id.indexOf("HEAD")>=0||r.id.indexOf("LEAD")>=0?"—":(ROLE_REGISTRY.find(x=>x.group===r.group&&x!==r)||{person:"—"}).person}))},
@@ -4095,7 +4170,7 @@ function Admin(){
   const {db,act,openModal,closeModal,confirm}=useApp();
   const [sec,setSec]=useState("plants");
   const cfg=ADMIN_CFG[sec];
-  const rows=db.admin[sec];
+  const rows=db.admin[sec]||[];
   const comboOpts={
     role:ROLE_REGISTRY.map(r=>r.label),
     plant:(db.admin.plants||[]).filter(p=>p.status!=="Inactive").map(p=>p.name),
@@ -6670,7 +6745,7 @@ async function loadLive(){
    than migrated. Every call is wrapped - private windows, blocked site data and a full quota
    all throw, and none of them are a reason for the app not to open. */
 const DEMO_KEY="npiHub.standalone";
-const DEMO_SHAPE="2026-09-23.prpo-split";
+const DEMO_SHAPE="2026-09-24.team-by-plant";
 let demoSaveFailed=false;
 const demoLoad=()=>{
   if(spx()) return null;
@@ -6747,6 +6822,7 @@ function App(){
   /* Configuration the whole tree reads while it renders. Assigned here, in App's own body,
      so every child in this pass sees the plants the admin table currently holds. */
   PLANT_CFG=(db.admin&&db.admin.plants)||PLANT_CFG;
+  TEAM_CFG=(db.admin&&db.admin.team)||TEAM_CFG;
   const [spState,setSpState]=useState(()=>spx()?"loading":"off");
   /* Debounced: a submission can move a project, its parts and the audit in one go, and the
      three renders that follow should write once. */
@@ -6921,7 +6997,7 @@ function App(){
          created without it runs a single unnamed track that matches none of its own parts.
          It was already going to the router in the command payload - it just never made it onto
          the local row, so every project created in the Hub silently lost its grouping. */
-      const proj={id,title:p.title,phase:"Initiation",status:"Feasibility Review",plant:p.plant,owner:me,supplier:"—",incumbent:p.incumbent||"",parts:String(p.parts.length),groups:(p.groups||[]).filter(Boolean),category:p.category||"",plantCode:p.plantCode||"",target:p.target||"—",updated:todayStr()};
+      const proj={id,title:p.title,phase:"Initiation",status:"Feasibility Review",plant:p.plant,owner:me,supplier:"—",incumbent:p.incumbent||"",parts:String(p.parts.length),groups:(p.groups||[]).filter(Boolean),category:p.category||"",plantCode:p.plantCode||"",target:p.target||"—",updated:todayStr(),team:p.team||{},approvers:approversFromTeam(p.team||{})};
       /* the wizard's parts have to land in db.parts too, or the project opens with an
          empty Parts tab and no cards on the parts board. Mirrors what SubmitIntake does
          server-side: one project row plus a row per part, created together. */
