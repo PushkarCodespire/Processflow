@@ -992,8 +992,11 @@ function isCFT(roleId,db){
   if(cfg){const row=cfg.find(r=>r.code===roleId); if(row) return row.cft==="Yes";}
   return !!(ROLE[roleId]||{}).cft;
 }
-function approvalsFor(roleId,rows,db){
+function approvalsFor(roleId,rows,db,who){
+  const proj=(pid)=>((db&&db.projects)||[]).find(x=>x.id===pid);
   return rows.filter(a=>{
+    /* A gate the project assigned to someone else is not in my inbox, whatever my role. */
+    if(who&&!a.cft&&!assignedTo(proj(a.pid),a.roles||GATE_ROLES[a.type]||[],who)) return false;
     /* A derived approval names its own owners - it was built from the status machine, which
        knows exactly who decides that status. GATE_ROLES stays for the seeded rows, where the
        coarse type is all there is. */
@@ -1130,7 +1133,7 @@ function approvalsFromProjects(rows){
   return out;
 }
 const inRole=(list,id)=>list.indexOf(id)>=0;
-function tasksFor(roleId,db){
+function tasksFor(roleId,db,who){
   const out=[];
   db.projects.forEach((p,i)=>{
     /* A group is the unit of work from F-07 on, so SQE with three groups to inspect sees
@@ -1141,7 +1144,10 @@ function tasksFor(roleId,db){
       const defs=STATUS_TASKS[u.status]; if(!defs) return;
       (Array.isArray(defs)?defs:[defs]).forEach(rule=>{
         const mine=rule.cft ? isCFT(roleId,db) : inRole(rule.roles||[],roleId);
+        /* In the role AND the one this project named for it. A CFT signature is a role's
+           collective duty, so it is left to the role. */
         if(!mine) return;
+        if(!rule.cft&&who&&!assignedTo(p,rule.roles||[],who)) return;
         const np=u.g?partsInGroup(db.parts,p.id,u.g).length:0;
         out.push({pid:p.id,group:u.g,title:rule.title+(u.g?" \u00b7 "+u.g:""),
           phase:rule.phase,act:rule.act,form:rule.form,h:6+((i*17)%136),
@@ -1946,10 +1952,10 @@ function Activity(){
 /* ---------- Home screen ---------- */
 const PHASES=["All","Initiation","Approval","Vendor Dev","Sample Qual","Pilot","Closure"];
 function Home({roleKey,onAct,go}){
-  const {db,act,openForm,openProject,me}=useApp();
+  const {db,act,openForm,openProject,me,who}=useApp();
   const r=ROLE[roleKey];
-  const tasks=tasksFor(roleKey,db);
-  const rappr=approvalsFor(roleKey,db.approvals,db);
+  const tasks=tasksFor(roleKey,db,who);
+  const rappr=approvalsFor(roleKey,db.approvals,db,who);
   const hour=new Date().getHours();
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const rows=tasks.map((t,i)=>({...t, id:"REC-"+(20451+i), created:"2026-09-"+String((i%27)+1).padStart(2,"0")}));
@@ -2356,7 +2362,7 @@ function caseCellsFor(p){
 }
 
 function ChainView({p}){
-  const {db,roleKey,me,act,confirm,openForm,openModal,closeModal}=useApp();
+  const {db,roleKey,me,who:signedInAs,act,confirm,openForm,openModal,closeModal}=useApp();
   const pos=chainPos(p);
   const CH=fullChain();
   const returned=pos===-2;
@@ -2399,8 +2405,12 @@ function ChainView({p}){
           const ev=state==="ok"?auditFor(st.id):null;
           const rec=(st.approver&&p.recommendation&&p.recommendation.form===st.id)?p.recommendation:null;
           const awaitingApprover=!!(st.approver&&rec);
-          const mineMember=state==="now"&&!awaitingApprover&&(roleKey===st.role||who===me);
-          const mineApprover=state==="now"&&awaitingApprover&&roleKey===st.approver;
+          /* In the role, and the one this project named for this gate. A gate the project
+             assigned to someone else is readable, not actionable. */
+          const mineMember=state==="now"&&!awaitingApprover&&(roleKey===st.role||who===me)
+            &&assignedTo(p,[st.role],signedInAs);
+          const mineApprover=state==="now"&&awaitingApprover&&roleKey===st.approver
+            &&assignedTo(p,[st.approver],signedInAs);
           return <GateItem key={st.id} st={st} n={i+1} state={state} who={who} ev={ev}
             rec={state==="now"?rec:null}
             fields={st.form?capturedFields(p,st.form):[]} last={i===CH.length-1}>
@@ -3032,6 +3042,42 @@ const teamWithDefaults=(plant)=>{const cfg=teamForPlant(plant), out={};
 const TEAM_ROLES=["SRC_MEMBER","SRC_HEAD","BU_MEMBER","BU_HEAD","FIN_ANALYST","FIN_HEAD",
   "CTRL","CTRL_HEAD","ENG","ENG_LEAD","SQE_ENG","SQE_HEAD","PROD_ENG","MFG_HEAD",
   "PLANNER","PLAN_LEAD","BUYER","BUYER_LEAD"];
+/* The assignment IS the authorisation. A project names one person per role, and from then on
+   that project's work is theirs: it appears in their queue, and nobody else in the role can
+   submit or decide on it - they can still open and read it, which is what makes an audit
+   trail worth having.
+
+   Two things keep this from being a trap. A role the project named nobody for stays
+   role-based, because there is no assignee to defer to. And matching is on email where both
+   sides have one - two people can share a name, and nobody shares an address. */
+const sameIdentity=(member,who)=>{
+  const m=member||{}, w=who||{};
+  const me=String(w.email||w.upn||"").trim().toLowerCase();
+  const their=String(m.e||"").trim().toLowerCase();
+  if(me&&their) return me===their;
+  return !!m.n&&String(m.n).trim().toLowerCase()===String(w.name||"").trim().toLowerCase();
+};
+/* Can `who` act on this project as one of `roleIds`? True when the project named them, or
+   when it named nobody for any of those roles. */
+const assignedTo=(p,roleIds,who)=>{
+  const team=(p&&p.team)||{}, ids=[].concat(roleIds||[]).filter(Boolean);
+  if(!ids.length) return true;
+  const named=ids.filter(id=>String((team[id]||{}).n||"").trim());
+  if(!named.length) return true;                 /* nobody named: the role decides, as before */
+  return named.some(id=>sameIdentity(team[id],who));
+};
+/* The roles that own the project's current status - what STATUS_TASKS says has to happen
+   next. A grouped project asks per group, because two groups can sit at different statuses. */
+const ownerRolesFor=(p,group)=>{
+  const st=group?((liveTracks(p).find(t=>t.g===group)||{}).status||p.status):(p&&p.status);
+  const defs=STATUS_TASKS[st];
+  if(!defs) return [];
+  return [].concat(defs).reduce((a,d)=>a.concat(d.cft?[]:(d.roles||[])),[]);
+};
+/* Who the project is waiting on, for a read-only screen to say so plainly. */
+const assigneeNames=(p,roleIds)=>{const team=(p&&p.team)||{};
+  return [].concat(roleIds||[]).map(id=>(team[id]||{}).n).filter(Boolean);};
+
 /* The project's own team, falling back to the role registry for a role nobody was named for -
    a gate with no assignee would otherwise have nobody to ask. */
 const teamMember=(p,roleId)=>{const t=(p&&p.team)||{}, m=t[roleId];
@@ -4018,8 +4064,8 @@ const APPROVALS=[
 ];
 
 function ApprovalDetail({a,onBack}){
-  const {act,confirm,roleKey,cost,can,db,openForm}=useApp();
-  const mayDecide=approvalsFor(roleKey,[a],db).length>0;
+  const {act,confirm,roleKey,cost,can,db,openForm,who}=useApp();
+  const mayDecide=approvalsFor(roleKey,[a],db,who).length>0;
   /* A derived gate with no chain step is owned by a phase form - find it from the project's
      status, and only offer it if this role can actually submit it. */
   const proj=db.projects.find(x=>x.id===a.pid);
@@ -4069,8 +4115,8 @@ function ApprovalDetail({a,onBack}){
 }
 
 function Approvals(){
-  const {db,roleKey,cost}=useApp();
-  const mine=approvalsFor(roleKey,db.approvals,db);
+  const {db,roleKey,cost,who}=useApp();
+  const mine=approvalsFor(roleKey,db.approvals,db,who);
   const [selId,setSelId]=useState(null);
   const sel=selId!=null?db.approvals.find(x=>x.id===selId):null;
   if(sel) return <ApprovalDetail a={sel} onBack={()=>setSelId(null)}/>;
@@ -5570,7 +5616,7 @@ function FormField({f,val,onChange,err,db,all,project,group}){
   </div>;
 }
 function PhaseForm({formId,pid,group}){
-  const {db,act,closeForm,roleKey,can,confirm,me,flash}=useApp();
+  const {db,act,closeForm,roleKey,can,confirm,me,who,flash}=useApp();
   const spec=FORM_SPECS[formId], project=db.projects.find(p=>p.id===pid);
   /* From F-07 the form is answered for one group, not for the project. Everything the form
      reads and writes - the status it validates against, the values it reloads, the rejection
@@ -5600,7 +5646,12 @@ function PhaseForm({formId,pid,group}){
     (spec&&spec.decision.hidden&&spec.decision.options.length===1)?spec.decision.options[0].v:"");
   const [showErr,setShowErr]=useState(false);
   if(!spec||!project) return <Denied page="phases" roleKey={roleKey}/>;
-  const mayEdit=can(spec.cap)&&spec.from.indexOf(atStatus)>=0;
+  /* Three things have to be true to submit: the role may do this work, the project is at a
+     status this form answers, and the project named me for it. */
+  const owners=ownerRolesFor(project,grp);
+  const mineToDo=assignedTo(project,owners,who);
+  const waitingOn=assigneeNames(project,owners)[0]||"";
+  const mayEdit=can(spec.cap)&&spec.from.indexOf(atStatus)>=0&&mineToDo;
   /* The counters a conditional gate reads belong to the group being answered for. */
   /* The note and the parts list belong to the group being inspected, not to the project.
      A pseudo-project carries the track's counters into spec.note without every spec having
@@ -5753,7 +5804,7 @@ function PhaseForm({formId,pid,group}){
       <b>Your submission is a recommendation.</b> {ROLE[leaderFor(formId,roleKey,noteSubject)].label} receives it
       as a Teams approval and their decision is what moves the project. Everything you record here
       goes to them with it.</div>:null}
-    {!mayEdit? <div className="roform"><b>Read-only.</b> {can(spec.cap)?((grp?grp+" is":"This project is")+" at "+atStatus+", so "+spec.id+" is not the active form for it."):ROLE[roleKey].label+" cannot submit "+spec.id+"."}</div>:null}
+    {!mayEdit? <div className="roform"><b>Read-only.</b> {!can(spec.cap)?(ROLE[roleKey].label+" cannot submit "+spec.id+"."):(spec.from.indexOf(atStatus)<0)?((grp?grp+" is":"This project is")+" at "+atStatus+", so "+spec.id+" is not the active form for it."):("This project assigned "+(grp?grp+" ":"")+"to "+(waitingOn||"someone else")+". You can read it, but only they can submit it.")}</div>:null}
     <div className="wiz">
       <div className="block"><div className="panel-pad">
         <div className="modal-note">{spec.intro}</div>
@@ -7081,7 +7132,7 @@ function App(){
     return {card:{...c,note:cTrim(note,400)}};
   };
   const act={
-    resolveApproval:(a,decision,comment)=>{if(!approvalsFor(roleKey,[a],db).length){denied("Approval "+a.id+" · "+a.gate);return;}setDb(d=>({...d,approvals:d.approvals.filter(x=>x.id!==a.id),audit:withAudit(d,{action:decision,entity:a.pid,detail:a.gate,comment:comment||"—"}),notifs:withNotif(d,decision+" — "+a.gate+" · "+a.pid)}));flash(decision+" — "+a.pid+" recorded");},
+    resolveApproval:(a,decision,comment)=>{if(!approvalsFor(roleKey,[a],db,who).length){denied("Approval "+a.id+" · "+a.gate);return;}setDb(d=>({...d,approvals:d.approvals.filter(x=>x.id!==a.id),audit:withAudit(d,{action:decision,entity:a.pid,detail:a.gate,comment:comment||"—"}),notifs:withNotif(d,decision+" — "+a.gate+" · "+a.pid)}));flash(decision+" — "+a.pid+" recorded");},
     submitIntake:(p)=>{let id;setDb(d=>{const num=d.seq+1;id="NPI-2026-0"+num;/* groups is not decoration: from F-07 it is what the project is split into, and a project
          created without it runs a single unnamed track that matches none of its own parts.
          It was already going to the router in the command payload - it just never made it onto
@@ -7435,8 +7486,11 @@ function App(){
         fields:{action:"re-initiate",cleared:"signatures",group:group||""}},project.id,"PSW re-initiation");
     },
     decideGate:(project,step,decision,comment,route)=>{
-      const who=(project.approvers&&project.approvers[step.who])||personFor(step.role);
-      if(!(roleKey===step.role||who===me)){denied(step.id+" · "+step.label);return;}
+      /* The project named someone for this gate: it is theirs to decide. Where it named
+         nobody, the role decides, as it always did. */
+      if(!assignedTo(project,[step.role],who)){denied(step.id+" · "+step.label+" · assigned to "+(assigneeNames(project,[step.role])[0]||"another person"));return;}
+      const holder=(project.approvers&&project.approvers[step.who])||personFor(step.role);
+      if(!(roleKey===step.role||holder===me)){denied(step.id+" · "+step.label);return;}
       /* The route has to be on the project before ok() reads it - this gate decides where the
          project goes next AND what it is funded as, and the second answers the first. */
       const decided=(step.route&&decision==="Approved")?{...project,routingDecision:route||project.routingDecision}:project;
@@ -7456,6 +7510,10 @@ function App(){
     submitForm:(formId,project,values,choice,group)=>{
       const spec=FORM_SPECS[formId];
       if(!hasCap(roleKey,spec.cap)){denied(spec.id+" "+spec.name);return;}
+      /* The capability says the role may do this work; the project says who does it here. */
+      const owns=ownerRolesFor(project,group);
+      if(!assignedTo(project,owns,who)){
+        denied(spec.id+" · assigned to "+(assigneeNames(project,owns)[0]||"another person"));return;}
       /* A group decision is validated against that group's status and written to that group's
          track. The project status that comes out is the slowest track - computed in
          applyTracks, never assigned here - so one group racing ahead cannot drag the project
@@ -7610,7 +7668,11 @@ function App(){
     deleteAdmin:["admin.manage","Admin configuration"]};
   Object.keys(GUARDED).forEach(k=>{const fn=act[k],g=GUARDED[k];
     act[k]=(...a)=>{if(!hasCap(roleKey,g[0])){denied(g[1]);return;}return fn(...a);};});
-  const ctx={db,act,openModal:setModal,closeModal:()=>setModal(null),confirm:setConfirmO,go:setPage,roleKey,me,flash,
+  /* Who is looking: the name the audit will carry, and the address the project team was
+     keyed by. Both, because a demo persona has no address and a signed-in user may have
+     a display name that differs from the one configured. */
+  const who={name:me,email:(signedIn&&signedIn.upn)||""};
+  const ctx={db,act,openModal:setModal,closeModal:()=>setModal(null),confirm:setConfirmO,go:setPage,roleKey,me,who,flash,
     can:c=>hasCap(roleKey,c),cost:seesCost(roleKey),role:r,
     openForm:(fid,pid,group)=>{setFormOpen({fid,pid,group:group||null});setNavOpen(false);},closeForm:()=>setFormOpen(null),
     /* What the link asked for, so a screen can say "opened from Teams" rather than leaving
@@ -7703,7 +7765,7 @@ function App(){
         <nav className="sb-nav">
           <div className="sb-sec">Workspace</div>
           {NAV.filter(n=>navMode(roleKey,n.id)).map(n=><button key={n.id} className={"sb-item"+(page===n.id&&!formOpen?" active":"")} onClick={()=>{setFormOpen(null);setPage(n.id);setNavOpen(false);}}>
-            <Icon n={n.icon} cls=""/>{n.label}{n.id==="approvals"&&approvalsFor(roleKey,db.approvals,db).length?<span className="sb-badge">{approvalsFor(roleKey,db.approvals,db).length}</span>:null}</button>)}
+            <Icon n={n.icon} cls=""/>{n.label}{n.id==="approvals"&&approvalsFor(roleKey,db.approvals,db,who).length?<span className="sb-badge">{approvalsFor(roleKey,db.approvals,db,who).length}</span>:null}</button>)}
           {ADMINNAV.some(n=>navMode(roleKey,n.id))?<div className="sb-sec">Administration</div>:null}
           {ADMINNAV.filter(n=>navMode(roleKey,n.id)).map(n=><button key={n.id} className={"sb-item"+(page===n.id?" active":"")} onClick={()=>{setPage(n.id);setNavOpen(false);}}><Icon n={n.icon} cls=""/>{n.label}</button>)}
         </nav>
