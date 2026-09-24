@@ -427,6 +427,10 @@ button{font-family:inherit;cursor:pointer}
 .fsec-row{display:flex;justify-content:space-between;align-items:center}
 .fsec .inv{display:inline-flex;gap:12px;align-items:center}
 .fgrid2{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px}
+/* The team forms list every role at once; two columns made them a scroll, four fit. */
+.fgrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 18px}
+@media (max-width:1100px){ .fgrid4{grid-template-columns:1fr 1fr} }
+@media (max-width:640px){ .fgrid4{grid-template-columns:1fr} }
 .field2.fullrow{grid-column:1 / -1}
 .imp-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:12px}
 .field2{display:flex;flex-direction:column;gap:5px}
@@ -2997,6 +3001,12 @@ const plantLine=(p)=>{const nm=(p&&p.plant&&p.plant!=="—")?p.plant:"", cd=plan
    the same table Admin edits - so a project that starts today picks up whatever the plant
    currently holds, and one that started last month keeps the team it was given. */
 let TEAM_CFG=[];
+let PEOPLE_CFG=[];
+/* The address the platform already holds for someone, or the one their name implies. */
+const emailForPerson=(name)=>{const nm=String(name||"").trim();
+  if(!nm) return "";
+  const row=PEOPLE_CFG.find(x=>String(x.name||"").trim().toLowerCase()===nm.toLowerCase());
+  return (row&&row.email)||nm.toLowerCase().replace(/[^a-z ]/g,"").split(" ").filter(Boolean).join(".")+"@honeywell.com";};
 const roleIdOfLabel=(label)=>{const l=String(label||"").trim().toLowerCase();
   const r=ROLE_REGISTRY.find(x=>String(x.label).toLowerCase()===l); return r?r.id:"";};
 const teamForPlant=(plant)=>{
@@ -3009,6 +3019,15 @@ const teamForPlant=(plant)=>{
   });
   return out;
 };
+/* The same team, with every role filled: where the plant has nobody configured the role
+   registry's holder stands in, as a real value rather than grey placeholder text. A blank the
+   requester never looked at would otherwise be stored as "no one assigned". */
+const teamWithDefaults=(plant)=>{const cfg=teamForPlant(plant), out={};
+  TEAM_ROLES.forEach(id=>{const m=cfg[id];
+    out[id]=(m&&m.n)?{n:m.n,e:m.e||emailForPerson(m.n)}
+                    :{n:personFor(id)||"",e:emailForPerson(personFor(id))};});
+  return out;};
+
 /* The roles a project names a person for, in the order the work reaches them. */
 const TEAM_ROLES=["SRC_MEMBER","SRC_HEAD","BU_MEMBER","BU_HEAD","FIN_ANALYST","FIN_HEAD",
   "CTRL","CTRL_HEAD","ENG","ENG_LEAD","SQE_ENG","SQE_HEAD","PROD_ENG","MFG_HEAD",
@@ -3821,7 +3840,7 @@ function Intake(){
             <div className="field2"><div className="flabel">ECN number {catProjReq(proj.category).ecn?<i>*</i>:null}</div><input value={proj.ecn} onChange={setP("ecn")} placeholder="optional"/></div>
             <div className={"field2"+(showErr&&projErr.plant?" invalid":"")}><div className="flabel">Plant <i>*</i></div><Combo value={proj.plant} onChange={e=>{const v=(e&&e.target)?e.target.value:e;/* Combo hands back an event, the way an input does */
               setProj(o=>({...o,plant:v,plantCode:plantCodeOf({plant:v})}));
-              if(!teamTouched) setTeam(teamForPlant(v));}} options={plantOpts.length?plantOpts:NPI_SITES} allowNew/>{showErr&&projErr.plant?<div className="ferr">{projErr.plant}</div>:null}</div>
+              if(!teamTouched) setTeam(teamWithDefaults(v));}} options={plantOpts.length?plantOpts:NPI_SITES} allowNew/>{showErr&&projErr.plant?<div className="ferr">{projErr.plant}</div>:null}</div>
             <div className="field2"><div className="flabel">Plant code</div><div className="rovalue">{proj.plantCode||(proj.plant?"Not configured for "+proj.plant:"Choose a plant first")}</div></div>
             <div className={"field2"+(showErr&&projErr.incumbent?" invalid":"")}><div className="flabel">Current supplier {catProjReq(proj.category).incumbent?<i>*</i>:null}</div><input value={proj.incumbent} onChange={setP("incumbent")} placeholder="Who supplies these parts today"/>{showErr&&projErr.incumbent?<div className="ferr">{projErr.incumbent}</div>:null}</div>
             <div className={"field2"+(showErr&&projErr.vendorCode?" invalid":"")}><div className="flabel">Current supplier code {catProjReq(proj.category).vendorCode?<i>*</i>:null}</div><input maxLength={7} value={proj.vendorCode} onChange={setP("vendorCode")} placeholder="4-7 alphanumeric, or 7 digits"/>{showErr&&projErr.vendorCode?<div className="ferr">{projErr.vendorCode}</div>:null}</div>
@@ -3839,7 +3858,7 @@ function Intake(){
               ? <>Defaults come from <b>{proj.plant}</b> in Team by plant. Change anyone here and only this project is affected.</>
               : <>Choose a plant on the previous step and its configured team appears here.</>}
           </div>
-          <div className="fgrid2">
+          <div className="fgrid4">
             {TEAM_ROLES.map(id=>{const r=ROLE[id]||{}; const m=team[id]||{};
               return <div className="field2" key={id}>
                 <div className="flabel">{r.label||id}</div>
@@ -3852,7 +3871,7 @@ function Intake(){
               </div>;})}
           </div>
           <div className="det-actions" style={{marginTop:14}}>
-            <button className="btn" onClick={()=>{setTeam(teamForPlant(proj.plant));setTeamTouched(false);}}
+            <button className="btn" onClick={()=>{setTeam(teamWithDefaults(proj.plant));setTeamTouched(false);}}
               disabled={!proj.plant}>Reset to the plant’s team</button>
           </div>
         </div>:null}
@@ -4097,7 +4116,9 @@ const ADMIN_CFG={
      group mailbox, and every notification and approval goes to exactly one of them. */
   team:{title:"Team by plant",add:"assignment",
     cols:[_t("plant","Plant","120px"),_chip("role","Role","200px"),_t("person","Person","170px"),_t("email","Email"),_stat()],
-    rows:ROLE_REGISTRY.filter(r=>r.id!=="VENDOR").map(r=>({plant:"Pune",role:r.label,person:r.person,
+    /* The roles a project actually names - the same list the team forms show, so a plant that
+       is fully configured reads "18 of 18" rather than counting roles no project assigns. */
+    rows:TEAM_ROLES.map(id=>ROLE[id]).filter(Boolean).map(r=>({plant:"Pune",role:r.label,person:r.person,
       email:r.person.toLowerCase().replace(/[^a-z ]/g,"").split(" ").join(".")+"@honeywell.com",
       status:"Active"}))},
   roles:{title:"Roles & assignments",add:"role",cols:[_chip("role","Role","190px"),_t("code","Role code","150px","tpid"),_t("legacy","Channel role","150px","mono"),_t("aad","AAD group","210px","mono"),{key:"cft",label:"CFT signatory",w:"128px",filterType:"select",options:["All","Yes","—"],val:x=>x.cft,render:x=><span className={"pill "+(x.cft==="Yes"?"p-green":"p-gray")}>{x.cft}</span>},_t("members","Members","96px"),_t("backup","Backup approver","160px")],
@@ -4166,6 +4187,73 @@ function RolePermsModal({code,onClose}){
     <div className="modal-f"><button className="btn" onClick={onClose}>Close</button></div>
   </Modal>;
 }
+/* A team is configured for a plant, not a role at a time: the question an admin actually has
+   is "who runs NPI at Bengaluru", and answering it eighteen times through an Add dialog is how
+   a plant ends up half-assigned. One row per plant here, one dialog holding every role. */
+function TeamByPlant(){
+  const {db,act,openModal,closeModal,confirm}=useApp();
+  const plants=(db.admin.plants||[]).filter(p=>String(p.status||"Active")!=="Inactive");
+  const rows=db.admin.team||[];
+  const forPlant=(name)=>teamForPlant(name);
+  const countFor=(name)=>rows.filter(r=>String(r.plant||"").trim().toLowerCase()===String(name).trim().toLowerCase()
+    &&String(r.status||"Active")!=="Inactive").length;
+  const edit=(name)=>openModal(<TeamModal plant={name} initial={teamWithDefaults(name)} onClose={closeModal}
+    onSave={(t)=>{act.saveTeam(name,t);closeModal();}}/>);
+  const addPlant=()=>{
+    const free=plants.map(p=>p.name).filter(n=>!countFor(n));
+    openModal(<FormModal title="Configure a plant team"
+      note={free.length?"Pick the plant this team runs at.":"Every configured plant already has a team - open one to change it."}
+      fields={[{key:"plant",label:"Plant",req:true,type:"select",options:free.length?free:plants.map(p=>p.name)}]}
+      submitLabel="Continue" onClose={closeModal}
+      onSubmit={v=>{closeModal();setTimeout(()=>edit(v.plant),0);}}/>);
+  };
+  const clear=(name)=>confirm({title:"Clear the "+name+" team?",
+    message:"Every role assigned at "+name+" is removed. Projects already raised keep the team they were given.",
+    confirmLabel:"Clear",tone:"danger",onConfirm:()=>act.saveTeam(name,{})});
+  const cols=[
+    {key:"name",label:"Plant",w:"170px",filterType:"text",val:x=>x.name,render:x=><span className="tcell">{x.name}</span>},
+    {key:"code",label:"Code",w:"100px",filterType:"text",val:x=>x.code,render:x=><span className="tpid">{x.code||"—"}</span>},
+    {key:"n",label:"Roles assigned",w:"150px",sortVal:x=>countFor(x.name),filterType:"text",val:x=>String(countFor(x.name)),
+     render:x=>{const n=countFor(x.name);
+       return n?<span className={n>=TEAM_ROLES.length?"good":""}>{n+" of "+TEAM_ROLES.length}</span>
+         :<span className="tmeta">no team yet</span>;}},
+    {key:"who",label:"Sourcing Head · Finance Head",filterType:"text",
+     val:x=>{const t=forPlant(x.name);return ((t.SRC_HEAD||{}).n||"")+" "+((t.FIN_HEAD||{}).n||"");},
+     render:x=>{const t=forPlant(x.name);
+       return <span className="tmeta">{[(t.SRC_HEAD||{}).n,(t.FIN_HEAD||{}).n].filter(Boolean).join(" · ")||"—"}</span>;}},
+    {key:"_e",label:"",w:"150px",always:true,sortable:false,render:(x)=><div style={{display:"flex",gap:6}}>
+      <button className="btn sm" onClick={e=>{e.stopPropagation();edit(x.name);}}>{countFor(x.name)?"Edit team":"Set team"}</button>
+      {countFor(x.name)?<button className="btn sm no" onClick={e=>{e.stopPropagation();clear(x.name);}}>Clear</button>:null}</div>},
+  ];
+  return <div className="block">
+    <div className="block-h"><h2>Team by plant <span className="cnt">{plants.length}</span></h2>
+      <button className="admin-add" onClick={addPlant}>+ Configure a plant team</button></div>
+    <DataTable key="teamplants" columns={cols} rows={plants} pageSize={10} onRowClick={x=>edit(x.name)}/>
+  </div>;
+}
+
+/* Every role at once. The same list the intake step shows, so what an admin configures and
+   what a requester sees are the same shape. */
+function TeamModal({plant,initial,onSave,onClose}){
+  const [t,setT]=useState(()=>({...(initial||{})}));
+  const set=(id,k)=>(e)=>{const v=e.target.value;setT(o=>({...o,[id]:{...(o[id]||{}),[k]:v}}));};
+  const named=TEAM_ROLES.filter(id=>String((t[id]||{}).n||"").trim()).length;
+  return <Modal title={"Team at "+plant} onClose={onClose} wide>
+    <div className="modal-note">One person per role, pre-filled with whoever the role registry names. Clear a field to leave that role unassigned at {plant}.</div>
+    <div className="fgrid4">
+      {TEAM_ROLES.map(id=><div className="field2" key={id}>
+        <div className="flabel">{(ROLE[id]||{}).label||id}</div>
+        <input value={(t[id]||{}).n||""} placeholder={personFor(id)||"Unassigned"} onChange={set(id,"n")}/>
+        <input className="teammail" value={(t[id]||{}).e||""} placeholder="email" onChange={set(id,"e")}/>
+      </div>)}
+    </div>
+    <div className="modal-f">
+      <span className="tmeta" style={{marginRight:"auto"}}>{named} of {TEAM_ROLES.length} assigned</span>
+      <button className="btn" onClick={onClose}>Cancel</button>
+      <button className="btn primary" onClick={()=>onSave(t)}>Save team</button></div>
+  </Modal>;
+}
+
 function Admin(){
   const {db,act,openModal,closeModal,confirm}=useApp();
   const [sec,setSec]=useState("plants");
@@ -4196,10 +4284,10 @@ function Admin(){
       <aside className="admin-nav">
         {Object.keys(ADMIN_CFG).map(k=><button key={k} className={sec===k?"on":""} onClick={()=>setSec(k)}>{ADMIN_CFG[k].title}</button>)}
       </aside>
-      <div className="block">
+      {sec==="team" ? <TeamByPlant/> : <div className="block">
         <div className="block-h"><h2>{cfg.title} <span className="cnt">{rows.length}</span></h2><button className="admin-add" onClick={openAdd}>+ Add {cfg.add}</button></div>
         <DataTable key={sec} columns={cols} rows={rows} pageSize={10}/>
-      </div>
+      </div>}
     </div>
   </>;
 }
@@ -6745,7 +6833,7 @@ async function loadLive(){
    than migrated. Every call is wrapped - private windows, blocked site data and a full quota
    all throw, and none of them are a reason for the app not to open. */
 const DEMO_KEY="npiHub.standalone";
-const DEMO_SHAPE="2026-09-24.team-by-plant";
+const DEMO_SHAPE="2026-09-24.team-by-plant-2";
 let demoSaveFailed=false;
 const demoLoad=()=>{
   if(spx()) return null;
@@ -6823,6 +6911,7 @@ function App(){
      so every child in this pass sees the plants the admin table currently holds. */
   PLANT_CFG=(db.admin&&db.admin.plants)||PLANT_CFG;
   TEAM_CFG=(db.admin&&db.admin.team)||TEAM_CFG;
+  PEOPLE_CFG=(db.admin&&db.admin.people)||PEOPLE_CFG;
   const [spState,setSpState]=useState(()=>spx()?"loading":"off");
   /* Debounced: a submission can move a project, its parts and the audit in one go, and the
      three renders that follow should write once. */
@@ -7153,6 +7242,23 @@ function App(){
         .then(()=>setBusy(b=>Math.max(0,b-1)));
     },
     addSupplier:(s)=>{setDb(d=>({...d,suppliers:[{...s,projects:"0"},...d.suppliers]}));flash("Added supplier "+s.name);},
+    /* A plant's team is one thing, not eighteen. Saving it replaces every row that plant
+       has, so removing someone from the team removes their row rather than leaving an
+       orphan nobody can see in a per-role list. */
+    saveTeam:(plant,team)=>{
+      if(!hasCap(roleKey,"admin.manage")){denied("Team for "+plant);return;}
+      const name=String(plant||"").trim();
+      if(!name) return;
+      const rows=TEAM_ROLES.filter(id=>String((team[id]||{}).n||"").trim()).map(id=>({
+        plant:name,role:(ROLE[id]||{}).label||id,
+        person:String(team[id].n).trim(),email:String(team[id].e||"").trim(),
+        status:(team[id].status==="Inactive")?"Inactive":"Active"}));
+      setDb(d=>({...d,admin:{...d.admin,
+        team:(d.admin.team||[]).filter(r=>String(r.plant||"").trim().toLowerCase()!==name.toLowerCase()).concat(rows)},
+        audit:withAudit(d,{action:"Team configured",entity:name,
+          detail:rows.length+" role(s) assigned",comment:"Admin & configuration"})}));
+      flash(rows.length?("Saved the "+name+" team — "+rows.length+" role(s)"):("Cleared the "+name+" team"));
+    },
     addAdmin:(sec,row)=>{setDb(d=>({...d,admin:{...d.admin,[sec]:[row,...d.admin[sec]]}}));flash("Added");},
     updateAdmin:(sec,idx,row)=>{setDb(d=>({...d,admin:{...d.admin,[sec]:d.admin[sec].map((x,i)=>i===idx?row:x)}}));flash("Saved");},
     deleteAdmin:(sec,idx)=>{setDb(d=>({...d,admin:{...d.admin,[sec]:d.admin[sec].filter((x,i)=>i!==idx)}}));flash("Deleted");},
