@@ -2923,8 +2923,22 @@ const curVendor=(s)=>{s=s||{};const f=s.f02||{};
    in the lookup for projects coded before the capture moved. */
 /* The plant is a code AND a name at Honeywell, and the code is what SAP, the PR and every
    Honeywell system key on - so a screen that shows only "Pune" is missing the identifier the
-   plant actually works by. One helper, so the two never drift apart on different screens. */
-const plantLine=(p)=>{const nm=(p&&p.plant&&p.plant!=="—")?p.plant:"", cd=(p&&p.plantCode)||"";
+   plant actually works by.
+
+   The code comes from the Plants table in Admin & Configuration, which is the master list:
+   reading it off the project row instead let a project carry a code the configuration had
+   never heard of, and two screens then disagreed about the same plant. The row's own code is
+   only a fallback, for a plant that is not in the table at all.
+
+   PLANT_CFG is refreshed by App from db.admin.plants on every render, before any child runs -
+   a cache of configuration, never a second copy of state. */
+let PLANT_CFG=[];
+const plantCodeOf=(p)=>{
+  const nm=String((p&&p.plant)||"").trim().toLowerCase();
+  const cfg=nm?PLANT_CFG.find(x=>String(x.name||"").trim().toLowerCase()===nm):null;
+  return (cfg&&String(cfg.code||"").trim())||String((p&&p.plantCode)||"").trim();
+};
+const plantLine=(p)=>{const nm=(p&&p.plant&&p.plant!=="—")?p.plant:"", cd=plantCodeOf(p);
   return cd?(nm?nm+" · "+cd:"Plant "+cd):(nm||"—");};
 
 const projAcct=(p)=>{const s=(p&&p.summary)||{}, c=s.f02c||{}, a=s.f03c||{}, o=s.f03o||{};
@@ -3457,7 +3471,12 @@ function PartsGrid({value,onChange,readOnly,rates}){
   </div>;
 }
 function Intake(){
-  const {act,flash,go,confirm}=useApp();
+  const {act,flash,go,confirm,db}=useApp();
+  /* The plants the platform is configured for, in the order Admin lists them. A site that
+     is not in the table can still be typed - the code is then simply unknown, which is
+     honest - but the four that are configured should not have to be. */
+  const plantOpts=((db.admin&&db.admin.plants)||[])
+    .filter(x=>String(x.status||"Active")!=="Inactive").map(x=>x.name).filter(Boolean);
   const [showErr,setShowErr]=useState(false);
   const [showPErr,setShowPErr]=useState(false);
   const [dupAck,setDupAck]=useState(false);
@@ -3492,8 +3511,8 @@ function Intake(){
     if(!proj.name.trim()) e.name="Project name is required";
     if(!proj.category.trim()) e.category="Project category is required";
     if(!proj.plant.trim()) e.plant="Plant is required";
-    if(!proj.plantCode.trim()) e.plantCode="Plant code is required";
-    else if(!/^\d{4}$/.test(proj.plantCode.trim())) e.plantCode="Plant code must be exactly 4 digits";
+    /* Derived from the plant, so there is nothing here for the requester to get wrong. A
+       plant that is not in the configuration simply has no code yet. */
     if(!proj.scope.trim()) e.scope="Project scope is required";
     Object.entries(catProjReq(proj.category)).forEach(([k,msg])=>{
       if(!String(proj[k]||"").trim()) e[k]=msg;
@@ -3704,8 +3723,8 @@ function Intake(){
             <div className={"field2"+(showErr&&projErr.name?" invalid":"")}><div className="flabel">Project name <i>*</i></div><input value={proj.name} onChange={setP("name")} placeholder="e.g. New Mounting Bracket NPI"/>{showErr&&projErr.name?<div className="ferr">{projErr.name}</div>:null}</div>
             <div className={"field2"+(showErr&&projErr.category?" invalid":"")}><div className="flabel">Project category <i>*</i></div><Combo value={proj.category} onChange={setP("category")} options={NPI_CATS} allowNew/>{showErr&&projErr.category?<div className="ferr">{projErr.category}</div>:null}</div>
             <div className="field2"><div className="flabel">ECN number {catProjReq(proj.category).ecn?<i>*</i>:null}</div><input value={proj.ecn} onChange={setP("ecn")} placeholder="optional"/></div>
-            <div className={"field2"+(showErr&&projErr.plant?" invalid":"")}><div className="flabel">Plant <i>*</i></div><Combo value={proj.plant} onChange={setP("plant")} options={NPI_SITES} allowNew/>{showErr&&projErr.plant?<div className="ferr">{projErr.plant}</div>:null}</div>
-            <div className={"field2"+(showErr&&projErr.plantCode?" invalid":"")}><div className="flabel">Plant code <i>*</i></div><input inputMode="numeric" maxLength={4} value={proj.plantCode} onChange={setP("plantCode")} placeholder="4-digit code, e.g. 1234"/>{showErr&&projErr.plantCode?<div className="ferr">{projErr.plantCode}</div>:null}</div>
+            <div className={"field2"+(showErr&&projErr.plant?" invalid":"")}><div className="flabel">Plant <i>*</i></div><Combo value={proj.plant} onChange={e=>{const v=(e&&e.target)?e.target.value:e;/* Combo hands back an event, the way an input does */setProj(o=>({...o,plant:v,plantCode:plantCodeOf({plant:v})}));}} options={plantOpts.length?plantOpts:NPI_SITES} allowNew/>{showErr&&projErr.plant?<div className="ferr">{projErr.plant}</div>:null}</div>
+            <div className="field2"><div className="flabel">Plant code</div><div className="rovalue">{proj.plantCode||(proj.plant?"Not configured for "+proj.plant:"Choose a plant first")}</div></div>
             <div className={"field2"+(showErr&&projErr.incumbent?" invalid":"")}><div className="flabel">Current supplier {catProjReq(proj.category).incumbent?<i>*</i>:null}</div><input value={proj.incumbent} onChange={setP("incumbent")} placeholder="Who supplies these parts today"/>{showErr&&projErr.incumbent?<div className="ferr">{projErr.incumbent}</div>:null}</div>
             <div className={"field2"+(showErr&&projErr.vendorCode?" invalid":"")}><div className="flabel">Current supplier code {catProjReq(proj.category).vendorCode?<i>*</i>:null}</div><input maxLength={7} value={proj.vendorCode} onChange={setP("vendorCode")} placeholder="4-7 alphanumeric, or 7 digits"/>{showErr&&projErr.vendorCode?<div className="ferr">{projErr.vendorCode}</div>:null}</div>
             <div className="field2"><div className="flabel">Estimated completion timeline</div><input type="date" value={proj.timeline} onChange={setP("timeline")}/></div>
@@ -3874,8 +3893,9 @@ function ApprovalDetail({a,onBack}){
   return <>
     <button className="backlink" onClick={onBack}>‹ Back to approvals</button>
     <div className="pagehead"><h1>{a.gate}</h1><p><span className="mono" style={{color:"var(--teal)",fontWeight:600}}>{a.pid}</span> · Part {a.part} · Requested by {a.by}</p></div>
-    <div className="detail-grid">
+    <div className="detail-grid five">
       <div className="dcard"><div className="dk">Type</div><div className="dv">{a.type}</div></div>
+      <div className="dcard"><div className="dk">Plant</div><div className="dv">{plantLine(proj||{})}</div></div>
       <div className="dcard"><div className="dk">Amount</div><div className="dv">{cost?a.amount:<span className="tmeta">restricted</span>}</div></div>
       <div className="dcard"><div className="dk">Requested by</div><div className="dv">{a.by}</div></div>
       <div className="dcard"><div className="dk">SLA remaining</div><div className="dv"><span className={"sla "+slaColor(a.h)}>{slaLabel(a.h)}</span></div></div>
@@ -6662,6 +6682,9 @@ function App(){
   const [db,setDb]=useState(()=>(restored&&restored.db)||seedDb());
   /* live load. "off" when running standalone, so the seed data stands and every
      screen behaves exactly as it does today. */
+  /* Configuration the whole tree reads while it renders. Assigned here, in App's own body,
+     so every child in this pass sees the plants the admin table currently holds. */
+  PLANT_CFG=(db.admin&&db.admin.plants)||PLANT_CFG;
   const [spState,setSpState]=useState(()=>spx()?"loading":"off");
   /* Debounced: a submission can move a project, its parts and the audit in one go, and the
      three renders that follow should write once. */
