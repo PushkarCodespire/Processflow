@@ -574,6 +574,7 @@ button{font-family:inherit;cursor:pointer}
 /* The email under each name on the intake team step - secondary, and never mistaken for
    the name field above it. */
 .teammail{margin-top:5px;font-size:12px;color:var(--muted)}
+.teammail.invalidmail{border:1px solid var(--red);border-radius:4px;color:var(--red)}
 .rovalue{padding:7px 9px;border:1px dashed var(--border);border-radius:6px;background:var(--panel2,transparent);color:var(--muted);font-size:12.5px}
 .ferr{color:var(--red);font-size:11.5px;margin-top:3px;font-weight:500;line-height:1.35}
 .fhint{color:var(--muted);font-size:11.5px;margin-top:3px;line-height:1.35}
@@ -3050,11 +3051,15 @@ const TEAM_ROLES=["SRC_MEMBER","SRC_HEAD","BU_MEMBER","BU_HEAD","FIN_ANALYST","F
    Two things keep this from being a trap. A role the project named nobody for stays
    role-based, because there is no assignee to defer to. And matching is on email where both
    sides have one - two people can share a name, and nobody shares an address. */
+/* The address is the identity. Names repeat, change and get typed three ways; the address is
+   one person and the same string Teams, the approvals and the People directory key on. So the
+   comparison is on the address, and only a row saved before addresses were required falls
+   back to the name - a project assigned to "D. Nair" should still open for her. */
 const sameIdentity=(member,who)=>{
   const m=member||{}, w=who||{};
-  const me=String(w.email||w.upn||"").trim().toLowerCase();
   const their=String(m.e||"").trim().toLowerCase();
-  if(me&&their) return me===their;
+  const mine=String(w.email||w.upn||"").trim().toLowerCase();
+  if(their) return !!mine&&their===mine;
   return !!m.n&&String(m.n).trim().toLowerCase()===String(w.name||"").trim().toLowerCase();
 };
 /* Can `who` act on this project as one of `roleIds`? True when the project named them, or
@@ -3074,6 +3079,11 @@ const ownerRolesFor=(p,group)=>{
   if(!defs) return [];
   return [].concat(defs).reduce((a,d)=>a.concat(d.cft?[]:(d.roles||[])),[]);
 };
+/* A name with no address cannot be matched to anyone signing in, so it is not an assignment
+   at all - it is a label. These are the roles where that has happened. */
+const teamGaps=(t)=>TEAM_ROLES.filter(id=>{const m=(t||{})[id]||{};
+  return String(m.n||"").trim()&&!isEmail(String(m.e||"").trim());});
+
 /* Who the project is waiting on, for a read-only screen to say so plainly. */
 const assigneeNames=(p,roleIds)=>{const team=(p&&p.team)||{};
   return [].concat(roleIds||[]).map(id=>(team[id]||{}).n).filter(Boolean);};
@@ -3822,6 +3832,12 @@ function Intake(){
   const readyToSubmit=parts.length>0&&Object.keys(projErr).length===0;
   const next=()=>{
     if(step===0&&Object.keys(projErr).length){ setShowErr(true); flash(projErr[Object.keys(projErr)[0]]); return; }
+    if(step===1){
+      const gaps=teamGaps(team);
+      if(gaps.length){ setShowErr(true);
+        flash("Every named role needs an email — it is what identifies them. Check "+((ROLE[gaps[0]]||{}).label||gaps[0])+".");
+        return; }
+    }
     if(step===3&&!parts.length){ flash("Add at least one part before continuing."); return; }
     setShowErr(false); setStep(s=>Math.min(s+1,4));
   };
@@ -3910,8 +3926,13 @@ function Intake(){
                 <div className="flabel">{r.label||id}</div>
                 <input value={m.n||""} placeholder={personFor(id)||"Unassigned"}
                   onChange={e=>{const v=e.target.value; setTeamTouched(true);
-                    setTeam(t=>({...t,[id]:{...(t[id]||{}),n:v}}));}}/>
-                <input className="teammail" value={m.e||""} placeholder="email"
+                    setTeam(t=>{const cur=t[id]||{}, known=emailForPerson(v);
+                      /* The address follows the name while it is one the directory knows and
+                         nobody has typed over it. */
+                      const keep=cur.e&&cur.e!==emailForPerson(cur.n);
+                      return {...t,[id]:{...cur,n:v,e:keep?cur.e:known}};});}}/>
+                <input className={"teammail"+(showErr&&String(m.n||"").trim()&&!isEmail(String(m.e||"").trim())?" invalidmail":"")}
+                  value={m.e||""} placeholder="email"
                   onChange={e=>{const v=e.target.value; setTeamTouched(true);
                     setTeam(t=>({...t,[id]:{...(t[id]||{}),e:v}}));}}/>
               </div>;})}
@@ -4282,6 +4303,7 @@ function TeamByPlant(){
    what a requester sees are the same shape. */
 function TeamModal({plant,initial,onSave,onClose}){
   const [t,setT]=useState(()=>({...(initial||{})}));
+  const [err,setErr]=useState("");
   const set=(id,k)=>(e)=>{const v=e.target.value;setT(o=>({...o,[id]:{...(o[id]||{}),[k]:v}}));};
   const named=TEAM_ROLES.filter(id=>String((t[id]||{}).n||"").trim()).length;
   return <Modal title={"Team at "+plant} onClose={onClose} wide>
@@ -4289,14 +4311,21 @@ function TeamModal({plant,initial,onSave,onClose}){
     <div className="fgrid4">
       {TEAM_ROLES.map(id=><div className="field2" key={id}>
         <div className="flabel">{(ROLE[id]||{}).label||id}</div>
-        <input value={(t[id]||{}).n||""} placeholder={personFor(id)||"Unassigned"} onChange={set(id,"n")}/>
+        <input value={(t[id]||{}).n||""} placeholder={personFor(id)||"Unassigned"}
+          onChange={e=>{const v=e.target.value;
+            setT(o=>{const cur=o[id]||{}, keep=cur.e&&cur.e!==emailForPerson(cur.n);
+              return {...o,[id]:{...cur,n:v,e:keep?cur.e:emailForPerson(v)}};});}}/>
         <input className="teammail" value={(t[id]||{}).e||""} placeholder="email" onChange={set(id,"e")}/>
       </div>)}
     </div>
+    {err?<div className="form-err">{err}</div>:null}
     <div className="modal-f">
       <span className="tmeta" style={{marginRight:"auto"}}>{named} of {TEAM_ROLES.length} assigned</span>
       <button className="btn" onClick={onClose}>Cancel</button>
-      <button className="btn primary" onClick={()=>onSave(t)}>Save team</button></div>
+      <button className="btn primary" onClick={()=>{
+        const gaps=teamGaps(t);
+        if(gaps.length){ setErr("Every named role needs an email - it is what identifies them. Check "+((ROLE[gaps[0]]||{}).label||gaps[0])+"."); return; }
+        setErr(""); onSave(t);}}>Save team</button></div>
   </Modal>;
 }
 
@@ -7671,7 +7700,10 @@ function App(){
   /* Who is looking: the name the audit will carry, and the address the project team was
      keyed by. Both, because a demo persona has no address and a signed-in user may have
      a display name that differs from the one configured. */
-  const who={name:me,email:(signedIn&&signedIn.upn)||""};
+  /* Signed in, that is the address they hold. Viewing as a role, it is the address the
+     directory holds for that persona - without one, nothing would ever match the id a team
+     was assigned by. */
+  const who={name:me,email:((signedIn&&signedIn.roleCode===roleKey&&signedIn.upn)||emailForPerson(me)||"")};
   const ctx={db,act,openModal:setModal,closeModal:()=>setModal(null),confirm:setConfirmO,go:setPage,roleKey,me,who,flash,
     can:c=>hasCap(roleKey,c),cost:seesCost(roleKey),role:r,
     openForm:(fid,pid,group)=>{setFormOpen({fid,pid,group:group||null});setNavOpen(false);},closeForm:()=>setFormOpen(null),
