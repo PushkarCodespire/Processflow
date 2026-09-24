@@ -2114,14 +2114,23 @@ const quotedPrices=(p)=>{
   return by;
 };
 
+/* A part's own economics, in dollars: what it costs today, what it will cost, and what the
+   difference is worth over a year. Null unless both prices AND the volume are known - a
+   saving computed from a missing price is a made-up number, and this one is read as money. */
+const partEconomics=(x,quoted)=>{
+  const q=quoted[String((x&&x.part)||"").trim().toUpperCase()];
+  const ex=usdOf(x&&x.cost,x&&x.currency), nw=q?usdOf(q[5],q[6]):null, vol=num(x&&x.vol);
+  return {ex:ex,nw:nw,vol:vol,save:(ex!=null&&nw!=null&&vol!=null)?(ex-nw)*vol:null};
+};
+
 function PartsTable({p,onOpen}){
   const {db,openModal,closeModal}=useApp();
   const parts=db.parts.filter(x=>x.pid===p.id);
   const quoted=quotedPrices(p);
   /* Both prices are per unit and converted to dollars, so a project quoted in rupees and one
      quoted in euros can be read against each other in the same column. */
-  const newPrice=(x)=>{const q=quoted[String(x.part||"").trim().toUpperCase()];
-    return q?usdOf(q[5],q[6]):null;};
+  const econ=(x)=>partEconomics(x,quoted);
+  const newPrice=(x)=>econ(x).nw;
   /* Was a summary modal. A part has a history and lots of its own, which is a page, not a
      five-row dialog - so the row opens the part instead. */
   const openPart=(x)=>onOpen?onOpen(x.part):openModal(<InfoModal title={x.part} onClose={closeModal} pairs={[["Description",x.desc],["Annual quantity",x.vol==null?"—":String(x.vol)],["Existing price",money(usdOf(x.cost,x.currency),"USD")]]}/>);
@@ -2143,6 +2152,13 @@ function PartsTable({p,onOpen}){
      val:x=>{const u=newPrice(x);return u==null?"":u.toFixed(2);},
      render:x=>{const u=newPrice(x);
        return u==null?<span className="tmeta">not quoted yet</span>:<span>{money(u,"USD")}</span>;}},
+    /* (existing - new) x annual quantity. Negative where the localisation costs more, which
+       is worth seeing rather than hiding. */
+    {key:"save",label:"Annual saving (USD)",w:"156px",sortVal:x=>econ(x).save||0,filterType:"text",
+     val:x=>{const v=econ(x).save;return v==null?"":v.toFixed(2);},
+     render:x=>{const v=econ(x).save;
+       return v==null?<span className="tmeta">—</span>
+         :<span className={v<0?"bad":"good"}>{money(v,"USD")}</span>;}},
     {key:"stage",label:"Stage",w:"128px",filterType:"select",options:["All"].concat(STAGES),val:x=>x.stage,render:x=><span className="mchip">{x.stage}</span>},
     {key:"status",label:"Status",w:"186px",filterType:"text",val:x=>statusLabel(x.status),render:x=><span className={"pill "+statusClass(x.status)}>{statusLabel(x.status)}</span>},
     {key:"h",label:"SLA",w:"104px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?x.h<=12:v==="Due soon"?(x.h>12&&x.h<24):v==="On track"?x.h>=24:true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
@@ -2463,6 +2479,8 @@ function PartDetail({pid,part,onBack}){
   /* A lot raised for the project covers this part too, so it belongs on this page as much
      as one named for it. */
   const lots=(db.pilots||[]).filter(l=>l.pid===pid&&(!l.part||l.part===part));
+  /* The same figures the parts table shows, from the same quote. */
+  const econ=partEconomics(x||{},quotedPrices(proj));
   return <>
     <button className="backlink" onClick={onBack}>‹ Back to {proj?proj.title:"project"}</button>
     <div className="pagehead"><h1>{x.part}</h1>
@@ -2476,8 +2494,14 @@ function PartDetail({pid,part,onBack}){
       <div className="dcard"><div className="dk">Unit of measure</div><div className="dv">{x.uom||"EA"}</div></div>
       <div className="dcard"><div className="dk">Annual volume</div><div className="dv">{x.vol||"—"}</div></div>
       {/* Quoted in whatever the vendor quoted; shown in USD like every other figure. */}
-      <div className="dcard"><div className="dk">Unit cost</div><div className="dv">{money(x.cost,x.currency)}
+      <div className="dcard"><div className="dk">Existing price</div><div className="dv">{money(x.cost,x.currency)}
         {x.currency&&x.currency!=="USD"&&x.cost?<span className="tmeta"> · {x.cost} {x.currency}</span>:null}</div></div>
+      <div className="dcard"><div className="dk">New price</div><div className="dv">
+        {econ.nw==null?<span className="tmeta">not quoted yet</span>:money(econ.nw,"USD")}</div></div>
+      {/* (existing - new) x annual quantity, the part's share of the project's business case. */}
+      <div className="dcard"><div className="dk">Annual saving</div><div className="dv">
+        {econ.save==null?<span className="tmeta">—</span>
+          :<span className={econ.save<0?"bad":"good"}>{money(econ.save,"USD")}</span>}</div></div>
     </div>
     {lots.length?<div className="block" style={{marginBottom:18}}>
       <div className="block-h"><h2>Pilot lots <span className="cnt">{lots.length}</span></h2></div>
