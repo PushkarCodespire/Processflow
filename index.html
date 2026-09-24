@@ -2103,22 +2103,46 @@ function genParts(p){
     group:gs.length?gs[i%gs.length]:undefined}));
 }
 
+/* What Sourcing quoted, per part. The localized price lives in the F-02 quote and nowhere
+   else - NPIParts carries the volume and the existing cost, but has no column for the new
+   one - so a project read back from SharePoint after some later command shows it as not
+   quoted yet rather than inventing a figure. */
+const quotedPrices=(p)=>{
+  const tsv=(p&&p.form&&p.form["F-02"]&&p.form["F-02"].partsPricing)||(p&&p.hubForm||{}).partsPricing||"";
+  const by={};
+  quoteToRows(tsv).forEach(r=>{ if(r[0]) by[String(r[0]).trim().toUpperCase()]=r; });
+  return by;
+};
+
 function PartsTable({p,onOpen}){
   const {db,openModal,closeModal}=useApp();
   const parts=db.parts.filter(x=>x.pid===p.id);
+  const quoted=quotedPrices(p);
+  /* Both prices are per unit and converted to dollars, so a project quoted in rupees and one
+     quoted in euros can be read against each other in the same column. */
+  const newPrice=(x)=>{const q=quoted[String(x.part||"").trim().toUpperCase()];
+    return q?usdOf(q[5],q[6]):null;};
   /* Was a summary modal. A part has a history and lots of its own, which is a page, not a
      five-row dialog - so the row opens the part instead. */
-  const openPart=(x)=>onOpen?onOpen(x.part):openModal(<InfoModal title={x.part} onClose={closeModal} pairs={[["Description",x.desc],["Unit price",money(usdOf(x.cost,x.currency),"USD")]]}/>);
+  const openPart=(x)=>onOpen?onOpen(x.part):openModal(<InfoModal title={x.part} onClose={closeModal} pairs={[["Description",x.desc],["Annual quantity",x.vol==null?"—":String(x.vol)],["Existing price",money(usdOf(x.cost,x.currency),"USD")]]}/>);
   const cols=[
     {key:"part",label:"Part number",w:"150px",filterType:"text",val:x=>x.part,render:x=><span className="tpid">{x.part}</span>},
     {key:"desc",label:"Description",filterType:"text",val:x=>x.desc,render:x=><span className="tcell">{x.desc}</span>},
     /* The project has one vendor, so a supplier per part repeated the same name down every
        row. The unit price is what actually differs, shown in USD so rows quoted in different
        currencies can be read against each other. */
-    {key:"unit",label:"Unit price (USD)",w:"140px",sortVal:x=>usdOf(x.cost,x.currency)||0,filterType:"text",
+    {key:"vol",label:"Annual quantity",w:"122px",sortVal:x=>num(x.vol)||0,filterType:"text",
+     val:x=>x.vol==null?"":String(x.vol),
+     render:x=>x.vol==null?<span className="tmeta">—</span>
+       :<span>{Number(x.vol).toLocaleString("en-US")}</span>},
+    {key:"unit",label:"Existing price (USD)",w:"150px",sortVal:x=>usdOf(x.cost,x.currency)||0,filterType:"text",
      val:x=>{const u=usdOf(x.cost,x.currency);return u==null?"":u.toFixed(2);},
      render:x=>{const u=usdOf(x.cost,x.currency);
        return u==null?<span className="tmeta">—</span>:<span>{money(u,"USD")}</span>;}},
+    {key:"newunit",label:"New price (USD)",w:"140px",sortVal:x=>newPrice(x)||0,filterType:"text",
+     val:x=>{const u=newPrice(x);return u==null?"":u.toFixed(2);},
+     render:x=>{const u=newPrice(x);
+       return u==null?<span className="tmeta">not quoted yet</span>:<span>{money(u,"USD")}</span>;}},
     {key:"stage",label:"Stage",w:"128px",filterType:"select",options:["All"].concat(STAGES),val:x=>x.stage,render:x=><span className="mchip">{x.stage}</span>},
     {key:"status",label:"Status",w:"186px",filterType:"text",val:x=>statusLabel(x.status),render:x=><span className={"pill "+statusClass(x.status)}>{statusLabel(x.status)}</span>},
     {key:"h",label:"SLA",w:"104px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?x.h<=12:v==="Due soon"?(x.h>12&&x.h<24):v==="On track"?x.h>=24:true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
