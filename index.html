@@ -1351,7 +1351,7 @@ const FORM_SPECS={
     from:["Opex - PR Pending"],
     intro:"Opex funding is approved with the account coding from F-03o. Raise the PR and record its number.",
     sections:[{title:"Planner input",fields:[
-      {k:"prNumber",label:"SAP PR number",type:"text",req:true},
+      {k:"prNumber",label:"SAP PR number",type:"pr",req:true,ph:"10 digits"},
       {k:"amount",label:"PR amount (INR)",type:"currency"},
     ]}],
     decision:{label:"Submit",options:[
@@ -1365,7 +1365,7 @@ const FORM_SPECS={
     from:["Opex - PO Pending"],
     intro:"Confirm the purchase order raised against the Opex PR.",
     sections:[{title:"Sourcing input",fields:[
-      {k:"poNumber",label:"SAP PO number",type:"text",req:true},
+      {k:"poNumber",label:"SAP PO number",type:"po",req:true,ph:"10 digits, or a letter and 9"},
     ]}],
     decision:{label:"Submit",options:[
       {v:"Confirmed",label:"PO confirmed",desc:"Hands over to the vendor notification.",to:"PO Pending",phase:"Vendor Dev"},
@@ -1610,8 +1610,8 @@ const FORM_SPECS={
       {title:"AME inputs",fields:[
         {k:"networkId",label:"Network ID",type:"text",req:true,ph:"SAP capex network"},
         {k:"accoladeId",label:"Accolade ID",type:"text",req:true,ph:"Sopheon Accolade record"},
-        {k:"prNumber",label:"SAP PR number",type:"text",req:true},
-        {k:"poNumber",label:"SAP PO number",type:"text",req:true},
+        {k:"prNumber",label:"SAP PR number",type:"pr",req:true,ph:"10 digits"},
+        {k:"poNumber",label:"SAP PO number",type:"po",req:true,ph:"10 digits, or a letter and 9"},
       ]},
       /* Booked by Finance at F-02c. Shown because the Buyer raises the PR against it, asked
          for nowhere else - one capture, so the two records cannot disagree. */
@@ -3109,6 +3109,16 @@ const projRoute=(p)=>{const s=(p&&p.summary)||{}, hf=(p&&p.hubForm)||{};
          (p&&p.routingSuggestion)||(s.f02||{}).route||"";};
 const projVendor=(p)=>curVendor(p&&p.summary)||
   ((p&&p.supplier&&p.supplier!=="\u2014")?{n:p.supplier,e:p.vendorEmail||""}:null);
+/* SAP purchase document numbers. A PR is ten digits. A PO is ten characters: ten digits, or
+   a letter followed by nine. Typed in five places and imported from Excel in two, so the rule
+   lives once and every one of them asks it. */
+const PR_RE=/^[0-9]{10}$/;
+const PO_RE=/^([0-9]{10}|[A-Za-z][0-9]{9})$/;
+const isPR=(x)=>PR_RE.test(String(x==null?"":x).trim());
+const isPO=(x)=>PO_RE.test(String(x==null?"":x).trim());
+const PR_HINT="A PR number is 10 digits";
+const PO_HINT="A PO number is 10 characters - 10 digits, or a letter and 9 digits";
+
 const isEmail=(x)=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(x||"").trim());
 /* Name, parts and address are all required: F-05 notifies each vendor at that address for
    those parts, so a row missing any of them is a sample request that cannot be sent. */
@@ -5144,7 +5154,7 @@ function Samples(){
   const openPilot=(x)=>{
     const st=lotState(x);
     if(st==="Awaiting PR") openModal(<FormModal title={LOT_FORMS[lotNum(x)]+" · raise PR for "+x.lot}
-      fields={[{key:"pr",label:"PR number (SAP)",req:true},{key:"qty",label:"Ordered quantity",req:true},{key:"comment",label:"Comments",type:"textarea",full:true}]}
+      fields={[{key:"pr",label:"PR number (SAP)",req:true,ph:"10 digits",check:isPR,hint:PR_HINT},{key:"qty",label:"Ordered quantity",req:true},{key:"comment",label:"Comments",type:"textarea",full:true}]}
       submitLabel="Record PR" onClose={closeModal} onSubmit={v=>{act.raiseLotPR(x,v);closeModal();}}/>);
     else if(st==="Ordered") openModal(<FormModal title={LOT_FORMS[lotNum(x)]+" · delivery & IQC for "+x.lot}
       fields={[{key:"deliveryDate",label:"Actual delivery date",req:true,ph:"e.g. 22 Sep 2026"},
@@ -5716,10 +5726,15 @@ function PhaseForm({formId,pid,group}){
       const rr=sapRows(v[f.k]);
       if(!rr.length){ errs[f.k]="No parts to raise a "+(f.po?"PO":"PR")+" against"; return; }
       if(f.po){
-        if(!rr.some(r=>r[4])) errs[f.k]="At least one part needs a PO number";
+        if(!rr.some(r=>r[4])){ errs[f.k]="At least one part needs a PO number"; return; }
+        /* An imported sheet can carry a hundred rows; the offending part is named. */
+        const badPO=rr.find(r=>String(r[4]||"").trim()&&!isPO(r[4]));
+        if(badPO) errs[f.k]=PO_HINT+" — check "+(badPO[0]||"that row");
         return;
       }
       if(!rr.some(r=>r[2])){ errs[f.k]="At least one part needs a PR number"; return; }
+      const badPR=rr.find(r=>String(r[2]||"").trim()&&!isPR(r[2]));
+      if(badPR){ errs[f.k]=PR_HINT+" — check "+(badPR[0]||"that row"); return; }
       const noQty=rr.find(r=>r[2]&&!(parseFloat(r[3])>0));
       if(noQty) errs[f.k]="Enter the TRUN quantity for "+(noQty[0]||"every part with a PR");
       return;
@@ -5762,6 +5777,8 @@ function PhaseForm({formId,pid,group}){
     if(isReq(f,v)&&!val) errs[f.k]=f.label+" is required";
     else if((f.type==="number"||f.type==="currency")&&val&&(!isFinite(+val)||+val<0)) errs[f.k]="Must be a positive number";
     else if(f.type==="email"&&val&&!isEmail(val)) errs[f.k]="Enter a valid email address";
+    else if(f.type==="pr"&&val&&!isPR(val)) errs[f.k]=PR_HINT;
+    else if(f.type==="po"&&val&&!isPO(val)) errs[f.k]=PO_HINT;
     else if(f.min&&val.length<f.min) errs[f.k]=f.label+" needs at least "+f.min+" characters ("+val.length+" so far)";
   }));
   if(!String(v[spec.comment.k]||"").trim()) errs[spec.comment.k]=spec.comment.label+" is required";  /* submit only - save skips errs entirely */
@@ -6040,7 +6057,13 @@ function FormModal({title,fields,initial,submitLabel,onSubmit,onClose,note}){
   const [v,setV]=useState(()=>{const o={};fields.forEach(f=>o[f.key]=(initial&&initial[f.key]!=null)?initial[f.key]:(f.def||(f.type==="select"?f.options[0]:"")));return o;});
   const [err,setErr]=useState("");
   const set=k=>e=>setV(s=>({...s,[k]:e.target.value}));
-  const submit=()=>{const miss=fields.filter(f=>f.req&&!String(v[f.key]).trim());if(miss.length){setErr("Please complete: "+miss.map(f=>f.label).join(", "));return;}onSubmit(v);};
+  const submit=()=>{
+    const miss=fields.filter(f=>f.req&&!String(v[f.key]).trim());
+    if(miss.length){setErr("Please complete: "+miss.map(f=>f.label).join(", "));return;}
+    /* A field can carry its own rule - a PR number is not just non-empty, it is ten digits. */
+    const bad=fields.find(f=>f.check&&String(v[f.key]||"").trim()&&!f.check(v[f.key]));
+    if(bad){setErr(bad.hint||("Check "+bad.label));return;}
+    setErr(""); onSubmit(v);};
   return <Modal title={title} onClose={onClose}>
     {note?<div className="modal-note">{note}</div>:null}
     <div className="form-grid">
