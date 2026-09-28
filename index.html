@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-28 09:45 UTC (web)";
+const BUILD="2026-09-28 09:59 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -6514,6 +6514,9 @@ function cardFor(s,to,group,ctx){
   const qtyLine=(o)=>o&&o.parts?((o.ok||0)+" of "+(o.got||0)+" accepted \u00b7 "+(o.done||0)+" of "+o.parts+" part(s)"):"";
   const sqeLine=[sq.res,qtyLine(sq)].filter(Boolean).join(" \u00b7 ");
   const trialLine=[tr.res,qtyLine(tr)].filter(Boolean).join(" \u00b7 ");
+  /* The card being built: headline, facts, money facts, and the channel role. Each branch
+     below fills what it has and leaves the rest empty. */
+  let h=null,f=[],m=[],ch="";
   if(to==="Feasibility Review"){
     const i=s.intake||{};
     h="New request — please check feasibility";
