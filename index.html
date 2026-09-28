@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-28 09:29 UTC (web)";
+const BUILD="2026-09-28 09:45 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -1734,15 +1734,17 @@ function fullChain(){
   if(_fullChain) return _fullChain;
   const base=APPROVAL_STEPS.map(x=>({...x, ats:[x.at]}));
   const extra=[];
-  Object.keys(GATE_LEADER).forEach(fid=>{
+  /* The stages between approval and PSW, whether or not anybody approves them: they are what
+     the project has to pass, so the chain shows them with the team that owns each. */
+  ["F-07","F-08","F-09"].forEach(fid=>{
     const spec=FORM_SPECS[fid]; if(!spec) return;
     const froms=spec.from||[];
     const at=froms[0]; if(!at) return;
     const task=STATUS_TASKS[at];
     const rule=Array.isArray(task)?task[0]:task;
     extra.push({id:fid, label:spec.name, form:fid, at:at, ats:froms,
-                role:(rule&&rule.roles&&rule.roles[0])||GATE_LEADER[fid],
-                approver:GATE_LEADER[fid], who:""});
+                role:(rule&&rule.roles&&rule.roles[0])||GATE_LEADER[fid]||"SQE_ENG",
+                approver:GATE_LEADER[fid]||"", who:""});
   });
   /* PSW is a sign-off by the cross-functional team rather than one named head, so it has no
      single approver - but it is still a gate the project has to pass. */
@@ -6746,7 +6748,11 @@ function cardFor(s,to,group,ctx){
    answers a Teams approval, which is what actually moves it.
    Svc-Gate-Approval reads this same map to decide who to ask, so the two engines cannot
    disagree about who a gate belongs to. */
-const GATE_LEADER={"F-07":"SQE_HEAD","F-08":"ENG_LEAD","F-09":"MFG_HEAD"};
+/* Empty on purpose. SQE, AME and Production each record their own verdict and it stands -
+   the inspection IS the decision, and routing it to a head for a second yes only delayed a
+   judgement the head was not making. F-06R still uses the mechanism below on a third
+   rejection, which is a decision about the vendor rather than about a part. */
+const GATE_LEADER={};
 /* A gate that only exists sometimes. Two failed samples is bad luck; a third is a decision
    about the vendor, and the plant wants a head to look at the plan before more samples are
    ordered. So F-06R becomes a recommend-then-decide gate on the third strike and is an
