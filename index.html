@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-28 08:45 UTC (web)";
+const BUILD="2026-09-28 09:29 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -1510,14 +1510,11 @@ const FORM_SPECS={
     intro:"Inspect the sample and record the evidence behind the decision. Anything other than Approved needs a reason.",
     note:p=>{const n=p.rejectionCount||0;return n?("This part has been rejected "+n+" time"+(n===1?"":"s")+". A third rejection escalates to the Sourcing Head."):null;},
     sections:[
-      {title:"Inspection evidence",fields:[
+      {title:"Inspection",fields:[
         {k:"dimensionalResult",label:"Dimensional result",type:"choice",options:["Pass - all characteristics","Partial - minor deviations","Fail"],req:true},
-        {k:"cpk",label:"Cpk / Ppk on critical characteristics",type:"number"},
-        {k:"gaugeRR",label:"Gauge R&R reference",type:"text"},
-        {k:"labReport",label:"Lab / test report reference",type:"text"},
-      ]},
-      {title:"Assessment",fields:[
-        {k:"sqeNotes",label:"Inspection notes",type:"textarea",ph:"What was measured, what deviated…"},
+        /* Per part, because a batch is rarely all good or all bad: what arrived is carried
+           from the F-06 receipts, what passes is the inspector's answer. */
+        {k:"inspLines",label:"Parts inspected",type:"insptable",remarksLabel:"SQE remarks"},
       ]},
     ],
     decision:{label:"SQE decision",options:[
@@ -1526,8 +1523,8 @@ const FORM_SPECS={
       {v:"Rejected",label:"Rejected",desc:"Sends the part back for a new sample and increments the rejection counter.",to:"Sample Rejected",phase:"Sample Qual"},
     ]},
     comment:{k:"comments",label:"Decision comments",req:true},
-    apply:(p,v,who,choice)=>({...p,dimensionalResult:v.dimensionalResult,cpk:num(v.cpk),gaugeRR:v.gaugeRR,
-      labReport:v.labReport,rejectionCount:(p.rejectionCount||0)+(choice&&choice.v==="Rejected"?1:0)}),
+    apply:(p,v,who,choice)=>({...p,dimensionalResult:v.dimensionalResult,
+      rejectionCount:(p.rejectionCount||0)+(choice&&choice.v==="Rejected"?1:0)}),
   },
   "F-08":{
     id:"F-08",name:"Engineering / AME approval",owner:"Engineering",cap:"eng.approve",
@@ -1535,15 +1532,10 @@ const FORM_SPECS={
     intro:"Confirm the sample meets the drawing and functions as intended.",
     note:p=>{const n=p.engRejectionCount||0;return n>=2?"Two consecutive engineering rejections - a review meeting is required.":null;},
     sections:[
-      {title:"Engineering assessment",fields:[
-        {k:"designConformance",label:"Design conformance",type:"choice",options:["Conforms to design","Deviation - documented"],req:true},
-        {k:"fitFormFunction",label:"Fit / form / function",type:"choice",options:["Pass - all three confirmed","Fail - one or more failed"],req:true},
-        {k:"drawingReference",label:"Drawing reference",type:"text",req:true},
-        {k:"drawingRevision",label:"Drawing revision",type:"text",req:true},
-        {k:"revisionVerified",label:"Revision verified against master",type:"choice",options:["Yes","No"],req:true},
-        {k:"controlPlan",label:"Control plan / PFMEA reference",type:"text"},
+      {title:"Engineering review",fields:[
+        {k:"fitFormFunction",label:"Form and Fit results",type:"choice",options:["Pass - all three confirmed","Fail - one or more failed"],req:true},
+        {k:"inspLines",label:"Parts reviewed",type:"insptable",remarksLabel:"AME remarks"},
       ]},
-      {title:"Notes",fields:[{k:"engineeringNotes",label:"Engineering notes",type:"textarea"}]},
     ],
     decision:{label:"Engineering decision",options:[
       {v:"Approved",label:"Approved",desc:"Advances to the production trial.",to:"Engineering Approved",phase:"Sample Qual"},
@@ -1551,8 +1543,7 @@ const FORM_SPECS={
       {v:"Reassigned",label:"Reassign",desc:"Keeps the gate open and hands it to another engineer.",to:"SQE Approved",phase:"Sample Qual"},
     ]},
     comment:{k:"comments",label:"Decision comments",req:true},
-    apply:(p,v,who,choice)=>({...p,designConformance:v.designConformance,fitFormFunction:v.fitFormFunction,
-      drawingReference:v.drawingReference,drawingRevision:v.drawingRevision,revisionVerified:v.revisionVerified,
+    apply:(p,v,who,choice)=>({...p,fitFormFunction:v.fitFormFunction,
       engRejectionCount:(p.engRejectionCount||0)+(choice&&choice.v==="Rejected"?1:0)}),
   },
   "F-09":{
@@ -1561,19 +1552,10 @@ const FORM_SPECS={
     intro:"Run the trial lot and record what the line achieved.",
     note:p=>{const n=p.trialRepeatCount||0;return n>=1?("Trial repeated "+n+" time"+(n===1?"":"s")+". At two repeats the Manufacturing Head escalation fires."):null;},
     sections:[
-      {title:"Trial output",fields:[
-        {k:"qtyMade",label:"Quantity made",type:"number",req:true},
-        {k:"qtyAccepted",label:"Quantity accepted",type:"number",req:true},
-        {k:"defectCount",label:"Defect count",type:"number"},
-        {k:"defectMode",label:"Predominant defect mode",type:"text"},
+      {title:"Trial",fields:[
+        {k:"functionalResult",label:"Functional result",type:"choice",options:["Pass - all characteristics","Partial - minor deviations","Fail"],req:true},
+        {k:"inspLines",label:"Parts trialled",type:"insptable",remarksLabel:"Production remarks"},
       ]},
-      {title:"Process metrics",fields:[
-        {k:"yieldRate",label:"Yield rate (%)",type:"number",req:true},
-        {k:"firstPassYield",label:"First pass yield (%)",type:"number"},
-        {k:"cycleTime",label:"Cycle time (seconds per unit)",type:"number"},
-        {k:"runAtRate",label:"Run-at-rate achieved",type:"choice",options:["Yes - demonstrated","No - below required rate"]},
-      ]},
-      {title:"Notes",fields:[{k:"trialNotes",label:"Trial lot notes",type:"textarea"}]},
     ],
     decision:{label:"Trial decision",options:[
       {v:"Approved",label:"Approved for mass production",desc:"Advances the part to PSW sign-off.",to:"PSW Pending Sign-off",phase:"PSW"},
@@ -1581,8 +1563,7 @@ const FORM_SPECS={
       {v:"Rejected",label:"Rejected",desc:"Returns to Engineering for design re-review.",to:"Production Rejected",phase:"Sample Qual"},
     ]},
     comment:{k:"comments",label:"Decision comments",req:true},
-    apply:(p,v,who,choice)=>({...p,qtyMade:num(v.qtyMade),qtyAccepted:num(v.qtyAccepted),defectCount:num(v.defectCount),
-      yieldRate:num(v.yieldRate),firstPassYield:num(v.firstPassYield),cycleTime:num(v.cycleTime),runAtRate:v.runAtRate,
+    apply:(p,v,who,choice)=>({...p,functionalResult:v.functionalResult,
       trialRepeatCount:(p.trialRepeatCount||0)+(choice&&choice.v==="Repeat"?1:0)}),
   },
   /* The Finance Head has already said Capex or Opex at F-02f. What is captured here is the
@@ -3434,6 +3415,58 @@ function NotifyGrid({value,onChange,pid,project,parts,group}){
 /* The same rows the PR and PO steps filled, with nothing to type. F-05 shows them so the
    person writing to the vendor can see what was ordered without opening two other forms; the
    numbers belong to F-04 and F-04-PO and are corrected there. */
+/* SQE, AME and Production all answer the same question against the same parts: how many of
+   what arrived is acceptable, and what does the inspector want on record. One table, one
+   stored shape, with the remarks column named for whoever is looking at it. */
+const INSP_COLS=["Part number","Description","Received qty","Approved qty","Remarks"];
+const inspRows=(t)=>{
+  const w=INSP_COLS.length;
+  return String(t||"").split(/\r?\n/)
+    .filter(l=>l.trim()!==""||l.indexOf("\t")>=0)
+    .map(l=>l.split("\t").map(x=>x.trim()))
+    .filter((r,i)=>!(i===0&&/part\s*number|partnumber/i.test(r[0]||"")))
+    .map(r=>{const o=r.slice(0,w);while(o.length<w)o.push("");return o;});
+};
+const rowsToInsp=(g)=>[INSP_COLS.join("\t")].concat(g.map(r=>r.join("\t"))).join("\n");
+
+function InspectionTable({value,onChange,project,parts,group,remarksLabel}){
+  const typed=inspRows(value);
+  /* What arrived, from the receipts recorded at F-06. The inspector says how much of it
+     passes; the part list and the quantity received are not theirs to edit. */
+  const seedRows=()=>{
+    const got={};
+    sampleGridRows((project&&project.form&&project.form["F-06"]&&project.form["F-06"].sampleLines)
+      ||((project&&project.hubForm)||{}).sampleLines||"")
+      .forEach(r=>{ if(r[1]) got[String(r[1]).trim().toUpperCase()]=r[4]||""; });
+    return (parts||[]).map(x=>[x.part||"",x.desc||"",
+      got[String(x.part||"").trim().toUpperCase()]||"","",""]);
+  };
+  const rows=typed.length?typed:seedRows();
+  const write=(g)=>onChange({target:{value:rowsToInsp(g)}});
+  const setCell=(ri,ci,v)=>{const g=rows.map(r=>r.slice());g[ri][ci]=v;write(g);};
+  const pg=usePager(rows.length);
+  const cols=INSP_COLS.slice(0,4).concat([remarksLabel||"Remarks"]);
+  return <div className="qgrid sgrid">
+    <div className="xlwrap">
+      <table className="xltable">
+        <thead><tr><th className="rn"/>{cols.map(c=><th key={c}>{c}</th>)}</tr></thead>
+        <tbody>
+          {rows.length?pg.window(rows).map(([r,ri])=><tr key={ri}>
+            <td className="rn">{ri+1}</td>
+            {r.map((c,ci)=><td key={ci} className={(ci===2||ci===3?"num":"")+(ci<3?" ro":"")}>
+              {ci<3 ? (c||<span className="tmeta">—</span>)
+                : <input value={c} onChange={e=>setCell(ri,ci,e.target.value)}
+                    aria-label={cols[ci]+" row "+(ri+1)}/>}
+            </td>)}
+          </tr>):<tr><td className="xlempty" colSpan={cols.length+1}>No parts on this project yet.</td></tr>}
+        </tbody>
+      </table>
+    </div>
+    <div className="xlfoot"><Pager pg={pg} noun="parts"/>
+      <span className="xlcount">{rows.filter(r=>String(r[3]).trim()).length} of {rows.length} part(s) assessed</span></div>
+  </div>;
+}
+
 function PrPoTable({parts,project}){
   const by={};
   sapRows((project&&project.form&&project.form["F-04-PO"]&&project.form["F-04-PO"].sapLines)
@@ -5680,6 +5713,9 @@ function FormField({f,val,onChange,err,db,all,project,group}){
   else if(f.type==="notifygrid") ctrl=<NotifyGrid value={val} onChange={onChange}
     pid={(project&&project.id)+(group?"::"+group:"")} project={project} group={group}
     parts={partsInGroup(db&&db.parts,project&&project.id,group)}/>;
+  else if(f.type==="insptable") ctrl=<InspectionTable value={val} onChange={onChange} project={project}
+    group={group} remarksLabel={f.remarksLabel}
+    parts={partsInGroup(db&&db.parts,project&&project.id,group)}/>;
   else if(f.type==="prpotable") ctrl=<PrPoTable project={project}
     parts={((db&&db.parts)||[]).filter(x=>project&&x.pid===project.id)}/>;
   else if(f.type==="sapgrid") ctrl=<SapGrid value={val} onChange={onChange} po={!!f.po}
@@ -5704,7 +5740,7 @@ function FormField({f,val,onChange,err,db,all,project,group}){
      whole row instead. */
   /* Grids always take the row; anything else can ask for it with full:true - a paragraph of
      instructions in a half-width column is a three-word-per-line column of text. */
-  const wide=f.full||["partsgrid","vendorlist","sapgrid","notifygrid","samplegrid","prpotable"].indexOf(f.type)>=0;
+  const wide=f.full||["partsgrid","vendorlist","sapgrid","notifygrid","samplegrid","prpotable","insptable"].indexOf(f.type)>=0;
   return <div className={"field2"+(wide?" fullrow":"")+(err?" invalid":"")}>
     <div className="flabel">{f.label} {isReq(f,all)?<i>*</i>:null}</div>
     {ctrl}
@@ -5900,22 +5936,13 @@ function PhaseForm({formId,pid,group}){
       <span className="mchip">{plantLine(project)}</span>
       <span className="mchip">{spec.owner}</span>
     </div>
-    {/* Which parts this verdict covers is the whole point of answering per group - it is
-        shown rather than left to be inferred from the group name. */}
-    {grp?<div className="roform" style={{marginTop:0}}>
-      <b>This decision covers {grp} only.</b>{" "}
-      {grpParts.length?grpParts.map(x=>x.part).join(", "):"No parts are tagged to this group."}
-      {allTracks.length>1?" \u00b7 "+(allTracks.length-1)+" other group(s) on this project are decided separately.":""}
-      {/* The head opens the same form for the same group, so what the engineer put forward
-          has to be on the screen the head decides on. */}
-      {track&&track.recommendation&&track.recommendation.form===spec.id
-        ? <div style={{marginTop:8}}><b>{track.recommendation.by}</b> recommended <b>{track.recommendation.decision}</b> ({track.recommendation.to}) on {track.recommendation.at}.</div>
-        : null}
-    </div>:null}
-    {mayEdit&&leaderFor(formId,roleKey,noteSubject)? <div className="roform">
-      <b>Your submission is a recommendation.</b> {ROLE[leaderFor(formId,roleKey,noteSubject)].label} receives it
-      as a Teams approval and their decision is what moves the project. Everything you record here
-      goes to them with it.</div>:null}
+    {/* The head opens the same form for the same group, so what the member put forward has
+        to be on the screen the head decides on. */}
+    {grp&&track&&track.recommendation&&track.recommendation.form===spec.id
+      ? <div className="roform" style={{marginTop:0}}>
+          <b>{track.recommendation.by}</b> recommended <b>{track.recommendation.decision}</b> ({track.recommendation.to}) on {track.recommendationDate||"an earlier date"}.
+        </div>
+      : null}
     {!mayEdit? <div className="roform"><b>Read-only.</b> {!can(spec.cap)?(ROLE[roleKey].label+" cannot submit "+spec.id+"."):(spec.from.indexOf(atStatus)<0)?((grp?grp+" is":"This project is")+" at "+atStatus+", so "+spec.id+" is not the active form for it."):("This project assigned "+(grp?grp+" ":"")+"to "+(waitingOn||"someone else")+". You can read it, but only they can submit it.")}</div>:null}
     <div className="wiz">
       <div className="block"><div className="panel-pad">
@@ -6344,6 +6371,17 @@ const plural=(n,w)=>n+" "+w+(n===1?"":"s");
 
 /* Everything a later card needs, folded in as each form is submitted. Kept small on purpose:
    facts, not whole forms - TracksJSON already carries the forms. */
+/* Received and approved across an inspection table, plus how many parts carried a remark -
+   enough for a card to say what happened without shipping the whole table. */
+const inspTotals=(tsv)=>{
+  const rr=inspRows(tsv);
+  const n=(x)=>{const f=parseFloat(x);return isFinite(f)?f:0;};
+  const assessed=rr.filter(r=>String(r[3]).trim());
+  return {parts:rr.length,done:assessed.length,
+    got:rr.reduce((a,r)=>a+n(r[2]),0),ok:assessed.reduce((a,r)=>a+n(r[3]),0),
+    notes:rr.filter(r=>String(r[4]).trim()).length};
+};
+
 function summaryAfter(p,formId,v,group,extra,by){
   const s=JSON.parse(JSON.stringify(p.summary||{}));
   delete s.cards;
@@ -6390,13 +6428,11 @@ function summaryAfter(p,formId,v,group,extra,by){
     gs().smp={exp:rr.length,got:got.length,qty:got.reduce((a,r)=>a+(num(r[4])||0),0),lots:lots,
       type:v.sampleType||"",ppap:v.ppapLevel||"",docs:v.documents||""};
   }
-  else if(formId==="F-07") gs().sqe={res:v.dimensionalResult||"",cpk:v.cpk,notes:v.sqeNotes||"",
-    grr:v.gaugeRR||"",lab:v.labReport||""};
-  else if(formId==="F-08") gs().eng={conf:v.designConformance||"",fff:v.fitFormFunction||"",
-    dwg:v.drawingReference||"",rev:v.drawingRevision||"",revOk:v.revisionVerified||"",cp:v.controlPlan||"",
-    notes:v.engineeringNotes||""};
-  else if(formId==="F-09") gs().trial={made:num(v.qtyMade),acc:num(v.qtyAccepted),def:num(v.defectCount),
-    mode:v.defectMode||"",yield:num(v.yieldRate),rar:v.runAtRate||"",notes:v.trialNotes||""};
+  /* The three inspections keep the same two facts: the verdict, and the quantities behind
+     it - received and approved across the parts that were looked at. */
+  else if(formId==="F-07") gs().sqe={res:v.dimensionalResult||"",...inspTotals(v.inspLines)};
+  else if(formId==="F-08") gs().eng={fff:v.fitFormFunction||"",...inspTotals(v.inspLines)};
+  else if(formId==="F-09") gs().trial={res:v.functionalResult||"",...inspTotals(v.inspLines)};
   else if(formId==="F-10") gs().psw={dev:v.deviationsExist||"",desc:v.deviationDescription||"",
     plan:v.actionPlan||"",level:v.ppapLevel||"",trun:v.trunReferenceNumber||"",partRev:v.partRevision||"",
     reason:v.submissionReason||"",fair:v.fairChecklistComplete||"",dim:v.dimensionalComplete||""};
@@ -6472,10 +6508,10 @@ function cardFor(s,to,group,ctx){
   const sq=gi.sqe||{}, en=gi.eng||{}, tr=gi.trial||{};
   /* the vendor the group is with NOW - a re-source may have moved it off the F-02 vendor */
   const groupVendor=(gi.rs&&gi.rs.vendor)||vendorNames;
-  const sqeLine=[sq.res,(sq.cpk!=null&&sq.cpk!=="")?"Cpk "+sq.cpk:""].filter(Boolean).join(" \u00b7 ");
-  const trialLine=tr.made!=null?[tr.made+" made",tr.acc!=null?tr.acc+" accepted":"",tr.yield!=null?tr.yield+"% yield":"",
-    tr.def!=null?plural(tr.def,"defect"):""].filter(Boolean).join(" \u00b7 "):"";
-  let h=null,f=[],m=[],ch="";
+  /* What the inspection actually establishes now: the verdict and the count behind it. */
+  const qtyLine=(o)=>o&&o.parts?((o.ok||0)+" of "+(o.got||0)+" accepted \u00b7 "+(o.done||0)+" of "+o.parts+" part(s)"):"";
+  const sqeLine=[sq.res,qtyLine(sq)].filter(Boolean).join(" \u00b7 ");
+  const trialLine=[tr.res,qtyLine(tr)].filter(Boolean).join(" \u00b7 ");
   if(to==="Feasibility Review"){
     const i=s.intake||{};
     h="New request — please check feasibility";
@@ -6590,8 +6626,8 @@ function cardFor(s,to,group,ctx){
     h="Samples rejected"+(g?" for "+g:"")+" — choose the next step (F-06R)";
     f=[cFact("Group",groupLine),cFact("Rejected at",byEng?"Engineering review (F-08)":"SQE validation (F-07)")]
       .concat(byEng
-        ?[cFact("Fit / form / function",en.fff),cFact("Design conformance",en.conf),cFact("Engineering notes",cTrim(en.notes,200))]
-        :[cFact("Dimensional result",sq.res),cFact("Cpk / Ppk",sq.cpk),cFact("Inspection notes",cTrim(sq.notes,200))])
+        ?[cFact("Form and Fit results",en.fff),cFact("Parts",qtyLine(en))]
+        :[cFact("Dimensional result",sq.res),cFact("Parts",qtyLine(sq))])
       .concat([cFact("Rejection",cOrd(n)+" of 3"+(n>=3?" — Sourcing Head must approve the next re-sample":"")),
                cFact("Vendor",vendorNames)]);
   }
@@ -6605,8 +6641,8 @@ function cardFor(s,to,group,ctx){
   else if(to==="PSW Pending Sign-off"){
     h=(g||"Samples")+" passed the production trial \u2014 prepare the PSW (F-10)";
     f=[cFact("Group",groupLine),cFact("SQE result",sqeLine),
-       cFact("Drawing",[en.dwg,en.rev?"rev "+en.rev:""].filter(Boolean).join(" ")),
-       cFact("Trial",trialLine),cFact("Run-at-rate",tr.rar)];
+       cFact("Engineering",[en.fff,qtyLine(en)].filter(Boolean).join(" \u00b7 ")),
+       cFact("Trial",trialLine)];
   }
   else if(to==="PSW Rejected"){
     const ps=gi.psw||{};
@@ -6623,32 +6659,32 @@ function cardFor(s,to,group,ctx){
        cFact("Lot numbers",(sm.lots||[]).slice(0,4).join(", ")+((sm.lots||[]).length>4?" +"+(sm.lots.length-4)+" more":"")),
        cFact("Sample type",sm.type),cFact("PPAP level",sm.ppap),cFact("Documents",cTrim(sm.docs,160)),
        cFact("Attempt",rej?cOrd(rej+1)+" sample \u2014 "+plural(rej,"earlier rejection"):""),
-       cFact("Last rejected for",rej?cTrim((gi.rs&&gi.rs.told)||sq.notes,160):"")];
+       cFact("Last rejected for",rej?cTrim((gi.rs&&gi.rs.told)||"",160):"")];
   }
   else if(to==="SQE Approved"||to==="SQE Conditional"){
     const cond=to==="SQE Conditional";
     h="SQE passed "+(g||"the samples")+(cond?" with conditions":"")+" \u2014 Engineering to review fit, form and function (F-08)";
     f=[cFact("Group",groupLine),cFact("Vendor",groupVendor),cFact("Dimensional result",sq.res),
-       cFact("Cpk / Ppk",sq.cpk),cFact("Gauge R&R",sq.grr),cFact("Lab / test report",sq.lab),
-       cFact(cond?"Conditions":"Inspection notes",cTrim(sq.notes,200))];
+       cFact("Parts accepted",qtyLine(sq)),
+       cFact("SQE remarks",sq.notes?sq.notes+" part(s)":"")];
   }
   else if(to==="Production Rejected"){
     h="Production trial rejected"+(g?" for "+g:"")+" \u2014 Engineering to re-review (F-08)";
-    f=[cFact("Group",groupLine),cFact("Trial",trialLine),cFact("Defect mode",tr.mode),
-       cFact("Run-at-rate",tr.rar),cFact("Trial notes",cTrim(tr.notes,200))];
+    f=[cFact("Group",groupLine),cFact("Trial",trialLine),
+       cFact("Remarks recorded",tr.notes?String(tr.notes)+" part(s)":"")];
   }
   else if(to==="Engineering Approved"){
     h="Engineering approved "+(g||"the samples")+" \u2014 run the production trial (F-09)";
     f=[cFact("Group",groupLine),cFact("Vendor",groupVendor),
-       cFact("Drawing",[en.dwg,en.rev?"rev "+en.rev:""].filter(Boolean).join(" ")),
+       cFact("Form and Fit results",en.fff),
        cFact("Revision verified",en.revOk),cFact("Control plan / PFMEA",en.cp),
        cFact("Fit / form / function",en.fff),cFact("SQE result",sqeLine),
-       cFact("Engineering notes",cTrim(en.notes,200)),cFact("Previous trial",trialLine)];
+       cFact("AME remarks",en.notes?en.notes+" part(s)":""),cFact("Previous trial",trialLine)];
   }
   else if(to==="Trial Repeat Required"){
     h="Production trial to be repeated"+(g?" for "+g:"")+" (F-09)";
-    f=[cFact("Group",groupLine),cFact("Last trial",trialLine),cFact("Defect mode",tr.mode),
-       cFact("Run-at-rate",tr.rar),cFact("Trial notes",cTrim(tr.notes,200))];
+    f=[cFact("Group",groupLine),cFact("Last trial",trialLine),
+       cFact("Production remarks",tr.notes?tr.notes+" part(s)":"")];
   }
   else if(to==="PSW Sign-off Pending"){
     const ps=gi.psw||{};
