@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-28 08:34 UTC (web)";
+const BUILD="2026-09-28 08:45 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -1417,11 +1417,13 @@ const FORM_SPECS={
         {k:"sampleLines",label:"Sample receipts",type:"samplegrid",req:true},
       ]},
       {title:"Sample details",fields:[
-        {k:"sampleType",label:"Sample type",type:"choice",options:["Initial sample","Re-sample","Production sample"],req:true},
-      ]},
-      {title:"PPAP",fields:[
+        {k:"sampleType",label:"Sample type",type:"choice",options:["Sample","TRUN","Production"],req:true},
         {k:"ppapLevel",label:"PPAP submission level",type:"choice",options:["Level 1","Level 2","Level 3","Level 4","Level 5"]},
-        {k:"documents",label:"Documents supplied",type:"textarea",ph:"Dimensional report, material certs, control plan…"},
+        /* What was supplied, and the files themselves - naming a control plan is not the same
+           as having it, and the project's document library is where it has to end up. */
+        {k:"documents",label:"Documents supplied",type:"textarea",full:true,ph:"Dimensional report, material certs, control plan…"},
+        {k:"documentFiles",label:"Attach the documents",type:"files",full:true,
+         accept:".pdf,.xlsx,.xls,.docx,.csv,.png,.jpg,.zip"},
       ]},
     ],
     /* Two outcomes because receipts are staggered: recording what has arrived must not
@@ -3281,16 +3283,24 @@ const sampleGridRows=(t)=>{
 const rowsToSampleGrid=(g)=>[SAMPLE_COLS.join("\t")].concat(g.map(r=>r.join("\t"))).join("\n");
 
 function SampleGrid({value,onChange,pid,project,parts,group}){
-  const rows=sampleGridRows(value);
-  useEffect(()=>{
-    if(rows.length) return;
+  const typed=sampleGridRows(value);
+  const seedRows=()=>{
     /* One row per part, all from the project's one vendor, expected on the date F-05 (or the
        group's re-sample request) agreed. Read from the stored summary, which survives a reload. */
     const sm=(project&&project.summary)||{}, v=projVendor(project);
     const due=(group&&sm.g&&sm.g[group]&&sm.g[group].rs&&sm.g[group].rs.due)||(sm.f05&&sm.f05.d)||"";
-    const seed=(parts||[]).map(x=>[v?v.n:"",x.part||"",due,"","",""]);
-    if(seed.length) onChange({target:{value:rowsToSampleGrid(seed)}});
-  },[pid,(parts||[]).length]);
+    const today=new Date().toISOString().slice(0,10);
+    /* The quantity the Planner raised on the PR is what was ordered, so it is what is expected
+       to arrive. A short delivery is edited here; a blank would be retyped every time. */
+    const trun={};
+    sapRows((project&&project.form&&project.form["F-04-PO"]&&project.form["F-04-PO"].sapLines)
+      ||(project&&project.form&&project.form["F-04"]&&project.form["F-04"].sapLines)
+      ||((project&&project.hubForm)||{}).sapLines||"")
+      .forEach(r=>{ if(r[0]) trun[String(r[0]).trim().toUpperCase()]=r[3]||""; });
+    return (parts||[]).map(x=>[v?v.n:"",x.part||"",due,today,
+      trun[String(x.part||"").trim().toUpperCase()]||"",""]);
+  };
+  const rows=typed.length?typed:seedRows();
   const write=(g)=>onChange({target:{value:rowsToSampleGrid(g)}});
   const setCell=(ri,ci,v)=>{const g=rows.map(r=>r.slice());g[ri][ci]=v;write(g);};
   const got=rows.filter(r=>r[3]).length;
@@ -3302,23 +3312,19 @@ function SampleGrid({value,onChange,pid,project,parts,group}){
     {vend?<div className="tmeta" style={{marginBottom:6}}>Vendor: <b>{vend.n}</b></div>:null}
     <div className="xlwrap">
       <table className="xltable">
-        <thead><tr><th className="rn"/>{SAMPLE_COLS.map((c,ci)=>ci===0?null:<th key={c}>{c}</th>)}<th className="rn"/></tr></thead>
+        <thead><tr><th className="rn"/>{SAMPLE_COLS.map((c,ci)=>ci===0?null:<th key={c}>{c}</th>)}</tr></thead>
         <tbody>
           {rows.length?pg.window(rows).map(([r,ri])=><tr key={ri} className={r[3]?"":"jnow"}>
             <td className="rn">{r[3]?"\u2713":ri+1}</td>
             {r.map((c,ci)=>ci===0?null:<td key={ci} className={SAMPLE_NUM.indexOf(ci)>=0?"num":(ci<2?"ro":"")}>
               {ci<2 ? c
                 : ci===2 ? <span className="tmeta" style={{padding:"0 9px"}}>{c||"\u2014"}</span>
-                : ci===3 ? <span className="dcell">
-                    <input type="date" value={c} onChange={e=>setCell(ri,ci,e.target.value)} aria-label={"Received "+(ri+1)}/>
-                    {/* most receipts are logged the day they land, so the common case is one click */}
-                    <button className="btn xs" title="Set to today"
-                      onClick={()=>setCell(ri,ci,new Date().toISOString().slice(0,10))}>Today</button>
-                  </span>
+                : ci===3 ? <input type="date" value={c} onChange={e=>setCell(ri,ci,e.target.value)}
+                    aria-label={"Received "+(ri+1)}/>
                 : <input value={c} onChange={e=>setCell(ri,ci,e.target.value)} aria-label={SAMPLE_COLS[ci]+" "+(ri+1)}/>}
             </td>)}
-            <td className="rn">{r[3]?<span className="tmeta">in</span>:<span className="tmeta">due</span>}</td>
-          </tr>):<tr><td className="xlempty" colSpan={SAMPLE_COLS.length+1}>Nothing expected yet \u2014 F-05 sets this up.</td></tr>}
+            {/* The tick in the row number already says whether it has landed. */}
+          </tr>):<tr><td className="xlempty" colSpan={SAMPLE_COLS.length}>Nothing expected yet \u2014 F-05 sets this up.</td></tr>}
         </tbody>
       </table>
     </div>
@@ -5686,6 +5692,13 @@ function FormField({f,val,onChange,err,db,all,project,group}){
      every keystroke of the rest of the form. */
   else if(f.type==="file") ctrl=<input type="file" accept={f.accept||undefined}
     onChange={e=>onChange({target:{value:(e.target.files&&e.target.files[0])||null}})}/>;
+  else if(f.type==="files") ctrl=<>
+    <input type="file" multiple accept={f.accept||undefined}
+      onChange={e=>onChange({target:{value:(val||[]).concat([...(e.target.files||[])])}})}/>
+    {(val||[]).length?<div className="impfile">{(val||[]).map((x,i)=>
+      <span key={i} style={{marginRight:10}}>{x.name} <button className="btn xs"
+        onClick={()=>onChange({target:{value:(val||[]).filter((y,j)=>j!==i)}})}>remove</button></span>)}</div>:null}
+  </>;
   else ctrl=<input {...common}/>;
   /* A grid in a half-width column truncates every text cell. The wide field types take the
      whole row instead. */
@@ -5745,7 +5758,7 @@ function PhaseForm({formId,pid,group}){
   const set=k=>e=>setV(o=>({...o,[k]:e.target.value}));
   const errs={};
   spec.sections.forEach(sec=>sec.fields.forEach(f=>{
-    if(f.type==="ref"||f.type==="prpotable") return;   /* nothing to validate - not an input */
+    if(f.type==="ref"||f.type==="prpotable"||f.type==="files") return;   /* nothing to validate */
     if(f.type==="file"){ if(isReq(f,v)&&!v[f.k]) errs[f.k]=f.label+" is required"; return; }
     if(f.type==="samplegrid"){
       const rr=sampleGridRows(v[f.k]).filter(r=>r.some(Boolean));
@@ -5841,6 +5854,12 @@ function PhaseForm({formId,pid,group}){
   const prepared=()=>{
     const vals={...v,...(spec.derived?spec.derived(v):{})};
     spec.sections.forEach(sec=>sec.fields.forEach(f=>{
+      if(f.type==="files"){
+        const list=[].concat(vals[f.k]||[]);
+        vals[f.k]=list.map(x=>x&&x.name).filter(Boolean).join(", ");
+        list.forEach(file=>{ if(file) act.uploadDoc({pid:project.id,name:file.name,type:f.label,file:file}); });
+        return;
+      }
       if(f.type!=="file") return;
       const file=vals[f.k];
       vals[f.k]=file?file.name:"";
