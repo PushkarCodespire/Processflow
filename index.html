@@ -1351,7 +1351,7 @@ const FORM_SPECS={
     from:["Opex - PR Pending"],
     intro:"Opex funding is approved with the account coding from F-03o. Raise the PR and record its number.",
     sections:[{title:"Planner input",fields:[
-      {k:"prNumber",label:"SAP PR number",type:"pr",req:true,ph:"10 digits"},
+      {k:"prNumber",label:"SAP PR number",type:"sappr",req:true,ph:"3 letters and 8 digits"},
       {k:"amount",label:"PR amount (INR)",type:"currency"},
     ]}],
     decision:{label:"Submit",options:[
@@ -1365,7 +1365,7 @@ const FORM_SPECS={
     from:["Opex - PO Pending"],
     intro:"Confirm the purchase order raised against the Opex PR.",
     sections:[{title:"Sourcing input",fields:[
-      {k:"poNumber",label:"SAP PO number",type:"po",req:true,ph:"10 digits, or a letter and 9"},
+      {k:"poNumber",label:"SAP PO number",type:"sappo",req:true,ph:"10 digits, or a letter and 9"},
     ]}],
     decision:{label:"Submit",options:[
       {v:"Confirmed",label:"PO confirmed",desc:"Hands over to the vendor notification.",to:"PO Pending",phase:"Vendor Dev"},
@@ -1610,8 +1610,8 @@ const FORM_SPECS={
       {title:"AME inputs",fields:[
         {k:"networkId",label:"Network ID",type:"text",req:true,ph:"SAP capex network"},
         {k:"accoladeId",label:"Accolade ID",type:"text",req:true,ph:"Sopheon Accolade record"},
-        {k:"prNumber",label:"SAP PR number",type:"pr",req:true,ph:"10 digits"},
-        {k:"poNumber",label:"SAP PO number",type:"po",req:true,ph:"10 digits, or a letter and 9"},
+        {k:"prNumber",label:"SAP PR number",type:"sappr",req:true,ph:"3 letters and 8 digits"},
+        {k:"poNumber",label:"SAP PO number",type:"sappo",req:true,ph:"10 digits, or a letter and 9"},
       ]},
       /* Booked by Finance at F-02c. Shown because the Buyer raises the PR against it, asked
          for nowhere else - one capture, so the two records cannot disagree. */
@@ -3109,15 +3109,19 @@ const projRoute=(p)=>{const s=(p&&p.summary)||{}, hf=(p&&p.hubForm)||{};
          (p&&p.routingSuggestion)||(s.f02||{}).route||"";};
 const projVendor=(p)=>curVendor(p&&p.summary)||
   ((p&&p.supplier&&p.supplier!=="\u2014")?{n:p.supplier,e:p.vendorEmail||""}:null);
-/* SAP purchase document numbers. A PR is ten digits. A PO is ten characters: ten digits, or
-   a letter followed by nine. Typed in five places and imported from Excel in two, so the rule
-   lives once and every one of them asks it. */
-const PR_RE=/^[0-9]{10}$/;
-const PO_RE=/^([0-9]{10}|[A-Za-z][0-9]{9})$/;
+/* Four shapes, not two. The requisition and order numbers the plant raises are ten
+   characters; the SAP requisition number is eleven and starts with three letters. A SAP order
+   number is an order number - same shape as any other. Typed in five places and imported from
+   Excel in two, so each rule lives once and every one of them asks it. */
+const PR_RE=/^[0-9]{10}$/;                          /* PR      10, all numeric            */
+const PO_RE=/^([0-9]{10}|[A-Za-z][0-9]{9})$/;       /* PO      10, numeric or A+9 numeric */
+const SAPPR_RE=/^[A-Za-z]{3}[0-9]{8}$/;             /* SAP PR  11, 3 letters + 8 numeric  */
 const isPR=(x)=>PR_RE.test(String(x==null?"":x).trim());
 const isPO=(x)=>PO_RE.test(String(x==null?"":x).trim());
-const PR_HINT="A PR number is 10 digits";
-const PO_HINT="A PO number is 10 characters - 10 digits, or a letter and 9 digits";
+const isSAPPR=(x)=>SAPPR_RE.test(String(x==null?"":x).trim());
+const PR_HINT="A PR number is 10 characters, all digits";
+const PO_HINT="A PO number is 10 characters - all digits, or a letter followed by 9 digits";
+const SAPPR_HINT="A SAP PR number is 11 characters - 3 letters followed by 8 digits";
 
 const isEmail=(x)=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(x||"").trim());
 /* Name, parts and address are all required: F-05 notifies each vendor at that address for
@@ -5154,7 +5158,7 @@ function Samples(){
   const openPilot=(x)=>{
     const st=lotState(x);
     if(st==="Awaiting PR") openModal(<FormModal title={LOT_FORMS[lotNum(x)]+" · raise PR for "+x.lot}
-      fields={[{key:"pr",label:"PR number (SAP)",req:true,ph:"10 digits",check:isPR,hint:PR_HINT},{key:"qty",label:"Ordered quantity",req:true},{key:"comment",label:"Comments",type:"textarea",full:true}]}
+      fields={[{key:"pr",label:"PR number (SAP)",req:true,ph:"3 letters and 8 digits",check:isSAPPR,hint:SAPPR_HINT},{key:"qty",label:"Ordered quantity",req:true},{key:"comment",label:"Comments",type:"textarea",full:true}]}
       submitLabel="Record PR" onClose={closeModal} onSubmit={v=>{act.raiseLotPR(x,v);closeModal();}}/>);
     else if(st==="Ordered") openModal(<FormModal title={LOT_FORMS[lotNum(x)]+" · delivery & IQC for "+x.lot}
       fields={[{key:"deliveryDate",label:"Actual delivery date",req:true,ph:"e.g. 22 Sep 2026"},
@@ -5778,7 +5782,10 @@ function PhaseForm({formId,pid,group}){
     else if((f.type==="number"||f.type==="currency")&&val&&(!isFinite(+val)||+val<0)) errs[f.k]="Must be a positive number";
     else if(f.type==="email"&&val&&!isEmail(val)) errs[f.k]="Enter a valid email address";
     else if(f.type==="pr"&&val&&!isPR(val)) errs[f.k]=PR_HINT;
-    else if(f.type==="po"&&val&&!isPO(val)) errs[f.k]=PO_HINT;
+    else if(f.type==="sappr"&&val&&!isSAPPR(val)) errs[f.k]=SAPPR_HINT;
+    /* A SAP order number is an order number - the same shape, asked by its own name so the
+       form reads the way the plant speaks. */
+    else if((f.type==="po"||f.type==="sappo")&&val&&!isPO(val)) errs[f.k]=PO_HINT;
     else if(f.min&&val.length<f.min) errs[f.k]=f.label+" needs at least "+f.min+" characters ("+val.length+" so far)";
   }));
   if(!String(v[spec.comment.k]||"").trim()) errs[spec.comment.k]=spec.comment.label+" is required";  /* submit only - save skips errs entirely */
