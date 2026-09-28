@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-28 06:37 UTC (web)";
+const BUILD="2026-09-28 08:34 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -1382,13 +1382,20 @@ const FORM_SPECS={
       return v?"Vendor: "+v.n+(v.e?" \u00b7 "+v.e:""):"No vendor was recorded at F-02 - it has to be set there first.";},
     sections:[
       {title:"Sample request",note:"The day 5 reminder and the day 7 escalation to the Sourcing Head run from the send date.",fields:[
-        {k:"contactName",label:"Vendor contact name",type:"text",req:true},
+        /* Both come from the vendor the project already carries, and both stay editable -
+           the person who answers at a supplier is not always the one on the quote. */
+        {k:"contactName",label:"Vendor contact name",type:"text",req:true,init:p=>{const v=projVendor(p);return v?v.n:"";}},
         {k:"contactEmail",label:"Vendor contact email",type:"email",req:true,init:p=>{const v=projVendor(p);return v?v.e:"";}},
         {k:"sampleDeadline",label:"Sample deadline",type:"date",req:true},
-        {k:"sampleQty",label:"Sample quantity (pcs)",type:"number",req:true},
+      ]},
+      /* What the vendor is being asked to make, as the plant recorded it: the parts, the TRUN
+         quantity the Planner raised and the purchase documents behind them. Read-only - this
+         form sends a request, it does not re-state the order. */
+      {title:"Parts on this request",note:"From intake and the PR/PO steps. Correct them there, not here.",fields:[
+        {k:"partsRef",label:"Parts, quantity and purchase documents",type:"prpotable"},
       ]},
       {title:"Instructions",fields:[
-        {k:"instructions",label:"Instructions to vendor",type:"textarea"},
+        {k:"instructions",label:"Instructions to vendor",type:"textarea",full:true},
       ]},
     ],
     decision:{label:"Submit",options:[
@@ -1399,8 +1406,7 @@ const FORM_SPECS={
     apply:(p,v)=>({...p,
       vendorContactName:v.contactName||p.vendorContactName,
       vendorEmail:(v.contactEmail||"").trim()||p.vendorEmail,
-      sampleDeadline:v.sampleDeadline||p.sampleDeadline,
-      sampleQtyRequested:num(v.sampleQty)}),
+      sampleDeadline:v.sampleDeadline||p.sampleDeadline}),
   },
   "F-06":{
     id:"F-06",name:"Sample submission record",owner:"Sourcing / SQE",cap:"sample.record",saveable:true,
@@ -3416,6 +3422,36 @@ function NotifyGrid({value,onChange,pid,project,parts,group}){
       <Pager pg={pg} noun="vendors"/>
       <span className="xlcount">{ready} of {rows.length} ready to send</span>
     </div>
+  </div>;
+}
+
+/* The same rows the PR and PO steps filled, with nothing to type. F-05 shows them so the
+   person writing to the vendor can see what was ordered without opening two other forms; the
+   numbers belong to F-04 and F-04-PO and are corrected there. */
+function PrPoTable({parts,project}){
+  const by={};
+  sapRows((project&&project.form&&project.form["F-04-PO"]&&project.form["F-04-PO"].sapLines)
+    ||(project&&project.form&&project.form["F-04"]&&project.form["F-04"].sapLines)
+    ||((project&&project.hubForm)||{}).sapLines||"")
+    .forEach(r=>{ if(r[0]) by[String(r[0]).trim().toUpperCase()]=r; });
+  const rows=(parts||[]).map(x=>{const r=by[String(x.part||"").trim().toUpperCase()]||[];
+    return [x.part||"",x.desc||"",r[3]||"",r[2]||"",r[4]||""];});
+  const pg=usePager(rows.length);
+  const cols=["Part number","Description","TRUN quantity","PR number","PO number"];
+  return <div className="qgrid sgrid">
+    <div className="xlwrap">
+      <table className="xltable">
+        <thead><tr><th className="rn"/>{cols.map(c=><th key={c}>{c}</th>)}</tr></thead>
+        <tbody>
+          {rows.length?pg.window(rows).map(([r,ri])=><tr key={ri}>
+            <td className="rn">{ri+1}</td>
+            {r.map((c,ci)=><td key={ci} className={"ro"+(ci===2?" num":"")}>{c||<span className="tmeta">—</span>}</td>)}
+          </tr>):<tr><td className="xlempty" colSpan={cols.length+1}>No parts on this project yet.</td></tr>}
+        </tbody>
+      </table>
+    </div>
+    <div className="xlfoot"><Pager pg={pg} noun="parts"/>
+      <span className="xlcount">{rows.filter(r=>r[3]).length} of {rows.length} part(s) have a PR</span></div>
   </div>;
 }
 
@@ -5638,6 +5674,8 @@ function FormField({f,val,onChange,err,db,all,project,group}){
   else if(f.type==="notifygrid") ctrl=<NotifyGrid value={val} onChange={onChange}
     pid={(project&&project.id)+(group?"::"+group:"")} project={project} group={group}
     parts={partsInGroup(db&&db.parts,project&&project.id,group)}/>;
+  else if(f.type==="prpotable") ctrl=<PrPoTable project={project}
+    parts={((db&&db.parts)||[]).filter(x=>project&&x.pid===project.id)}/>;
   else if(f.type==="sapgrid") ctrl=<SapGrid value={val} onChange={onChange} po={!!f.po}
     pid={project&&project.id}
     parts={((db&&db.parts)||[]).filter(x=>project&&x.pid===project.id)}/>;
@@ -5651,7 +5689,9 @@ function FormField({f,val,onChange,err,db,all,project,group}){
   else ctrl=<input {...common}/>;
   /* A grid in a half-width column truncates every text cell. The wide field types take the
      whole row instead. */
-  const wide=["partsgrid","vendorlist","sapgrid","notifygrid","samplegrid"].indexOf(f.type)>=0;
+  /* Grids always take the row; anything else can ask for it with full:true - a paragraph of
+     instructions in a half-width column is a three-word-per-line column of text. */
+  const wide=f.full||["partsgrid","vendorlist","sapgrid","notifygrid","samplegrid","prpotable"].indexOf(f.type)>=0;
   return <div className={"field2"+(wide?" fullrow":"")+(err?" invalid":"")}>
     <div className="flabel">{f.label} {isReq(f,all)?<i>*</i>:null}</div>
     {ctrl}
@@ -5705,7 +5745,7 @@ function PhaseForm({formId,pid,group}){
   const set=k=>e=>setV(o=>({...o,[k]:e.target.value}));
   const errs={};
   spec.sections.forEach(sec=>sec.fields.forEach(f=>{
-    if(f.type==="ref") return;   /* nothing to validate - it is not an input */
+    if(f.type==="ref"||f.type==="prpotable") return;   /* nothing to validate - not an input */
     if(f.type==="file"){ if(isReq(f,v)&&!v[f.k]) errs[f.k]=f.label+" is required"; return; }
     if(f.type==="samplegrid"){
       const rr=sampleGridRows(v[f.k]).filter(r=>r.some(Boolean));
@@ -6317,7 +6357,7 @@ function summaryAfter(p,formId,v,group,extra,by){
   }
   else if(formId==="F-04o-PR") s.f04o={...(s.f04o||{}),pr:v.prNumber||"",amount:num(v.amount)};
   else if(formId==="F-04o-PO") s.f04o={...(s.f04o||{}),po:v.poNumber||""};
-  else if(formId==="F-05") s.f05={contact:v.contactName||"",e:v.contactEmail||"",d:v.sampleDeadline||"",q:num(v.sampleQty)};
+  else if(formId==="F-05") s.f05={contact:v.contactName||"",e:v.contactEmail||"",d:v.sampleDeadline||""};
   else if(formId==="F-06R"){
     const replace=v.resourceAction==="Replace the vendor";
     gs().rs={dec:v.resourceAction||"",vendor:replace?(v.newVendorName||""):"",price:replace?(v.newVendorQuoted||""):"",
@@ -6523,7 +6563,7 @@ function cardFor(s,to,group,ctx){
     const f5=s.f05||{};
     h="Vendor notified \u2014 samples on the way";
     f=[cFact("Vendor",vendorNames),cFact("Contact",[f5.contact,f5.e].filter(Boolean).join(" \u2014 ")),
-       cFact("Sample due",cDate(f5.d)),cFact("Sample quantity",f5.q!=null?f5.q+" pcs":""),
+       cFact("Sample due",cDate(f5.d)),cFact("TRUN quantity",(s.f04||{}).trun?String((s.f04||{}).trun):""),
        cFact("Parts",partsLine)];
   }
   else if(to==="Sample Rejected"){
@@ -7862,7 +7902,7 @@ function App(){
             ? <div style={{color:"var(--red)",marginBottom:6,lineHeight:1.45}}>{spErrors.slice(0,2).map((e,i)=><div key={i}>{e}</div>)}</div>
             : null}
           v0.9 · {ROLE_KEYS.length} roles · {Object.keys(FORM_SPECS).length}/14 forms · {authSrc==="dev"?"Teams SSO ready":authSrc==="teams"?"Teams SSO active":"no role mapped"}
-          <div style={{marginTop:4,opacity:.75}}>build {BUILD}</div>
+          <div style={{marginTop:4,opacity:.75}}>build {BUILD==="dev"?("dev · "+document.lastModified):BUILD}</div>
         </div>
       </aside>
       {navOpen?<div className="nav-backdrop" onClick={()=>setNavOpen(false)}/>:null}
