@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-28 09:59 UTC (web)";
+const BUILD="2026-09-28 11:09 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -1024,7 +1024,11 @@ const STATUS_TASKS={
   "Opex - PR Pending":{roles:["PLANNER","PLAN_LEAD"],title:"Opex PR number (F-04o)",phase:"Vendor Dev",act:"Raise PR",form:"F-04o-PR"},
   "Opex - PO Pending":{roles:["SRC_MEMBER","BUYER"],title:"Opex PO number (F-04o)",phase:"Vendor Dev",act:"Confirm",form:"F-04o-PO"},
   "PO Pending":{roles:["SRC_MEMBER","SRC_HEAD"],title:"Vendor notification & timeline (F-05)",phase:"Vendor Dev",act:"Notify",form:"F-05"},
-  "SQE Approved":{roles:["ENG","ENG_LEAD"],title:"Engineering / AME approval (F-08)",phase:"Sample Qual",act:"Review",form:"F-08"},
+  /* SQE hands the samples to the line, not to AME: the trial runs first and AME signs off on
+     what the trial produced. "Engineering Approved" and "Production Rejected" below are the
+     old order's statuses, kept so a project already sitting on one still has a task. */
+  "SQE Approved":{roles:["PROD_ENG","MFG_HEAD"],title:"Production trial (F-09)",phase:"Sample Qual",act:"Run trial",form:"F-09"},
+  "Production Trial Approved":{roles:["ENG","ENG_LEAD"],title:"Engineering / AME approval (F-08)",phase:"Sample Qual",act:"Review",form:"F-08"},
   /* A rejection used to hand Sourcing a receipt form, which assumed somebody had already
      chased the vendor by email - the app never asked who was supplying the replacement or
      when it was due. F-06R is that missing step: it is the only exit from a rejection, and
@@ -1036,7 +1040,7 @@ const STATUS_TASKS={
   "Production Rejected":{roles:["ENG","ENG_LEAD"],title:"Engineering re-review (F-08)",phase:"Sample Qual",act:"Review",form:"F-08"},
   "In Development":{roles:["SRC_MEMBER","SQE_ENG"],title:"Record sample receipt (F-06)",phase:"Sample Qual",act:"Record",form:"F-06"},
   "Sample Under Inspection":{roles:["SQE_ENG","SQE_HEAD"],title:"SQE sample validation (F-07)",phase:"Sample Qual",act:"Validate",form:"F-07"},
-  "SQE Conditional":{roles:["ENG","ENG_LEAD"],title:"Engineering / AME approval (F-08)",phase:"Sample Qual",act:"Review",form:"F-08"},
+  "SQE Conditional":{roles:["PROD_ENG","MFG_HEAD"],title:"Production trial (F-09)",phase:"Sample Qual",act:"Run trial",form:"F-09"},
   "PSW Pending Sign-off":{roles:["SRC_MEMBER","SRC_HEAD"],title:"Initiate PSW sign-off (F-10)",phase:"PSW",act:"Initiate",form:"F-10"},
   "PSW Sign-off Pending":{cft:true,title:"PSW / CFT signature (F-10)",phase:"PSW",act:"Sign"},
   "PSW Rejected":{roles:["SRC_MEMBER","SRC_HEAD"],title:"PSW rejected - revise and re-initiate",phase:"PSW",act:"Open"},
@@ -1065,7 +1069,7 @@ const STATUS_TASKS={
    reading project.status exactly as they did rather than each learning about groups. The
    tracks re-converge at FAIR Released: pilot lots and closure are project-wide again. */
 const TRACK_ORDER=["Sample Rejected","Re-sample Requested","Sample Under Inspection","SQE Conditional","SQE Approved",
-  "Production Rejected","Trial Repeat Required","Engineering Approved",
+  "Trial Repeat Required","Production Trial Approved","Production Rejected","Engineering Approved",
   "PSW Rejected","PSW Pending Sign-off","PSW Sign-off Pending","FAIR Released"];
 const TRACK_FORMS=["F-06","F-06R","F-07","F-08","F-09","F-10"];
 const isTrackStatus=(st)=>TRACK_ORDER.indexOf(st)>=0;
@@ -1518,8 +1522,8 @@ const FORM_SPECS={
       ]},
     ],
     decision:{label:"SQE decision",options:[
-      {v:"Approved",label:"Approved",desc:"Passes to Engineering / AME for technical sign-off.",to:"SQE Approved",phase:"Sample Qual"},
-      {v:"Conditional",label:"Conditional",desc:"Accepted with deviations - Engineering reviews with the conditions recorded.",to:"SQE Conditional",phase:"Sample Qual"},
+      {v:"Approved",label:"Approved",desc:"Passes to Production for the trial run.",to:"SQE Approved",phase:"Sample Qual"},
+      {v:"Conditional",label:"Conditional",desc:"Accepted with deviations - the trial runs with the conditions recorded.",to:"SQE Conditional",phase:"Sample Qual"},
       {v:"Rejected",label:"Rejected",desc:"Sends the part back for a new sample and increments the rejection counter.",to:"Sample Rejected",phase:"Sample Qual"},
     ]},
     comment:{k:"comments",label:"Decision comments",req:true},
@@ -1528,7 +1532,7 @@ const FORM_SPECS={
   },
   "F-08":{
     id:"F-08",name:"Engineering / AME approval",owner:"Engineering",cap:"eng.approve",
-    from:["SQE Approved","SQE Conditional","Production Rejected"],
+    from:["Production Trial Approved","Production Rejected"],
     intro:"Confirm the sample meets the drawing and functions as intended.",
     note:p=>{const n=p.engRejectionCount||0;return n>=2?"Two consecutive engineering rejections - a review meeting is required.":null;},
     sections:[
@@ -1538,9 +1542,9 @@ const FORM_SPECS={
       ]},
     ],
     decision:{label:"Engineering decision",options:[
-      {v:"Approved",label:"Approved",desc:"Advances to the production trial.",to:"Engineering Approved",phase:"Sample Qual"},
-      {v:"Rejected",label:"Rejected",desc:"Returns to SQE for a new sample.",to:"Sample Rejected",phase:"Sample Qual"},
-      {v:"Reassigned",label:"Reassign",desc:"Keeps the gate open and hands it to another engineer.",to:"SQE Approved",phase:"Sample Qual"},
+      {v:"Approved",label:"Approved",desc:"Advances the part to PSW sign-off.",to:"PSW Pending Sign-off",phase:"PSW"},
+      {v:"Rejected",label:"Rejected",desc:"Returns to Sourcing for a new sample.",to:"Sample Rejected",phase:"Sample Qual"},
+      {v:"Reassigned",label:"Reassign",desc:"Keeps the gate open and hands it to another engineer.",to:"Production Trial Approved",phase:"Sample Qual"},
     ]},
     comment:{k:"comments",label:"Decision comments",req:true},
     apply:(p,v,who,choice)=>({...p,fitFormFunction:v.fitFormFunction,
@@ -1548,7 +1552,7 @@ const FORM_SPECS={
   },
   "F-09":{
     id:"F-09",name:"Production trial",owner:"Production",cap:"trial.decide",
-    from:["Engineering Approved","Trial Repeat Required"],
+    from:["SQE Approved","SQE Conditional","Trial Repeat Required","Engineering Approved"],
     intro:"Run the trial lot and record what the line achieved.",
     note:p=>{const n=p.trialRepeatCount||0;return n>=1?("Trial repeated "+n+" time"+(n===1?"":"s")+". At two repeats the Manufacturing Head escalation fires."):null;},
     sections:[
@@ -1558,9 +1562,9 @@ const FORM_SPECS={
       ]},
     ],
     decision:{label:"Trial decision",options:[
-      {v:"Approved",label:"Approved for mass production",desc:"Advances the part to PSW sign-off.",to:"PSW Pending Sign-off",phase:"PSW"},
+      {v:"Approved",label:"Approved - trial passed",desc:"Passes to Engineering / AME for technical sign-off.",to:"Production Trial Approved",phase:"Sample Qual"},
       {v:"Repeat",label:"Repeat trial",desc:"Another trial is required; the repeat counter increments.",to:"Trial Repeat Required",phase:"Sample Qual"},
-      {v:"Rejected",label:"Rejected",desc:"Returns to Engineering for design re-review.",to:"Production Rejected",phase:"Sample Qual"},
+      {v:"Rejected",label:"Rejected",desc:"Returns to Sourcing for a new sample.",to:"Sample Rejected",phase:"Sample Qual"},
     ]},
     comment:{k:"comments",label:"Decision comments",req:true},
     apply:(p,v,who,choice)=>({...p,functionalResult:v.functionalResult,
@@ -1736,7 +1740,7 @@ function fullChain(){
   const extra=[];
   /* The stages between approval and PSW, whether or not anybody approves them: they are what
      the project has to pass, so the chain shows them with the team that owns each. */
-  ["F-07","F-08","F-09"].forEach(fid=>{
+  ["F-07","F-09","F-08"].forEach(fid=>{
     const spec=FORM_SPECS[fid]; if(!spec) return;
     const froms=spec.from||[];
     const at=froms[0]; if(!at) return;
@@ -1755,7 +1759,7 @@ function fullChain(){
     extra.push({id:"F-10", label:psw.name, form:"F-10", at:psw.from[0], ats:psw.from,
                 role:(r&&r.roles&&r.roles[0])||"SRC_MEMBER", cft:true, who:""});
   }
-  const order=["F-07","F-08","F-09","F-10"];
+  const order=["F-07","F-09","F-08","F-10"];
   extra.sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));
   _fullChain=base.concat(extra);
   return _fullChain;
@@ -1805,10 +1809,11 @@ const TRANSITIONS={
   "Sample Rejected":["Re-sample Requested","Dropped"],
   "Re-sample Requested":["Sample Under Inspection","Sample Rejected","Dropped"],
   "Sample Under Inspection":["SQE Approved","SQE Conditional","Sample Rejected"],
-  "SQE Approved":["Engineering Approved","Sample Rejected","SQE Approved"],
-  "SQE Conditional":["Engineering Approved","Sample Rejected","SQE Approved"],
-  "Production Rejected":["Engineering Approved","Sample Rejected","SQE Approved"],
-  "Engineering Approved":["PSW Pending Sign-off","Trial Repeat Required","Production Rejected"],
+  "SQE Approved":["Production Trial Approved","Trial Repeat Required","Sample Rejected"],
+  "SQE Conditional":["Production Trial Approved","Trial Repeat Required","Sample Rejected"],
+  "Production Trial Approved":["PSW Pending Sign-off","Sample Rejected","Production Trial Approved"],
+  "Production Rejected":["PSW Pending Sign-off","Sample Rejected","Production Trial Approved"],
+  "Engineering Approved":["Production Trial Approved","Trial Repeat Required","Sample Rejected"],
   "PSW Pending Sign-off":["PSW Sign-off Pending","Held"],
   "PSW Sign-off Pending":["FAIR Released","PSW Rejected"],
   "PSW Rejected":["PSW Pending Sign-off","Dropped"],
@@ -1822,7 +1827,7 @@ const TRANSITIONS={
      (-> Dropped, terminal). No longer provisional. */
   "Pilot Lots Failed - Hold":["Pilot Lots In Progress","Dropped"],
   "All Lots Delivered":["Project Completed","All Lots Delivered"],
-  "Trial Repeat Required":["PSW Pending Sign-off","Trial Repeat Required","Production Rejected"],
+  "Trial Repeat Required":["Production Trial Approved","Trial Repeat Required","Sample Rejected"],
 };
 const canTransition=(from,to)=>from===to||!TRANSITIONS[from]||TRANSITIONS[from].indexOf(to)>=0;
 const formsFor=roleId=>Object.keys(FORM_SPECS).filter(k=>hasCap(roleId,FORM_SPECS[k].cap));
@@ -2043,6 +2048,9 @@ const STATUS_LABEL={
   /* The value stays as SharePoint and the legacy cards know it; only the words change. The
      routing decision moved to the Finance Head gate, so what waits here is the coding. */
   "Finance Routing Decision Pending":"Finance – account coding pending",
+  /* The trial has passed and AME owes the technical sign-off - "Production Trial Approved" on its
+     own reads like the end of the phase rather than the middle of it. */
+  "Production Trial Approved":"Trial passed – AME review pending",
   "PSW Pending Sign-off":"PSW – pending initiation",
   "PSW Sign-off Pending":"PSW – awaiting CFT signatures",
 };
@@ -4602,7 +4610,7 @@ function rptYield(tx){
   const lanes={};
   tx.forEach(t=>{const k=t.pid+"|"+t.group; const L=lanes[k]=lanes[k]||{bad:0,got:false};
     if(rptIsRework(t.to)) L.bad++;
-    if(t.to==="Engineering Approved"||t.to==="PSW Pending Sign-off"||t.to==="FAIR Released") L.got=true;});
+    if(t.to==="Production Trial Approved"||t.to==="Engineering Approved"||t.to==="PSW Pending Sign-off"||t.to==="FAIR Released") L.got=true;});
   const reached=Object.keys(lanes).filter(k=>lanes[k].got);
   if(!reached.length) return {pct:null,n:0,clean:0};
   const clean=reached.filter(k=>lanes[k].bad===0).length;
@@ -6018,8 +6026,8 @@ const PLANNER_BUCKETS=[
   ["F-05 Vendor Notification",  ["Vendor Notified"]],
   ["F-06 Sample Receipt",       ["In Development","Sample Awaited","Re-sample Requested"]],
   ["F-07 SQE Validation",       ["Sample Received","SQE Validation"]],
-  ["F-08 Engineering Approval", ["Engineering Approval"]],
   ["F-09 Production Trial",     ["Production Trial"]],
+  ["F-08 Engineering Approval", ["Engineering Approval"]],
   ["F-10 PSW Sign-off",         ["Trial Run Passed","PSW Sign-off Pending","PSW Pending Sign-off"]],
   ["F-11 Pilot Lots",           ["FAIR Released","Pilot Lots In Progress"]],
   ["F-14 Project Closure",      ["All Lots Delivered"]],
@@ -6644,10 +6652,9 @@ function cardFor(s,to,group,ctx){
        cFact("Quantity",rs.qty||""),cFact("Vendor told",cTrim(rs.told,200))];
   }
   else if(to==="PSW Pending Sign-off"){
-    h=(g||"Samples")+" passed the production trial \u2014 prepare the PSW (F-10)";
-    f=[cFact("Group",groupLine),cFact("SQE result",sqeLine),
-       cFact("Engineering",[en.fff,qtyLine(en)].filter(Boolean).join(" \u00b7 ")),
-       cFact("Trial",trialLine)];
+    h=(g||"Samples")+" cleared Engineering / AME sign-off \u2014 prepare the PSW (F-10)";
+    f=[cFact("Group",groupLine),cFact("SQE result",sqeLine),cFact("Trial",trialLine),
+       cFact("Engineering / AME",[en.fff,qtyLine(en)].filter(Boolean).join(" \u00b7 "))];
   }
   else if(to==="PSW Rejected"){
     const ps=gi.psw||{};
@@ -6668,10 +6675,16 @@ function cardFor(s,to,group,ctx){
   }
   else if(to==="SQE Approved"||to==="SQE Conditional"){
     const cond=to==="SQE Conditional";
-    h="SQE passed "+(g||"the samples")+(cond?" with conditions":"")+" \u2014 Engineering to review fit, form and function (F-08)";
+    h="SQE passed "+(g||"the samples")+(cond?" with conditions":"")+" \u2014 Production to run the trial (F-09)";
     f=[cFact("Group",groupLine),cFact("Vendor",groupVendor),cFact("Dimensional result",sq.res),
        cFact("Parts accepted",qtyLine(sq)),
        cFact("SQE remarks",sq.notes?sq.notes+" part(s)":"")];
+  }
+  else if(to==="Production Trial Approved"){
+    h="Production trial passed"+(g?" for "+g:"")+" — Engineering / AME to review fit, form and function (F-08)";
+    f=[cFact("Group",groupLine),cFact("Vendor",groupVendor),cFact("Trial",trialLine),
+       cFact("SQE result",sqeLine),
+       cFact("Production remarks",tr.notes?tr.notes+" part(s)":"")];
   }
   else if(to==="Production Rejected"){
     h="Production trial rejected"+(g?" for "+g:"")+" \u2014 Engineering to re-review (F-08)";
@@ -7047,7 +7060,7 @@ async function loadLive(){
    than migrated. Every call is wrapped - private windows, blocked site data and a full quota
    all throw, and none of them are a reason for the app not to open. */
 const DEMO_KEY="npiHub.standalone";
-const DEMO_SHAPE="2026-09-24.team-by-plant-2";
+const DEMO_SHAPE="2026-09-28.sqe-prod-ame";
 let demoSaveFailed=false;
 const demoLoad=()=>{
   if(spx()) return null;
