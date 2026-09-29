@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-29 11:14 UTC (web)";
+const BUILD="2026-09-29 11:24 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -6919,6 +6919,32 @@ async function awaitCommand(itemId,ms){
           ResultMessage:"The router did not answer within 90 seconds. The command is still queued and will apply when it runs."};
 }
 
+/* One shape for audit rows, because two queries read them: the cross-project window below and
+   the per-project top-up. If these ever drifted, a project's own history would render
+   differently from the same event on the Audit Trail screen. */
+const AUDIT_SELECT="$select=Title,EntityID,ActorRole,ActionType,Timestamp,OldValue,NewValue,Comments,Author/Title&$expand=Author";
+const AUDIT_WINDOW=1500;
+const mapAudit=r=>({
+  ts:(r.Timestamp||"").replace("T"," ").replace(/\.\d+Z?$/,"Z"),
+  actor:(r.Author&&r.Author.Title)||"System", role:r.ActorRole||"System",
+  action:r.ActionType||r.Title||"—", entity:r.EntityID||"—",
+  detail:(r.OldValue&&r.NewValue)?(r.OldValue+" → "+r.NewValue):(r.NewValue||"—"),
+  comment:r.Comments||"—"});
+
+/* Everything this project ever did, however old. The entity is either the project id or
+   "<id> / <group>", so the filter takes both; EntityID is indexed, which is what allows a
+   filter at all once the list passes 5,000 items. Returns [] rather than throwing: a history
+   that fails to load must not take the project page down with it. */
+async function loadProjectAudit(pid){
+  const id=String(pid||"").replace(/'/g,"''");
+  if(!id) return [];
+  try{
+    const rows=await spq("AuditLog",AUDIT_SELECT+"&$filter=EntityID eq '"+id+"' or startswith(EntityID,'"+id+" /')"+
+      "&$orderby=Timestamp desc&$top=1000");
+    return rows.map(mapAudit);
+  }catch(e){ return []; }
+}
+
 async function spq(list,qs){
   const sp=spx();
   const url=sp.siteUrl+"/_api/web/lists/getbytitle('"+list+"')/items"+(qs?"?"+qs:"");
@@ -6982,19 +7008,21 @@ async function loadLive(){
         h:null, _k:r.PartKey||((r.ProjectID||"")+"::"+r.PartNumber+"::"+i)}));
     }),
     grab("audit",async()=>{
-      /* 300 was enough for the Audit Trail screen, which only ever shows the newest rows,
-         but the project timeline reads this same collection per project - so a cap meant
-         any project whose events sat outside the newest 300 rendered an EMPTY history
-         rather than a short one. Silently blank is the worst failure a history can have,
-         so the whole log is loaded. It is 2,181 rows today; at 5,000 the list view
-         threshold makes $orderby fail outright and this must become a per-project fetch. */
-      const rows=await spq("AuditLog","$select=Title,EntityID,ActorRole,ActionType,Timestamp,OldValue,NewValue,Comments,Author/Title&$expand=Author&$orderby=Timestamp desc&$top=4500");
-      return rows.map(r=>({
-        ts:(r.Timestamp||"").replace("T"," ").replace(/\.\d+Z?$/,"Z"),
-        actor:(r.Author&&r.Author.Title)||"System", role:r.ActorRole||"System",
-        action:r.ActionType||r.Title||"—", entity:r.EntityID||"—",
-        detail:(r.OldValue&&r.NewValue)?(r.OldValue+" → "+r.NewValue):(r.NewValue||"—"),
-        comment:r.Comments||"—"}));
+      /* The newest slice of the whole log: enough for the Audit Trail screen, the
+         notifications and the portfolio reports, which all read recent activity across
+         projects.
+
+         It is deliberately NOT relied on for one project's history. Any window, however
+         large, leaves an older project with nothing to show - and silently blank is the
+         worst failure a history can have. `loadProjectAudit` fetches a project's own rows
+         on demand and merges them in, so the window governs breadth and the top-up governs
+         depth.
+
+         Both columns this query needs (Timestamp, EntityID) are indexed on the list, which
+         is what keeps it working once the log passes the 5,000-item view threshold: an
+         unindexed $orderby or $filter is refused outright beyond it. */
+      const rows=await spq("AuditLog",AUDIT_SELECT+"&$orderby=Timestamp desc&$top="+AUDIT_WINDOW);
+      return rows.map(mapAudit);
     }),
     grab("samples",async()=>{
       const rows=await spq("Samples","$select=ProjectIDRef,PartNumber,SampleType,ReceivedDate,SampleStatus,Quantity,LotNumber,Modified&$orderby=Modified desc&$top=500");
@@ -7315,6 +7343,25 @@ function App(){
   const withNotif=(d,text)=>[{id:Date.now()+Math.random(),text,time:"just now",read:false},...d.notifs];
   const [formOpen,setFormOpen]=useState(null);
   const [focusPid,setFocusPid]=useState(null);
+  /* Opening a project pulls its own history in. The cross-project window is the newest
+     activity across the portfolio, so a project that has been quiet for a while has nothing
+     in it - and a blank timeline reads as "nothing ever happened here" rather than "not
+     loaded". Merged by identity so the rows already in the window are not duplicated. */
+  useEffect(()=>{
+    if(!spx()||!focusPid) return;
+    let live=true;
+    loadProjectAudit(focusPid).then(rows=>{
+      if(!live||!rows.length) return;
+      setDb(d=>{
+        const key=a=>[a.ts,a.entity,a.action,a.detail].join("|");
+        const seen={}; (d.audit||[]).forEach(a=>{seen[key(a)]=1;});
+        const add=rows.filter(a=>!seen[key(a)]);
+        if(!add.length) return d;
+        return {...d,audit:d.audit.concat(add).sort((a,b)=>String(b.ts).localeCompare(String(a.ts)))};
+      });
+    });
+    return ()=>{live=false;};
+  },[focusPid]);
   /* A board card can point at a part, not just its project, so the focus carries both and
      the project page opens straight onto that part. */
   const [focusPart,setFocusPart]=useState(null);
