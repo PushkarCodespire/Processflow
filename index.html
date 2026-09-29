@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-29 11:05 UTC (web)";
+const BUILD="2026-09-29 11:14 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -1131,7 +1131,10 @@ function approvalsFromProjects(rows){
         type:rule.phase, roles:roles, cft:!!rule.cft, step:step,
         by:p.owner||"\u2014",
         amount:p.totalInvestment!=null?money(p.totalInvestment):"\u2014",
-        h:6+((i*17)%136)});
+        /* No SLA: nothing in SharePoint records when this gate was entered. It used to be
+           derived from the row's position in the array, which produced a confident-looking
+           countdown that meant nothing at all. */
+        h:null});
     });
     });
   });
@@ -1155,7 +1158,7 @@ function tasksFor(roleId,db,who){
         if(!rule.cft&&who&&!assignedTo(p,rule.roles||[],who)) return;
         const np=u.g?partsInGroup(db.parts,p.id,u.g).length:0;
         out.push({pid:p.id,group:u.g,title:rule.title+(u.g?" \u00b7 "+u.g:""),
-          phase:rule.phase,act:rule.act,form:rule.form,h:6+((i*17)%136),
+          phase:rule.phase,act:rule.act,form:rule.form,h:null,
           meta:[p.title+" · "+plantLine(p),u.g?(u.g+" \u00b7 "+np+" part(s)"):(p.supplier!=="\u2014"?p.supplier:"")]});
       });
     });
@@ -1852,8 +1855,16 @@ function Tile({k,v,s,ic,icon,warn,onClick}){
     <div className="v">{v}</div><div className="s">{s}</div>
   </div>;
 }
-const slaColor = h => h<=12?"r":h<=48?"a":"g";
-const slaLabel = h => h<24 ? h+"h left" : Math.round(h/24)+"d left";
+const slaColor = h => h==null?"":h<=12?"r":h<=48?"a":"g";
+/* Guard every comparison: in JS `null <= 12` is TRUE, so an unknown SLA would silently
+   report itself as breaching - the opposite of the honesty this is for. */
+const slaKnown = h => typeof h==="number" && isFinite(h);
+const slaBreach = h => slaKnown(h) && h<=12;
+const slaSoon   = h => slaKnown(h) && h>12 && h<24;
+const slaOk     = h => slaKnown(h) && h>=24;
+/* null means "nothing here tells us" - it is not zero and not overdue. Until the SLA engine
+   writes real timers (Sprint 7) most of these are unknown, and a dash is the honest answer. */
+const slaLabel = h => h==null ? "—" : h<24 ? h+"h left" : Math.round(h/24)+"d left";
 
 function DataTable({columns, rows, pageSize, onAct, onRowClick}){
   const toggleable=columns.filter(c=>!c.always);
@@ -1956,7 +1967,7 @@ function Home({roleKey,onAct,go}){
   const hour=new Date().getHours();
   const greet=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const rows=tasks.map((t,i)=>({...t, id:"REC-"+(20451+i), created:"2026-09-"+String((i%27)+1).padStart(2,"0")}));
-  const breach=tasks.concat(rappr).filter(t=>t.h<=12).length;
+  const breach=tasks.concat(rappr).filter(t=>slaBreach(t.h)).length;
   const done=db.projects.filter(p=>p.status==="Project Completed").length;
   const tiles=[
     ["Open tasks",String(tasks.length),tasks.length?"in your queue":"nothing assigned to you","ic-teal","home",false,null],
@@ -1970,7 +1981,7 @@ function Home({roleKey,onAct,go}){
     {key:"title",label:"Task",filterType:"text",val:x=>x.title,render:x=><span className="tcell">{x.title}</span>},
     {key:"phase",label:"Phase",w:"124px",filterType:"select",options:PHASES,val:x=>x.phase,render:x=><span className="mchip">{x.phase}</span>},
     {key:"meta",label:"Details",sortable:false,filterType:"text",val:x=>x.meta.join(" "),render:x=><span className="tmeta">{x.meta.join(" · ")}</span>},
-    {key:"h",label:"SLA",w:"106px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?x.h<=12:v==="Due soon"?(x.h>12&&x.h<24):v==="On track"?x.h>=24:true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
+    {key:"h",label:"SLA",w:"106px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?slaBreach(x.h):v==="Due soon"?slaSoon(x.h):v==="On track"?slaOk(x.h):true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
     {key:"created",label:"Created",w:"116px",hidden:true,filterType:"text",val:x=>x.created,render:x=><span className="tmeta">{x.created}</span>},
     {key:"act",label:"",w:"92px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={()=>x.form?openForm(x.form,x.pid,x.group):navMode(roleKey,"projects")?openProject(x.pid):null}>{x.act}</button>},
   ];
@@ -2161,7 +2172,7 @@ function PartsTable({p,onOpen}){
          :<span className={v<0?"bad":"good"}>{money(v,"USD")}</span>;}},
     {key:"stage",label:"Stage",w:"128px",filterType:"select",options:["All"].concat(STAGES),val:x=>x.stage,render:x=><span className="mchip">{x.stage}</span>},
     {key:"status",label:"Status",w:"186px",filterType:"text",val:x=>statusLabel(x.status),render:x=><span className={"pill "+statusClass(x.status)}>{statusLabel(x.status)}</span>},
-    {key:"h",label:"SLA",w:"104px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?x.h<=12:v==="Due soon"?(x.h>12&&x.h<24):v==="On track"?x.h>=24:true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
+    {key:"h",label:"SLA",w:"104px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?slaBreach(x.h):v==="Due soon"?slaSoon(x.h):v==="On track"?slaOk(x.h):true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
     {key:"act",label:"",w:"84px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={e=>{e.stopPropagation();openPart(x);}}>Open</button>},
   ];
   return <DataTable columns={cols} rows={parts} pageSize={10} onRowClick={x=>openPart(x)}/>;
@@ -4271,7 +4282,7 @@ function Approvals(){
     {key:"type",label:"Type",w:"124px",filterType:"select",options:["All"].concat(Array.from(new Set(db.approvals.map(x=>x.type).filter(Boolean))).sort()),val:x=>x.type,render:x=><span className="mchip">{x.type}</span>},
     {key:"by",label:"Requested by",w:"150px",filterType:"text",val:x=>x.by,render:x=><span>{x.by}</span>},
     {key:"amount",label:"Amount",w:"120px",filterType:"text",val:x=>cost?x.amount:"—",render:x=><span>{cost?x.amount:<span className="tmeta" title="Commercial data is masked for this role">restricted</span>}</span>},
-    {key:"h",label:"SLA",w:"104px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?x.h<=12:v==="Due soon"?(x.h>12&&x.h<24):v==="On track"?x.h>=24:true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
+    {key:"h",label:"SLA",w:"104px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?slaBreach(x.h):v==="Due soon"?slaSoon(x.h):v==="On track"?slaOk(x.h):true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>},
     {key:"part",label:"Part",w:"140px",hidden:true,filterType:"text",val:x=>x.part,render:x=><span className="tmeta">{x.part}</span>},
     {key:"act",label:"",w:"98px",always:true,sortable:false,render:(x)=><button className="btn primary sm" onClick={e=>{e.stopPropagation();setSelId(x.id);}}>Review</button>},
   ];
@@ -4958,7 +4969,7 @@ function Reports({onAct}){
   const slaOpen=(()=>{const seen={},out=[];ROLE_REGISTRY.forEach(r=>tasksFor(r.id,db).forEach(t=>{
     const k=(t.pid||"")+"|"+(t.title||""); if(seen[k]||!ids[t.pid])return; seen[k]=1;
     out.push({...t,role:r.label});}));return out;})();
-  const breaching=slaOpen.filter(t=>t.h<=12);
+  const breaching=slaOpen.filter(t=>slaBreach(t.h));
 
   const pct=(a,b)=>(b==null||!b)?null:((a-b)/b*100);
   const delta=medCycle!=null&&medCyclePrev!=null?pct(medCyclePrev,medCycle):null; /* shorter is better */
@@ -5199,26 +5210,26 @@ function Reports({onAct}){
     {tab==="sla"?<>
       <div className="rtiles">
         <RTile k="Open tasks" v={slaOpen.length} s="across every role" ic="ic-teal" icon="home"/>
-        <RTile k="Breaching" v={breaching.length} warn={breaching.length>0} s="under 12h left" ic="ic-red" icon="clock"/>
-        <RTile k="Due soon" v={slaOpen.filter(t=>t.h>12&&t.h<24).length} s="under 24h left" ic="ic-amber" icon="clock"/>
+        <RTile k="Breaching" v={breaching.length} warn={breaching.length>0} s={breaching.length?"under 12h left":"no timers yet"} ic="ic-red" icon="clock"/>
+        <RTile k="Due soon" v={slaOpen.filter(t=>slaSoon(t.h)).length} s={slaOpen.some(t=>slaKnown(t.h))?"under 24h left":"no timers yet"} ic="ic-amber" icon="clock"/>
         <RTile k="Roles with work" v={Array.from(new Set(slaOpen.map(t=>t.role))).length} s={"of "+ROLE_REGISTRY.length+" roles"} ic="ic-blue" icon="vendors"/>
       </div>
       <RPanel title="Open work by role" sub="Who the portfolio is waiting on right now.">
         {(()=>{const by={};slaOpen.forEach(t=>{by[t.role]=(by[t.role]||0)+1;});
           const data=Object.keys(by).map(k=>({label:k,v:by[k],
-            color:slaOpen.some(t=>t.role===k&&t.h<=12)?CHART_BAD():CHART_OK})).sort((a,b)=>b.v-a.v);
+            color:slaOpen.some(t=>t.role===k&&slaBreach(t.h))?CHART_BAD():CHART_OK})).sort((a,b)=>b.v-a.v);
           return data.length?<Chart2 type="bar" horizontal height={Math.max(220,data.length*34)}
             labels={data.map(d=>d.label)}
             series={[{label:"Open tasks",data:data.map(d=>d.v),colors:data.map(d=>d.color)}]}/>
             :<div className="rempty">Nothing open for this filter.</div>;})()}
       </RPanel>
-      <RPanel title="Breaching now" sub="Under twelve hours on the clock.">
+      <RPanel title="Breaching now" sub="Under twelve hours on the clock. Needs the SLA engine before it can report anything.">
         {breaching.length?<div className="rtable-wrap"><table className="rtable">
           <thead><tr><th>Project</th><th>Task</th><th>Owner</th><th>Left</th></tr></thead>
           <tbody>{breaching.sort((a,b)=>a.h-b.h).map((t,i)=><tr key={i} className="pick" onClick={()=>openProject(t.pid)}>
             <td><span className="tpid">{t.pid}</span></td><td>{t.title}</td><td>{t.role}</td>
             <td><span className={"sla "+slaColor(t.h)}>{slaLabel(t.h)}</span></td></tr>)}</tbody>
-        </table></div>:<div className="rempty"><b>Nothing is breaching.</b><br/>Every open task has more than twelve hours left.</div>}
+        </table></div>:<div className="rempty"><b>No task has a clock on it.</b><br/>SLA timers are not written yet, so nothing here can breach. Until they are, this counts open work rather than time left.</div>}
       </RPanel>
     </>:null}
 
@@ -5238,7 +5249,7 @@ function Reports({onAct}){
 const resultPill=r=>(r==="Approved"||r==="OK")?"p-green":(r==="Rejected"||r==="Not OK")?"p-red":"p-amber";
 /* A lot with no part number covers the whole project - say so rather than showing a blank. */
 const lotPart=(x)=>(x&&x.part)?x.part:("All parts"+(x&&x.parts?" ("+x.parts+")":""));
-const _sla=()=>({key:"h",label:"SLA",w:"100px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?x.h<=12:v==="Due soon"?(x.h>12&&x.h<24):v==="On track"?x.h>=24:true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>});
+const _sla=()=>({key:"h",label:"SLA",w:"100px",sortVal:x=>x.h,filterType:"select",options:["Any","Breaching","Due soon","On track"],filterTest:(x,v)=>v==="Breaching"?slaBreach(x.h):v==="Due soon"?slaSoon(x.h):v==="On track"?slaOk(x.h):true,render:x=><span className={"sla "+slaColor(x.h)}>{slaLabel(x.h)}</span>});
 const SAMPLES=[
   {pid:"NPI-2026-0122",part:"5567-GSK-01",supplier:"Endurance Tech",submitted:"05 Sep 2026",result:"Pending",stage:"SQE validation",h:5},
   {pid:"NPI-2026-0126",part:"6152-PPAP-12",supplier:"Acme Precision",submitted:"06 Sep 2026",result:"Pending",stage:"SQE validation",h:96},
@@ -6341,8 +6352,12 @@ const spDate=x=>{if(!x)return "—";const d=new Date(x);if(isNaN(d))return "—"
   return String(d.getDate()).padStart(2,"0")+" "+m[d.getMonth()]+" "+d.getFullYear();};
 /* SLA hours are not modelled in SharePoint yet - derive a stable placeholder from age so
    the chips render without inventing urgency that is not in the data. */
-const spSla=x=>{if(!x)return 72;const h=Math.round((Date.now()-new Date(x).getTime())/36e5);
-  return Math.max(4,Math.min(168,168-h));};
+/* Hours left against a REAL deadline. It used to be handed a Modified date and return
+   168 minus the age of the row, which is not an SLA - it is how long ago somebody last
+   touched it, dressed up as a countdown. Anything without a genuine due date gets null. */
+const spSla=x=>{if(!x)return null;const t=new Date(x).getTime();
+  if(!isFinite(t))return null;
+  return Math.round((t-Date.now())/36e5);};
 
 /* A document library holds files, so "upload" has to move bytes. The previous version took a
    filename and a size it made up, which put rows in the list that no file stood behind - the
@@ -6964,7 +6979,7 @@ async function loadLive(){
         group:r.GroupName||"Unassigned",
         supplier:r.NewSupplier||r.IncumbentSupplier||r.TargetVendor||"—",
         vol:spNum(r.EstimatedAnnualVolume), cost:spNum(r.EstimatedUnitCost),
-        h:spSla(r.Modified), _k:r.PartKey||((r.ProjectID||"")+"::"+r.PartNumber+"::"+i)}));
+        h:null, _k:r.PartKey||((r.ProjectID||"")+"::"+r.PartNumber+"::"+i)}));
     }),
     grab("audit",async()=>{
       /* 300 was enough for the Audit Trail screen, which only ever shows the newest rows,
@@ -6986,14 +7001,14 @@ async function loadLive(){
       return rows.map((r,i)=>({pid:r.ProjectIDRef||"—", part:r.PartNumber||"—", supplier:"—",
         submitted:spDate(r.ReceivedDate), result:r.SampleStatus||"Pending",
         stage:r.SampleStatus==="Approved"?"Trial":r.SampleStatus==="Rejected"?"Re-sample":"SQE validation",
-        h:spSla(r.Modified), _i:i}));
+        h:null, _i:i}));
     }),
     grab("pilots",async()=>{
       const rows=await spq("PilotLots","$select=ProjectIDRef,PartsInScope,LotNumber,PRNumberSAP,OrderedQuantity,ActualDeliveryDate,QualityOK,IQCNotes,Modified&$orderby=Modified desc&$top=500");
       return rows.map((r,i)=>({pid:r.ProjectIDRef||"—", part:r.PartsInScope||"—",
         lot:"Lot "+(spNum(r.LotNumber)||1), pr:r.PRNumberSAP||"", qty:String(spNum(r.OrderedQuantity)||""),
         delivery:spDate(r.ActualDeliveryDate), iqc:r.QualityOK===true?"OK":r.QualityOK===false?"Not OK":"Pending",
-        iqcNotes:r.IQCNotes||"", h:spSla(r.Modified), _i:i}));
+        iqcNotes:r.IQCNotes||"", h:null, _i:i}));
     }),
     grab("rates",async()=>{
       const rows=await spq("CurrencyConversions","$select=Id,Title,CurrencyName,MarketConvention,FxMultiply,UsdRate,InrMultiply,RateAsOf&$top=500");
@@ -7012,7 +7027,7 @@ async function loadLive(){
       return rows.map((r,i)=>({pid:r.ProjectIDRef||"?", supplier:r.VendorContactName||r.Title||"?",
                                type:r.TimelineReceived?"Timeline received":"Vendor notification",
                                sent:spDate(r.Modified), due:spDate(r.SampleSubmissionDeadline),
-                               status:r.VendorStatus||"Sent", h:spSla(r.SampleSubmissionDeadline||r.Modified), _i:i}));
+                               status:r.VendorStatus||"Sent", h:spSla(r.SampleSubmissionDeadline), _i:i}));
     }), grab("docs",async()=>{
       const rows=await spq("ProjectDocuments","$select=FileLeafRef,FileDirRef,Title,ProjectIDRef,DocumentCategory,Modified,Author/Title,File/Length&$expand=Author,File&$top=500&$orderby=Modified desc");
       const TYPES=["AEF","Quote","Drawing","Feasibility","Sample receipt","SQE report","PSW","IQC"];
