@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-28 11:09 UTC (web)";
+const BUILD="2026-09-29 10:49 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -3029,13 +3029,23 @@ const teamForPlant=(plant)=>{
   });
   return out;
 };
-/* The same team, with every role filled: where the plant has nobody configured the role
-   registry's holder stands in, as a real value rather than grey placeholder text. A blank the
-   requester never looked at would otherwise be stored as "no one assigned". */
+/* Whoever the directory actually holds for a role - an active People row, demo placeholder or
+   not. The address returned is the UPN, because this value is compared against the signed-in
+   user: the Email column is the contact address and the two are not always the same person's
+   answer to the same question. */
+const directoryFor=(roleCode)=>{
+  const row=PEOPLE_CFG.find(x=>x.roleCode===roleCode&&x.status==="Active");
+  return row?{n:row.name||"",e:String(row.email||"").trim().toLowerCase()}:null;};
+
+/* The same team, with every role filled. Order matters: the plant's configured team, then the
+   directory, then the role registry. The registry is last because its holders are invented -
+   defaulting to them names somebody who cannot sign in, and since the assignment IS the
+   authorisation that locks every real user out of the project they just raised. */
 const teamWithDefaults=(plant)=>{const cfg=teamForPlant(plant), out={};
-  TEAM_ROLES.forEach(id=>{const m=cfg[id];
+  TEAM_ROLES.forEach(id=>{const m=cfg[id], dir=directoryFor(id);
     out[id]=(m&&m.n)?{n:m.n,e:m.e||emailForPerson(m.n)}
-                    :{n:personFor(id)||"",e:emailForPerson(personFor(id))};});
+           :dir&&dir.n?dir
+           :{n:personFor(id)||"",e:emailForPerson(personFor(id))};});
   return out;};
 
 /* The roles a project names a person for, in the order the work reaches them. */
@@ -6888,7 +6898,7 @@ async function loadLive(){
 
   await Promise.all([
     grab("projects",async()=>{
-      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,GroupsJSON,TracksJSON,HubSummaryJSON,HubFormJSON,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
+      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,GroupsJSON,TracksJSON,HubSummaryJSON,HubFormJSON,HubTeamJSON,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
       return rows.filter(r=>r.ProjectID).map(r=>({
         id:r.ProjectID, title:r.Title||r.ProjectID,
         /* HubStatus is what the Hub decided; CurrentStatus is what the cards drive.
@@ -6914,6 +6924,10 @@ async function loadLive(){
         /* The last command's fields. A gate answered in Teams never touches the summary, so
            this is the only place the Finance Head's funding choice is recorded. */
         hubForm:readJson(r.HubFormJSON,{}),
+        /* The project's named team, role code -> {n,e}. Without it every assignment check
+           falls back to "nobody is named", which reads as "everybody may act" - so an empty
+           column is the difference between per-person authorisation and none at all. */
+        team:readJson(r.HubTeamJSON,{}),
         summary:readJson(r.HubSummaryJSON,{})}));
     }),
     grab("parts",async()=>{
@@ -7003,6 +7017,14 @@ async function loadLive(){
       return rows.map(r=>({role:r.RoleLabel||r.Title, code:r.Title||"", aad:r.AADGroup||"—",
         cft:r.CFTSignatory===true?"Yes":"—", legacy:r.LegacyRoleCode||"—",
         members:"", backup:"—"}));
+    }), grab("plants",async()=>{
+      /* The plant master. Before this list existed the screen derived plants from the
+         distinct site values on existing projects, so every typo anyone had ever entered
+         ("awd", "asd") appeared as a plant and a plant with no project yet did not exist. */
+      const rows=await spq("Plants","$select=Title,PlantCode,Region,BusinessUnit,Active&$top=200&$orderby=Title");
+      return rows.filter(r=>r.Title).map(r=>({name:r.Title,code:r.PlantCode||"",
+        region:r.Region||"—",bu:r.BusinessUnit||"—",
+        status:r.Active===false?"Inactive":"Active"}));
     }), grab("matrix",async()=>{
       const rows=await spq("ApprovalMatrix","$select=ChainType,Step,RoleCode,SLAHours,EscalateTo,Form&$top=200&$orderby=ChainType,Step");
       return rows.map(r=>({journey:"NPI", path:r.ChainType||"—",
@@ -7060,7 +7082,7 @@ async function loadLive(){
    than migrated. Every call is wrapped - private windows, blocked site data and a full quota
    all throw, and none of them are a reason for the app not to open. */
 const DEMO_KEY="npiHub.standalone";
-const DEMO_SHAPE="2026-09-28.sqe-prod-ame";
+const DEMO_SHAPE="2026-09-29.team-from-directory";
 let demoSaveFailed=false;
 const demoLoad=()=>{
   if(spx()) return null;
@@ -7172,13 +7194,10 @@ function App(){
           ivalua:v.ivalua||"—",contact:v.contact||"—",email:v.email||"—"}));
         /* Plants have no list of their own, so they are the distinct sites the live projects
            are actually running at - a derived truth rather than a maintained fiction. */
-        if(live.projects){
-          const seen={};
-          live.projects.forEach(p=>{ const nm=p.plant||""; if(!nm||nm==="—")return;
-            (seen[nm]=seen[nm]||{name:nm,code:p.plantCode||"",region:"—",bu:"—",status:"Active",n:0}).n++; });
-          const list=Object.keys(seen).sort().map(k=>seen[k]);
-          if(list.length) adm.plants=list;
-        }
+        /* The Plants list is the master. It is only ignored when the read failed or the list
+           is empty - deriving plants from project rows resurrects every typo ever typed into
+           the site field, so it is a last resort, not a merge. */
+        if(live.plants&&live.plants.length) adm.plants=live.plants;
         next.admin=adm;
         /* Roles carries one row per member of that role, counted from the live directory. */
         if(live.roles&&live.people){
@@ -7242,10 +7261,15 @@ function App(){
   useEffect(()=>{ setFxRates(db.rates); },[db.rates]);
 
   const r=ROLE[roleKey];
-  /* The signed-in person outranks the role's persona, but only while they are acting
-     AS their own role. The moment an Admin switches the selector, the persona returns
-     and the switch itself is written to the audit trail. */
-  const me=(signedIn&&signedIn.roleCode===roleKey&&signedIn.name)||r.person;
+  /* A signed-in person stays themselves whichever role they are viewing as. The selector
+     chooses the hat, not the wearer: the role is recorded separately on every audit row, so
+     nothing is lost by naming the actual person. It used to swap in the role's invented
+     persona the moment an Admin switched, which meant the acting identity became someone who
+     cannot sign in - and since the assignment IS the authorisation, that identity is then
+     refused on the project the signed-in user was assigned to. Only a session with no
+     sign-in at all (the standalone demo, where the selector IS the identity) uses the
+     persona. */
+  const me=(signedIn&&signedIn.name)||r.person;
   const withAudit=(d,entry)=>[{ts:stampNow(),actor:me,role:ROLE[roleKey].label,detail:"—",comment:"—",...entry},...d.audit];
   const withNotif=(d,text)=>[{id:Date.now()+Math.random(),text,time:"just now",read:false},...d.notifs];
   const [formOpen,setFormOpen]=useState(null);
@@ -7329,6 +7353,9 @@ function App(){
       return runCommand("project.create",{title:p.title,category:p.category,plant:p.plant,
         plantCode:p.plantCode,ecn:p.ecn,scope:p.scope,fb:p.fb,parts:p.parts,groups:p.groups,
         target:p.target,incumbent:p.incumbent||"",vendorCode:p.vendorCode||"",
+        /* The named team travels with the intake: it is what every later authorisation check
+           reads, so it has to be on the row rather than in this session's memory. */
+        team:p.team||{},
         ...cardBits({id:"",summary:{}},{formId:"F-01",from:"",to:"Feasibility Review",
           parts:p.parts.map(x=>({part:x.part,group:x.group||""})),
           extra:{category:p.category||"",ecn:p.ecn||"",scope:p.scope||"",target:p.target||"",
@@ -7847,10 +7874,10 @@ function App(){
   /* Who is looking: the name the audit will carry, and the address the project team was
      keyed by. Both, because a demo persona has no address and a signed-in user may have
      a display name that differs from the one configured. */
-  /* Signed in, that is the address they hold. Viewing as a role, it is the address the
-     directory holds for that persona - without one, nothing would ever match the id a team
-     was assigned by. */
-  const who={name:me,email:((signedIn&&signedIn.roleCode===roleKey&&signedIn.upn)||emailForPerson(me)||"")};
+  /* Signed in, it is their own address, in every role. Not signed in, it is whatever the
+     directory holds for the selected persona - without one, nothing would ever match the id
+     a team was assigned by. */
+  const who={name:me,email:((signedIn&&signedIn.upn)||emailForPerson(me)||"")};
   const ctx={db,act,openModal:setModal,closeModal:()=>setModal(null),confirm:setConfirmO,go:setPage,roleKey,me,who,flash,
     can:c=>hasCap(roleKey,c),cost:seesCost(roleKey),role:r,
     openForm:(fid,pid,group)=>{setFormOpen({fid,pid,group:group||null});setNavOpen(false);},closeForm:()=>setFormOpen(null),
