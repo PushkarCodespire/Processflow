@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-29 11:47 UTC (web)";
+const BUILD="2026-09-29 11:53 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -2942,7 +2942,7 @@ const PARTS_COLS=["Part number","Description","Commodity","UOM","Currency","Annu
 const PARTS_NUM=[5,6];
 /* Column index -> the option list that cell picks from, so the grid offers the same choices
    the manual form does instead of trusting free text to match. */
-const PARTS_OPTS={2:()=>NPI_COMMOD,3:()=>NPI_UOM,4:(rates)=>(rates||[]).map(r=>r.code)};
+const PARTS_OPTS={2:()=>refValues("Commodity",NPI_COMMOD),3:()=>refValues("UOM",NPI_UOM),4:(rates)=>(rates||[]).map(r=>r.code)};
 const PARTS_HEAD=SAMPLE_PARTS_TSV.split("\n")[0];
 const BLANK_ROW=()=>PARTS_COLS.map(()=>"");
 function tsvToGrid(t){
@@ -3040,6 +3040,16 @@ const plantLine=(p)=>{const nm=(p&&p.plant&&p.plant!=="—")?p.plant:"", cd=plan
    currently holds, and one that started last month keeps the team it was given. */
 let TEAM_CFG=[];
 let PEOPLE_CFG=[];
+/* Reference data, by list name. The intake's dropdowns used to be compiled in, so the
+   Admin screen showed a reference list that the form it belonged to never read: adding a
+   commodity changed a display string and nothing else. The hardcoded arrays survive as the
+   fallback for the standalone copy, which has no lists to read. */
+let REF_CFG=[];
+const refValues=(list,fallback)=>{
+  const row=REF_CFG.find(r=>String(r.list||"")===list);
+  const vals=(row&&row.items||[]).map(v=>String(v||"").trim()).filter(Boolean);
+  return vals.length?vals:(fallback||[]);
+};
 /* The address the platform already holds for someone, or the one their name implies. */
 const emailForPerson=(name)=>{const nm=String(name||"").trim();
   if(!nm) return "";
@@ -4035,7 +4045,7 @@ function Intake(){
           <div className="fsec" style={{marginTop:0}}>Project information</div>
           <div className="fgrid2">
             <div className={"field2"+(showErr&&projErr.name?" invalid":"")}><div className="flabel">Project name <i>*</i></div><input value={proj.name} onChange={setP("name")} placeholder="e.g. New Mounting Bracket NPI"/>{showErr&&projErr.name?<div className="ferr">{projErr.name}</div>:null}</div>
-            <div className={"field2"+(showErr&&projErr.category?" invalid":"")}><div className="flabel">Project category <i>*</i></div><Combo value={proj.category} onChange={setP("category")} options={NPI_CATS} allowNew/>{showErr&&projErr.category?<div className="ferr">{projErr.category}</div>:null}</div>
+            <div className={"field2"+(showErr&&projErr.category?" invalid":"")}><div className="flabel">Project category <i>*</i></div><Combo value={proj.category} onChange={setP("category")} options={refValues("ProjectCategory",NPI_CATS)} allowNew/>{showErr&&projErr.category?<div className="ferr">{projErr.category}</div>:null}</div>
             <div className="field2"><div className="flabel">ECN number {catProjReq(proj.category).ecn?<i>*</i>:null}</div><input value={proj.ecn} onChange={setP("ecn")} placeholder="optional"/></div>
             <div className={"field2"+(showErr&&projErr.plant?" invalid":"")}><div className="flabel">Plant <i>*</i></div><Combo value={proj.plant} onChange={e=>{const v=(e&&e.target)?e.target.value:e;/* Combo hands back an event, the way an input does */
               setProj(o=>({...o,plant:v,plantCode:plantCodeOf({plant:v})}));
@@ -4105,8 +4115,8 @@ function Intake(){
           <div className="fgrid2">
             <div className={"field2"+(showPErr&&draftErr.part?" invalid":"")}><div className="flabel">Part number <i>*</i></div><input value={draft.part} onChange={e=>{setDupAck(false);setD("part")(e);}}/>{showPErr&&draftErr.part?<div className="ferr">{draftErr.part}</div>:isDup?<div className="fwarn">{dupAck?"Duplicate part number — it will be added as a separate line.":"Duplicate part number — click + Add Part again to add it anyway."}</div>:null}</div>
             <div className={"field2"+(showPErr&&draftErr.desc?" invalid":"")}><div className="flabel">Description <i>*</i></div><input value={draft.desc} onChange={setD("desc")}/>{showPErr&&draftErr.desc?<div className="ferr">{draftErr.desc}</div>:null}</div>
-            <div className="field2"><div className="flabel">Commodity</div><Combo value={draft.commodity} onChange={setD("commodity")} options={NPI_COMMOD} allowNew/></div>
-            <div className="field2"><div className="flabel">Unit of measure</div><Combo value={draft.uom} onChange={setD("uom")} options={NPI_UOM}/></div>
+            <div className="field2"><div className="flabel">Commodity</div><Combo value={draft.commodity} onChange={setD("commodity")} options={refValues("Commodity",NPI_COMMOD)} allowNew/></div>
+            <div className="field2"><div className="flabel">Unit of measure</div><Combo value={draft.uom} onChange={setD("uom")} options={refValues("UOM",NPI_UOM)}/></div>
             <div className={"field2"+(showPErr&&draftErr.vol?" invalid":"")}><div className="flabel">Estimated annual volume {catPartReq(proj.category).vol?<i>*</i>:null}</div><input type="number" min="0" step="1" inputMode="numeric" value={draft.vol} onChange={setD("vol")}/>{showPErr&&draftErr.vol?<div className="ferr">{draftErr.vol}</div>:null}</div>
             <div className={"field2"+(showPErr&&draftErr.cost?" invalid":"")}><div className="flabel">Existing unit cost {catPartReq(proj.category).cost?<i>*</i>:null}</div><input type="number" min="0" step="any" inputMode="decimal" value={draft.cost} onChange={setD("cost")}/>{showPErr&&draftErr.cost?<div className="ferr">{draftErr.cost}</div>:null}
               {/* Quoted figure stays as typed; the USD it will be stored as is shown, so a
@@ -7159,7 +7169,7 @@ async function loadLive(){
       rows.filter(r=>r.Active!==false).forEach(r=>{
         (by[r.RefList||"Other"]=by[r.RefList||"Other"]||[]).push(r.RefValue||r.RefCode||"");
       });
-      return Object.keys(by).sort().map(k=>({list:k, values:by[k].join(" · ")}));
+      return Object.keys(by).sort().map(k=>({list:k, values:by[k].join(" · "), items:by[k]}));
     }), grab("sla",async()=>{
       const rows=await spq("SLAConfig","$select=GateKey,SLAHours,ReminderPct,EscalateTo&$top=200");
       return rows.map(r=>({gate:r.GateKey||"—",
@@ -7281,6 +7291,7 @@ function App(){
   PLANT_CFG=(db.admin&&db.admin.plants)||PLANT_CFG;
   TEAM_CFG=(db.admin&&db.admin.team)||TEAM_CFG;
   PEOPLE_CFG=(db.admin&&db.admin.people)||PEOPLE_CFG;
+  REF_CFG=(db.admin&&db.admin.refdata)||REF_CFG;
   const [spState,setSpState]=useState(()=>spx()?"loading":"off");
   /* Debounced: a submission can move a project, its parts and the audit in one go, and the
      three renders that follow should write once. */
