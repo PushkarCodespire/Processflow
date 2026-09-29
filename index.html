@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-29 11:24 UTC (web)";
+const BUILD="2026-09-29 11:31 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -2119,7 +2119,9 @@ function genParts(p){
    one - so a project read back from SharePoint after some later command shows it as not
    quoted yet rather than inventing a figure. */
 const quotedPrices=(p)=>{
-  const tsv=(p&&p.form&&p.form["F-02"]&&p.form["F-02"].partsPricing)||(p&&p.hubForm||{}).partsPricing||"";
+  /* Three places, newest first: the seeded form store, the last command's fields (right after
+     F-02 is submitted), then the project's own quote column, which is the one that lasts. */
+  const tsv=(p&&p.form&&p.form["F-02"]&&p.form["F-02"].partsPricing)||(p&&p.hubForm||{}).partsPricing||(p&&p.quoteTsv)||"";
   const by={};
   quoteToRows(tsv).forEach(r=>{ if(r[0]) by[String(r[0]).trim().toUpperCase()]=r; });
   return by;
@@ -4659,7 +4661,7 @@ function rptYield(tx){
 function rptSavings(projects){
   let cur=0,nw=0,priced=0;
   (projects||[]).forEach(p=>{
-    const v=p.form&&p.form["F-02"]&&p.form["F-02"].partsPricing;
+    const v=(p.form&&p.form["F-02"]&&p.form["F-02"].partsPricing)||(p.hubForm||{}).partsPricing||p.quoteTsv;
     if(!v) return;
     let any=false;
     quoteToRows(v).forEach(r=>{
@@ -6961,7 +6963,7 @@ async function loadLive(){
 
   await Promise.all([
     grab("projects",async()=>{
-      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,GroupsJSON,TracksJSON,HubSummaryJSON,HubFormJSON,HubTeamJSON,ProjectCategory,HubInvestmentINR,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
+      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,GroupsJSON,TracksJSON,HubSummaryJSON,HubFormJSON,HubTeamJSON,HubQuoteJSON,ProjectCategory,HubInvestmentINR,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
       return rows.filter(r=>r.ProjectID).map(r=>({
         id:r.ProjectID, title:r.Title||r.ProjectID,
         /* HubStatus is what the Hub decided; CurrentStatus is what the cards drive.
@@ -6995,6 +6997,10 @@ async function loadLive(){
            falls back to "nobody is named", which reads as "everybody may act" - so an empty
            column is the difference between per-person authorisation and none at all. */
         team:readJson(r.HubTeamJSON,{}),
+        /* The F-02 quote, one row per part. It arrives in HubFormJSON and the next command
+           replaces that, so without its own column every parts screen reverted to "not
+           quoted yet" the moment the project moved on. */
+        quoteTsv:r.HubQuoteJSON||"",
         summary:readJson(r.HubSummaryJSON,{})}));
     }),
     grab("parts",async()=>{
@@ -7002,7 +7008,10 @@ async function loadLive(){
       return rows.filter(r=>r.PartNumber).map((r,i)=>({
         part:r.PartNumber, desc:r.PartDescription||r.PartNumber, pid:r.ProjectID||"",
         status:r.PartStatus||"Feasibility Review", stage:r.HubStage||r.Stage||"Feasibility",
-        group:r.GroupName||"Unassigned",
+        /* Empty, not "Unassigned": partsInGroup treats a part with no group as belonging to
+           any group, which is what makes a legacy project's parts show up on a grouped form.
+           A literal default defeated that and rendered those forms with zero parts. */
+        group:r.GroupName||"",
         supplier:r.NewSupplier||r.IncumbentSupplier||r.TargetVendor||"—",
         vol:spNum(r.EstimatedAnnualVolume), cost:spNum(r.EstimatedUnitCost),
         h:null, _k:r.PartKey||((r.ProjectID||"")+"::"+r.PartNumber+"::"+i)}));
