@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-29 10:49 UTC (web)";
+const BUILD="2026-09-29 11:05 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -2385,9 +2385,24 @@ function ChainView({p}){
     onSubmit={v=>{act.decideGate(p,st,"Returned",v.reason);closeModal();}}/>);
   /* the gate's own audit row, if the decision has already been taken */
   const rows=auditOf(db.audit,p);
-  const auditFor=id=>rows.find(a=>String(a.action||"").indexOf(id+" ")===0);
+  /* Two kinds of evidence, because two engines write this log. The legacy cards write an
+     action that names the gate ("F-02d Approved"); the router writes every command as the
+     single word "Command" and puts the movement in the detail. Matching only the first shape
+     meant no gate on a Hub-driven project ever ticked, however many decisions it had. */
+  const leftGate=(a,step)=>{
+    const d=String(a.detail||""), i=d.indexOf(RPT_ARROW);
+    if(i<0) return false;                       /* a row that records no movement decides nothing */
+    const from=d.slice(0,i).trim(), to=d.slice(i+RPT_ARROW.length).trim();
+    if((step.ats||[]).indexOf(from)<0) return false;
+    /* The target has to be somewhere the status machine could actually go. The log also holds
+       rows shaped like a movement that are not one - "Finance Routing Decision Pending ->
+       Finance Routing Card posted" is a notification - and counting those would tick a gate
+       nobody had answered. */
+    return (TRANSITIONS[from]||[]).indexOf(to)>=0;
+  };
+  const auditFor=step=>rows.find(a=>String(a.action||"").indexOf(step.id+" ")===0||leftGate(a,step));
   /* Evidence, not position: a tick means this gate has an audit row of its own. */
-  const doneCount=CH.filter(s=>auditFor(s.id)).length;
+  const doneCount=CH.filter(s=>auditFor(s)).length;
   const complete=doneCount===CH.length;
   return <div className="block" style={{marginBottom:18}}>
     <div className="block-h">
@@ -2400,9 +2415,9 @@ function ChainView({p}){
       <div className="tl">
         {CH.map((st,i)=>{
           /* ok only with an audit row; now only when the project is actually sitting on it. */
-          const state=returned?"no":auditFor(st.id)?"ok":(st.ats.indexOf(p.status)>=0?"now":"next");
+          const state=returned?"no":auditFor(st)?"ok":(st.ats.indexOf(p.status)>=0?"now":"next");
           const who=(p.approvers&&p.approvers[st.who])||personFor(st.role);
-          const ev=state==="ok"?auditFor(st.id):null;
+          const ev=state==="ok"?auditFor(st):null;
           const rec=(st.approver&&p.recommendation&&p.recommendation.form===st.id)?p.recommendation:null;
           const awaitingApprover=!!(st.approver&&rec);
           /* In the role, and the one this project named for this gate. A gate the project
@@ -4897,7 +4912,11 @@ function Reports({onAct}){
   const [fOwner,setOwner]=useState("All");
   const [drill,setDrill]=useState(null);
 
-  const all=(db.projects&&db.projects.length)?db.projects:PROJECTS;
+  /* No fallback to the seed. It used to read `db.projects.length ? db.projects : PROJECTS`,
+     so a failed or empty live read produced a complete, confident report about fourteen
+     projects that do not exist - while the sidebar still said LIVE. An empty portfolio has
+     to look empty. */
+  const all=db.projects||[];
   const now=Date.now();
   const days=(RPT_PERIODS.find(p=>p[0]===period)||[])[2]||0;
   const since=days?now-days*RPT_DAY:0;
@@ -5164,7 +5183,10 @@ function Reports({onAct}){
             :RNEED("No project in view has a submitted F-02 quote.");})()}
       </RPanel>
       <RPanel title="Routing mix" sub="Capex or Opex, as decided at F-02c.">
-        {(()=>{const cap=rows.filter(p=>p.routingDecision==="Capex").length,op=rows.filter(p=>p.routingDecision==="Opex").length,
+        {/* routeOf, not p.routingDecision: the decision is only a column on a seeded project.
+            On a live one it lives in the summary the Finance Head's gate wrote, so reading the
+            field directly reported every routed project as "Not yet routed". */}
+        {(()=>{const cap=rows.filter(p=>routeOf(p)==="Capex").length,op=rows.filter(p=>routeOf(p)==="Opex").length,
             un=rows.length-cap-op;
           const d2=[{label:"Capex",v:cap,color:cssVar("--blue","#2563eb")},{label:"Opex",v:op,color:cssVar("--teal","#0d7d7d")},
             {label:"Not yet routed",v:un,color:cssVar("--panel2","#eee")}];
@@ -6898,7 +6920,7 @@ async function loadLive(){
 
   await Promise.all([
     grab("projects",async()=>{
-      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,GroupsJSON,TracksJSON,HubSummaryJSON,HubFormJSON,HubTeamJSON,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
+      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,GroupsJSON,TracksJSON,HubSummaryJSON,HubFormJSON,HubTeamJSON,ProjectCategory,HubInvestmentINR,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
       return rows.filter(r=>r.ProjectID).map(r=>({
         id:r.ProjectID, title:r.Title||r.ProjectID,
         /* HubStatus is what the Hub decided; CurrentStatus is what the cards drive.
@@ -6906,6 +6928,10 @@ async function loadLive(){
         status:r.HubStatus||r.CurrentStatus||"Feasibility Review",
         phase:r.HubPhase||PHASE_ORDER[Math.max(0,(spNum(r.CurrentPhase)||1)-1)]||"Initiation",
         plant:r.ProjectSite||"—", plantCode:r.PlantCode||"",
+        /* Read because screens ask for them by name: without the category the portfolio mix is
+           blank, and without the amount every approval in the inbox shows a dash where the
+           figure being approved should be. */
+        category:r.ProjectCategory||"", totalInvestment:spNum(r.HubInvestmentINR),
         /* Owner is gone from the list. SourcingApprovedBy is the business answer where it
            is filled; Author (created by) is the honest fallback - on a Hub-created row that IS
            the requester, and on a legacy card-created row it is the flow's account, which is at
