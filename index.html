@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-29 11:39 UTC (web)";
+const BUILD="2026-09-29 11:47 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -4489,7 +4489,11 @@ function Admin(){
   const del=(row)=>confirm({title:"Delete "+cfg.add,message:"Delete this "+cfg.add+"? This cannot be undone.",confirmLabel:"Delete",tone:"danger",onConfirm:()=>act.deleteAdmin(sec,rows.indexOf(row))});
   const editCol={key:"_e",label:"",w:"120px",always:true,sortable:false,render:(x)=><div style={{display:"flex",gap:6}}><button className="btn sm" onClick={e=>{e.stopPropagation();openEdit(x);}}>Edit</button><button className="btn no sm" onClick={e=>{e.stopPropagation();del(x);}}>Del</button></div>};
   const permCol={key:"_p",label:"",w:"116px",always:true,sortable:false,render:(x)=><button className="btn sm" onClick={e=>{e.stopPropagation();openModal(<RolePermsModal code={x.code} onClose={closeModal}/>);}}>Permissions</button>};
-  const cols=cfg.cols.concat(sec==="roles"?[permCol,editCol]:[editCol]);
+  /* On SharePoint a section with no list behind it is read-only: showing Add/Edit/Del there
+     would promise a save that goes nowhere, which is what the whole screen used to do. The
+     standalone copy keeps them - there it is a sandbox and nothing is claimed to persist. */
+  const canWrite=!spx()||adminWritable(sec);
+  const cols=cfg.cols.concat(sec==="roles"?(canWrite?[permCol,editCol]:[permCol]):(canWrite?[editCol]:[]));
   return <>
     <div className="pagehead"><h1>Admin &amp; configuration</h1><p>Master data behind the platform — plants, people, roles and routing are configured here, not coded. Roles carry their AAD group, CFT signature and backup approver; open <b>Permissions</b> on any role to see exactly what the app enforces for it.</p></div>
     <div className="admin-grid">
@@ -4497,7 +4501,9 @@ function Admin(){
         {Object.keys(ADMIN_CFG).map(k=><button key={k} className={sec===k?"on":""} onClick={()=>setSec(k)}>{ADMIN_CFG[k].title}</button>)}
       </aside>
       {sec==="team" ? <TeamByPlant/> : <div className="block">
-        <div className="block-h"><h2>{cfg.title} <span className="cnt">{rows.length}</span></h2><button className="admin-add" onClick={openAdd}>+ Add {cfg.add}</button></div>
+        <div className="block-h"><h2>{cfg.title} <span className="cnt">{rows.length}</span></h2>{canWrite
+          ? <button className="admin-add" onClick={openAdd}>+ Add {cfg.add}</button>
+          : <span className="cnt" title="This section is read-only until its write-back is built">read-only</span>}</div>
         <DataTable key={sec} columns={cols} rows={rows} pageSize={10}/>
       </div>}
     </div>
@@ -6947,6 +6953,40 @@ async function loadProjectAudit(pid){
   }catch(e){ return []; }
 }
 
+/* The admin sections that have a list behind them AND may be written from the screen. A
+   section absent from here is read-only on purpose: the screen hides its Add, Edit and Delete
+   controls rather than offering a save that goes nowhere, which is what every section did
+   before this existed.
+
+   These are configuration, not workflow, so they are written directly rather than through the
+   command bus - there is no status to move and nothing to notify. The capability check still
+   runs first, and the list's own permissions are the real boundary. */
+const ADMIN_WRITE={
+  people:{list:"People",label:"person",
+    item:(r,isNew)=>{
+      const o={Title:String(r.name||"").trim(),
+        Email:String(r.email||"").trim(),
+        RoleCode:r.roleCode||roleIdOfLabel(r.role)||"",
+        Plant:String(r.plant||"").trim(),
+        Active:String(r.status||"Active")!=="Inactive"};
+      /* UPN is the identity everything matches on - the router, the gate flow and the Hub's
+         own sign-in. It is set when the row is created and never rewritten by an edit to the
+         contact address, which is a different question with a different answer. */
+      if(isNew) o.UPN=String(r.email||"").trim();
+      return o;}},
+  plants:{list:"Plants",label:"plant",
+    item:(r)=>({Title:String(r.name||"").trim(),PlantCode:String(r.code||"").trim(),
+      Region:String(r.region||"").trim(),BusinessUnit:String(r.bu||"").trim(),
+      Active:String(r.status||"Active")!=="Inactive"})},
+};
+const adminWritable=sec=>!!ADMIN_WRITE[sec];
+/* SharePoint's own words, which name the column that was refused - far more use than a
+   generic failure, and short enough to sit in a toast. */
+const adminErr=e=>{
+  const m=String((e&&e.message)||e||"").replace(/\s+/g," ").trim();
+  return m.length>140?m.slice(0,140)+"…":(m||"the write was refused");
+};
+
 async function spq(list,qs){
   const sp=spx();
   const url=sp.siteUrl+"/_api/web/lists/getbytitle('"+list+"')/items"+(qs?"?"+qs:"");
@@ -7101,9 +7141,9 @@ async function loadLive(){
       /* The plant master. Before this list existed the screen derived plants from the
          distinct site values on existing projects, so every typo anyone had ever entered
          ("awd", "asd") appeared as a plant and a plant with no project yet did not exist. */
-      const rows=await spq("Plants","$select=Title,PlantCode,Region,BusinessUnit,Active&$top=200&$orderby=Title");
-      return rows.filter(r=>r.Title).map(r=>({name:r.Title,code:r.PlantCode||"",
-        region:r.Region||"—",bu:r.BusinessUnit||"—",
+      const rows=await spq("Plants","$select=Id,Title,PlantCode,Region,BusinessUnit,Active,TeamJSON&$top=200&$orderby=Title");
+      return rows.filter(r=>r.Title).map(r=>({_id:r.Id,name:r.Title,code:r.PlantCode||"",
+        region:r.Region||"—",bu:r.BusinessUnit||"—",teamJson:r.TeamJSON||"",
         status:r.Active===false?"Inactive":"Active"}));
     }), grab("matrix",async()=>{
       const rows=await spq("ApprovalMatrix","$select=ChainType,Step,RoleCode,SLAHours,EscalateTo,Form&$top=200&$orderby=ChainType,Step");
@@ -7140,7 +7180,7 @@ async function loadLive(){
          CLOSED. The inverse (`Active===false ? ...`) would treat an unset field as
          permission, which is the wrong way round for an access check.
          DemoOnly is carried through so fabricated rows stay visibly fabricated. */
-      return rows.map(r=>({name:r.Title||"", email:(r.UPN||"").toLowerCase(),
+      return rows.map(r=>({_id:r.Id, name:r.Title||"", email:(r.UPN||"").toLowerCase(),
         role:(ROLE[r.RoleCode]||{}).label||r.RoleCode||"", roleCode:r.RoleCode||"",
         plant:r.Plant||"Pune", demoOnly:r.DemoOnly===true,
         status:r.Active===true?"Active":"Inactive"}));
@@ -7278,6 +7318,17 @@ function App(){
            is empty - deriving plants from project rows resurrects every typo ever typed into
            the site field, so it is a last resort, not a merge. */
         if(live.plants&&live.plants.length) adm.plants=live.plants;
+        /* Team by plant is read off the plants themselves. Set even when it comes back empty:
+           an empty table says no plant has a team configured, which is true and useful, where
+           falling back to the seeded personas would show names nobody had chosen. */
+        if(live.plants){
+          const trows=[];
+          live.plants.forEach(pl=>{const t=readJson(pl.teamJson,{});
+            Object.keys(t).forEach(id=>{const m=t[id]||{};
+              if(String(m.n||"").trim()) trows.push({plant:pl.name,role:(ROLE[id]||{}).label||id,
+                person:m.n,email:m.e||"",status:m.status==="Inactive"?"Inactive":"Active"});});});
+          adm.team=trows;
+        }
         next.admin=adm;
         /* Roles carries one row per member of that role, counted from the live directory. */
         if(live.roles&&live.people){
@@ -7632,11 +7683,54 @@ function App(){
         team:(d.admin.team||[]).filter(r=>String(r.plant||"").trim().toLowerCase()!==name.toLowerCase()).concat(rows)},
         audit:withAudit(d,{action:"Team configured",entity:name,
           detail:rows.length+" role(s) assigned",comment:"Admin & configuration"})}));
-      flash(rows.length?("Saved the "+name+" team — "+rows.length+" role(s)"):("Cleared the "+name+" team"));
+      const said=rows.length?("Saved the "+name+" team — "+rows.length+" role(s)"):("Cleared the "+name+" team");
+      /* The team belongs to the plant, so it is stored on the plant's own row rather than in
+         a list of its own - one place to read it from, and it cannot outlive the plant. */
+      const plantRow=((db.admin||{}).plants||[]).find(x=>String(x.name||"").trim().toLowerCase()===name.toLowerCase());
+      if(!spx()||!plantRow||!plantRow._id){flash(said);return;}
+      const obj={};
+      TEAM_ROLES.forEach(id=>{const m=team[id]||{};
+        if(String(m.n||"").trim()) obj[id]={n:String(m.n).trim(),e:String(m.e||"").trim(),
+          ...(m.status==="Inactive"?{status:"Inactive"}:{})};});
+      flash("Saving the "+name+" team…");
+      spPatch("Plants",plantRow._id,{TeamJSON:JSON.stringify(obj)})
+        .then(()=>{flash(said);reloadLive();})
+        .catch(e=>{flash("Could not save the "+name+" team — "+adminErr(e));reloadLive();});
     },
-    addAdmin:(sec,row)=>{setDb(d=>({...d,admin:{...d.admin,[sec]:[row,...d.admin[sec]]}}));flash("Added");},
-    updateAdmin:(sec,idx,row)=>{setDb(d=>({...d,admin:{...d.admin,[sec]:d.admin[sec].map((x,i)=>i===idx?row:x)}}));flash("Saved");},
-    deleteAdmin:(sec,idx)=>{setDb(d=>({...d,admin:{...d.admin,[sec]:d.admin[sec].filter((x,i)=>i!==idx)}}));flash("Deleted");},
+    /* Each of these shows the change immediately and then writes it. On SharePoint the write
+       is what decides: a failure says so and reloads, so the row goes back to what the list
+       actually holds rather than leaving a change on screen that was never saved. That was
+       the old behaviour for every section - a flash saying "Saved" over memory only. */
+    addAdmin:(sec,row)=>{
+      setDb(d=>({...d,admin:{...d.admin,[sec]:[row,...d.admin[sec]]}}));
+      const w=ADMIN_WRITE[sec];
+      if(!spx()||!w){flash("Added");return;}
+      flash("Adding…");
+      spPost(w.list,w.item(row,true))
+        .then(()=>{flash("Added");reloadLive();})
+        .catch(e=>{flash("Could not add the "+w.label+" — "+adminErr(e));reloadLive();});
+    },
+    updateAdmin:(sec,idx,row)=>{
+      setDb(d=>({...d,admin:{...d.admin,[sec]:d.admin[sec].map((x,i)=>i===idx?row:x)}}));
+      const w=ADMIN_WRITE[sec];
+      if(!spx()||!w){flash("Saved");return;}
+      if(!row._id){flash("Cannot save: this row is not in the list yet");reloadLive();return;}
+      flash("Saving…");
+      spPatch(w.list,row._id,w.item(row,false))
+        .then(()=>{flash("Saved");reloadLive();})
+        .catch(e=>{flash("Could not save the "+w.label+" — "+adminErr(e));reloadLive();});
+    },
+    deleteAdmin:(sec,idx)=>{
+      const cur=((db.admin||{})[sec]||[])[idx]||{};
+      setDb(d=>({...d,admin:{...d.admin,[sec]:d.admin[sec].filter((x,i)=>i!==idx)}}));
+      const w=ADMIN_WRITE[sec];
+      if(!spx()||!w){flash("Deleted");return;}
+      if(!cur._id){flash("Deleted");return;}
+      flash("Deleting…");
+      spDelete(w.list,cur._id)
+        .then(()=>{flash("Deleted");reloadLive();})
+        .catch(e=>{flash("Could not delete the "+w.label+" — "+adminErr(e));reloadLive();});
+    },
     markAllRead:()=>setDb(d=>{return {...d,notifs:d.notifs.map(n=>({...n,read:true}))};}),
     createLot:(project)=>{
       if(!hasCap(roleKey,"pilot.raisePR")){denied("Pilot lot creation");return;}
