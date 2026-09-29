@@ -851,7 +851,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-29 11:31 UTC (web)";
+const BUILD="2026-09-29 11:39 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -6963,7 +6963,7 @@ async function loadLive(){
 
   await Promise.all([
     grab("projects",async()=>{
-      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,GroupsJSON,TracksJSON,HubSummaryJSON,HubFormJSON,HubTeamJSON,HubQuoteJSON,ProjectCategory,HubInvestmentINR,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
+      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,GroupsJSON,TracksJSON,HubSummaryJSON,HubFormJSON,HubTeamJSON,HubQuoteJSON,HubPSWJSON,ProjectCategory,HubInvestmentINR,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
       return rows.filter(r=>r.ProjectID).map(r=>({
         id:r.ProjectID, title:r.Title||r.ProjectID,
         /* HubStatus is what the Hub decided; CurrentStatus is what the cards drive.
@@ -7001,6 +7001,8 @@ async function loadLive(){
            replaces that, so without its own column every parts screen reverted to "not
            quoted yet" the moment the project moved on. */
         quoteTsv:r.HubQuoteJSON||"",
+        /* The ungrouped project's warrant. A grouped one keeps its copy inside each track. */
+        psw:readJson(r.HubPSWJSON,{}),
         summary:readJson(r.HubSummaryJSON,{})}));
     }),
     grab("parts",async()=>{
@@ -7286,6 +7288,28 @@ function App(){
           if(live.suppliers&&live.projects){
             next.suppliers=live.suppliers.map(v=>({...v,
               projects:String(live.projects.filter(p=>(p.supplier||"")===v.name&&p.phase!=="Closed").length)}));
+          }
+          /* A sample's supplier is the project's supplier: one vendor per project is the
+             client's rule, so the join is safe and the Samples list has no vendor column of
+             its own. It used to be hardcoded to a dash, which is why the supplier scorecard
+             could never attribute a pass or a failure to anyone. */
+          if(live.samples&&live.projects){
+            const sup={}; live.projects.forEach(p=>{ if(p.supplier&&p.supplier!=="—") sup[p.id]=p.supplier; });
+            next.samples=live.samples.map(s=>({...s,supplier:sup[s.pid]||"—"}));
+          }
+          /* A document names its part in the filename or not at all - the library carries no
+             part column. Attributed only on an exact match against a part of that same
+             project, the way the document type is already read off the name. A dash matched
+             nothing, so a part's history never showed its own documents. */
+          if(live.docs&&live.parts){
+            const byPid={}; live.parts.forEach(p=>{ (byPid[p.pid]=byPid[p.pid]||[]).push(p.part); });
+            const partIn=(name,pid)=>{
+              const n=String(name||"").toUpperCase();
+              const hit=(byPid[pid]||[]).filter(pt=>pt&&n.indexOf(String(pt).toUpperCase())>=0);
+              /* two part numbers in one filename is ambiguous, so it is attributed to neither */
+              return hit.length===1?hit[0]:"";
+            };
+            next.docs=live.docs.map(d=>({...d,part:partIn(d.name,d.pid)}));
           }
           /* parts count is derived, never stored - a second copy of a number goes stale */
         if(live.projects&&live.parts){
@@ -7736,7 +7760,12 @@ function App(){
           const all=signers.every(r=>sigs[r.id]&&sigs[r.id].decision==="Signed");
           return {...t,psw:{...cur,signatures:sigs},
             status:decision==="Rejected"?"PSW Rejected":all?"FAIR Released":t.status};
-        }),fields:{role:roleId,decision:decision,comment:comment||"",group:group||""}},
+        }),
+        ...pswBitsFor(project,group,(cur)=>{
+          const sigs={...((cur||{}).signatures||{}),[roleId]:{decision,by:me,at:todayStr(),comment}};
+          return {...(cur||{}),signatures:sigs};
+        }),
+        fields:{role:roleId,decision:decision,comment:comment||"",group:group||""}},
         project.id,"PSW "+decision);
     },
     decideDeviation:(project,group,roleId,decision,comment)=>{
@@ -7759,6 +7788,7 @@ function App(){
       runCommand("deviation.approve",{projectId:project.id,
         ...trackBitsFor(project,group,(t)=>({...t,psw:mark(t.psw),
           status:decision==="Rejected"?"PSW Rejected":t.status})),
+        ...pswBitsFor(project,group,mark),
         fromStatus:group?(trackOf(project,group)||{}).status:project.status,
         toStatus:decision==="Rejected"?"PSW Rejected":"",
         ...(decision==="Rejected"?cardBits(project,{group:group,
@@ -7781,6 +7811,7 @@ function App(){
       flash("PSW re-initiated — "+ent);
       runCommand("psw.initiate",{projectId:project.id,
         ...trackBitsFor(project,group,(t)=>({...t,status:"PSW Pending Sign-off",psw:clear(t.psw)})),
+        ...pswBitsFor(project,group,clear),
         fromStatus:group?(trackOf(project,group)||{}).status:project.status,
         toStatus:"PSW Pending Sign-off",toPhase:"PSW",
         fields:{action:"re-initiate",cleared:"signatures",group:group||""}},project.id,"PSW re-initiation");
@@ -7874,6 +7905,15 @@ function App(){
   /* The three things every track write has to tell the router: which group moved, what all
      the tracks now are, and what the project row should therefore say. Passing the same
      transform the local reducer used keeps the two in step. */
+  /* The warrant of a project with no groups. Its signatures used to live only in this
+     session: TracksJSON carries a grouped project's, and an ungrouped one had nowhere to go,
+     so every signature was lost on the next reload. Grouped projects return nothing here -
+     their copy already travels in tracksJson. */
+  function pswBitsFor(project,group,fn){
+    if(group) return {};
+    return {pswJson:JSON.stringify(fn((project&&project.psw)||{})||{})};
+  }
+
   function trackBitsFor(project,group,fn){
     if(!group) return {};
     const nt=tracksOf(project).map(t=>t.g===group?fn(t):t);
