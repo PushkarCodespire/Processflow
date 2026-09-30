@@ -861,7 +861,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-30 07:39 UTC (web)";
+const BUILD="2026-09-30 08:19 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -1404,7 +1404,10 @@ const FORM_SPECS={
         /* Both come from the vendor the project already carries, and both stay editable -
            the person who answers at a supplier is not always the one on the quote. */
         {k:"contactName",label:"Vendor contact name",type:"text",req:true,init:p=>{const v=projVendor(p);return v?v.n:"";}},
-        {k:"contactEmail",label:"Vendor contact email",type:"email",req:true,init:p=>{const v=projVendor(p);return v?v.e:"";}},
+        /* The project's own vendor address where it has one; otherwise the configured fallback, so a
+       notification is never addressed nowhere. Both are editable before sending. */
+        {k:"contactEmail",label:"Vendor contact email",type:"email",req:true,
+         init:p=>{const v=projVendor(p);return (v&&v.e)||vendorAddr("Fallback vendor");}},
         {k:"sampleDeadline",label:"Sample deadline",type:"date",req:true},
       ]},
       /* What the vendor is being asked to make, as the plant recorded it: the parts, the TRUN
@@ -3131,6 +3134,14 @@ let PEOPLE_CFG=[];
    commodity changed a display string and nothing else. The hardcoded arrays survive as the
    fallback for the standalone copy, which has no lists to read. */
 let REF_CFG=[];
+/* The configured vendor-facing addresses. Cached the same way the rates and the directory are,
+   because a form's initial value is computed outside the component tree and cannot reach db. */
+let VENDOR_CFG=[];
+const vendorAddr=(setting)=>{
+  const row=VENDOR_CFG.find(r=>String(r.name||"").trim().toLowerCase()===String(setting).toLowerCase()
+    &&String(r.status||"Active")!=="Inactive");
+  return (row&&String(row.email||"").trim())||"";
+};
 const refValues=(list,fallback)=>{
   const row=REF_CFG.find(r=>String(r.list||"")===list);
   const vals=(row&&row.items||[]).map(v=>String(v||"").trim()).filter(Boolean);
@@ -4405,6 +4416,11 @@ const ADMIN_CFG={
     {name:"Bengaluru",code:"BLR",region:"India",bu:"Aerospace",status:"Active"},
     {name:"Chennai",code:"MAA",region:"India",bu:"Automotive",status:"Inactive"},
     {name:"Waltham",code:"WAL",region:"US",bu:"Corporate",status:"Active"},
+  ]},
+  vendorContact:{title:"Vendor contact",add:"address",cols:[_t("name","Setting","170px"),_t("email","Email"),_t("purpose","What it is for"),_stat()],rows:[
+    {name:"Sender mailbox",email:"pushkar@codespiresolutions.com",purpose:"The address vendors see as From and Reply-To.",status:"Active"},
+    {name:"Ops Cc",email:"pushkar@codespiresolutions.com",purpose:"Copied on every vendor notification.",status:"Active"},
+    {name:"Fallback vendor",email:"pushkar@codespiresolutions.com",purpose:"Used when a project carries no vendor address.",status:"Active"},
   ]},
   people:{title:"People",add:"person",cols:[_t("name","Name","180px"),_t("email","Email"),_chip("role","Role","190px"),_t("plant","Plant","100px"),_stat()],
     rows:ROLE_REGISTRY.filter(r=>r.id!=="VENDOR").map(r=>({name:r.person,
@@ -7072,6 +7088,9 @@ const ADMIN_WRITE={
          contact address, which is a different question with a different answer. */
       if(isNew) o.UPN=String(r.email||"").trim();
       return o;}},
+  vendorContact:{list:"VendorContact",label:"address",
+    item:(r)=>({Title:String(r.name||"").trim(),Email:String(r.email||"").trim(),
+      Purpose:String(r.purpose||"").trim(),Active:String(r.status||"Active")!=="Inactive"})},
   plants:{list:"Plants",label:"plant",
     item:(r)=>({Title:String(r.name||"").trim(),PlantCode:String(r.code||"").trim(),
       Region:String(r.region||"").trim(),BusinessUnit:String(r.bu||"").trim(),
@@ -7247,6 +7266,12 @@ async function loadLive(){
       return rows.filter(r=>r.Title).map(r=>({_id:r.Id,name:r.Title,code:r.PlantCode||"",
         region:r.Region||"—",bu:r.BusinessUnit||"—",teamJson:r.TeamJSON||"",
         status:r.Active===false?"Inactive":"Active"}));
+    }), grab("vendorContact",async()=>{
+      /* The addresses the vendor correspondence uses. They were literals inside the flows -
+         a sender, a Cc and a fallback - so changing who vendors hear from meant a rebuild. */
+      const rows=await spq("VendorContact","$select=Id,Title,Email,Purpose,Active&$top=50&$orderby=Id");
+      return rows.filter(r=>r.Title).map(r=>({_id:r.Id,name:r.Title,email:r.Email||"",
+        purpose:r.Purpose||"",status:r.Active===false?"Inactive":"Active"}));
     }), grab("matrix",async()=>{
       const rows=await spq("ApprovalMatrix","$select=ChainType,Step,RoleCode,SLAHours,EscalateTo,Form&$top=200&$orderby=ChainType,Step");
       return rows.map(r=>({journey:"NPI", path:r.ChainType||"—",
@@ -7384,6 +7409,7 @@ function App(){
   TEAM_CFG=(db.admin&&db.admin.team)||TEAM_CFG;
   PEOPLE_CFG=(db.admin&&db.admin.people)||PEOPLE_CFG;
   REF_CFG=(db.admin&&db.admin.refdata)||REF_CFG;
+  VENDOR_CFG=(db.admin&&db.admin.vendorContact)||VENDOR_CFG;
   const [spState,setSpState]=useState(()=>spx()?"loading":"off");
   /* Debounced: a submission can move a project, its parts and the audit in one go, and the
      three renders that follow should write once. */
@@ -7421,6 +7447,7 @@ function App(){
            is empty - deriving plants from project rows resurrects every typo ever typed into
            the site field, so it is a last resort, not a merge. */
         if(live.plants&&live.plants.length) adm.plants=live.plants;
+        if(live.vendorContact&&live.vendorContact.length) adm.vendorContact=live.vendorContact;
         /* Team by plant is read off the plants themselves. Set even when it comes back empty:
            an empty table says no plant has a team configured, which is true and useful, where
            falling back to the seeded personas would show names nobody had chosen. */
