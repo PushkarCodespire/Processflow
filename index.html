@@ -295,6 +295,9 @@ button{font-family:inherit;cursor:pointer}
 .xlfoot{display:flex;align-items:center;gap:10px;margin-top:8px}
 .xlcount{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:600}
 .jrail{display:flex;flex-wrap:wrap;gap:0 2px}
+.jseg{margin-bottom:12px}
+.jseg:last-child{margin-bottom:0}
+.jseg-h{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
 .jstep{display:flex;align-items:center;gap:7px;padding:7px 11px 7px 8px;border:1px solid var(--border);background:var(--surface);font-size:11.5px;color:var(--muted);min-width:0;flex:1 1 150px}
 .jstep .jdot{flex:none;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;background:var(--panel2);color:var(--muted)}
 .jstep .jlab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -851,7 +854,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-29 11:53 UTC (web)";
+const BUILD="2026-09-30 07:06 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -1044,8 +1047,10 @@ const STATUS_TASKS={
   "PSW Pending Sign-off":{roles:["SRC_MEMBER","SRC_HEAD"],title:"Initiate PSW sign-off (F-10)",phase:"PSW",act:"Initiate",form:"F-10"},
   "PSW Sign-off Pending":{cft:true,title:"PSW / CFT signature (F-10)",phase:"PSW",act:"Sign"},
   "PSW Rejected":{roles:["SRC_MEMBER","SRC_HEAD"],title:"PSW rejected - revise and re-initiate",phase:"PSW",act:"Open"},
-  "FAIR Released":{roles:["BUYER","BUYER_LEAD"],title:"Start pilot lot 1 (F-11)",phase:"Pilot",act:"Start"},
-  "Pilot Lots In Progress":{roles:["PLANNER","PLAN_LEAD","BUYER"],title:"Pilot lot execution (F-11/12/13)",phase:"Pilot",act:"Open"},
+  "FAIR Released":{roles:["SRC_MEMBER","SQE_ENG"],title:"Start pilot lot 1 - record its receipt (F-06)",phase:"Pilot",act:"Start",form:"F-06"},
+  /* A pilot lot now runs the sample cycle: receive it, then SQE, Production, AME. The PR and
+     the delivery happen in SAP, outside the Hub, so the lot enters here at its receipt. */
+  "Pilot Lots In Progress":{roles:["SRC_MEMBER","SQE_ENG"],title:"Record pilot lot receipt (F-06)",phase:"Pilot",act:"Record",form:"F-06"},
   /* Owner confirmed by the plant, and it matches the live N22 resolver, which offers
      exactly two decisions - Restart and Abort - and names no role at all: it posts to a
      channel and whoever is in the channel answers. Same decision shape as "Held", which
@@ -1417,7 +1422,9 @@ const FORM_SPECS={
   },
   "F-06":{
     id:"F-06",name:"Sample submission record",owner:"Sourcing / SQE",cap:"sample.record",saveable:true,
-    from:["In Development","Re-sample Requested"],
+    /* "Pilot Lots In Progress" means a lot has arrived and is waiting to be recorded: the PR
+       and the delivery are handled in SAP, so a lot enters the Hub at its receipt. */
+    from:["In Development","Re-sample Requested","Pilot Lots In Progress","FAIR Released"],
     intro:"Samples rarely all land together, so record them as they arrive. Fill the rows that have come in and submit - the project stays here until every expected sample is in. Samples also arrive automatically when the vendor replies by email.",
     sections:[
       {title:"Samples expected",note:"Seeded from the parts notified at F-05, one row per part. Received rows are ticked; the rest stay outstanding.",fields:[
@@ -1545,7 +1552,11 @@ const FORM_SPECS={
       ]},
     ],
     decision:{label:"Engineering decision",options:[
-      {v:"Approved",label:"Approved",desc:"Advances the part to PSW sign-off.",to:"PSW Pending Sign-off",phase:"PSW"},
+      /* The samples earn the warrant; a lot hands on to the next lot; the last lot ends the
+         pilot phase. Same form, same approval - the project's cycle decides what it means. */
+      {v:"Approved",label:"Approved",desc:"Advances the part to PSW sign-off.",
+       to:(p)=>{const a=cycleAdvance(p);return a?a.toStatus:"PSW Pending Sign-off";},
+       phase:(p)=>{const a=cycleAdvance(p);return a?a.toPhase:"PSW";}},
       {v:"Rejected",label:"Rejected",desc:"Returns to Sourcing for a new sample.",to:"Sample Rejected",phase:"Sample Qual"},
       {v:"Reassigned",label:"Reassign",desc:"Keeps the gate open and hands it to another engineer.",to:"Production Trial Approved",phase:"Sample Qual"},
     ]},
@@ -1814,14 +1825,18 @@ const TRANSITIONS={
   "Sample Under Inspection":["SQE Approved","SQE Conditional","Sample Rejected"],
   "SQE Approved":["Production Trial Approved","Trial Repeat Required","Sample Rejected"],
   "SQE Conditional":["Production Trial Approved","Trial Repeat Required","Sample Rejected"],
-  "Production Trial Approved":["PSW Pending Sign-off","Sample Rejected","Production Trial Approved"],
+  /* AME closing a cycle goes three ways: the samples earn the warrant, a lot hands on to the
+     next lot, and the last lot ends the pilot phase. */
+  "Production Trial Approved":["PSW Pending Sign-off","Pilot Lots In Progress","All Lots Delivered","Sample Rejected","Production Trial Approved"],
   "Production Rejected":["PSW Pending Sign-off","Sample Rejected","Production Trial Approved"],
   "Engineering Approved":["Production Trial Approved","Trial Repeat Required","Sample Rejected"],
   "PSW Pending Sign-off":["PSW Sign-off Pending","Held"],
   "PSW Sign-off Pending":["FAIR Released","PSW Rejected"],
   "PSW Rejected":["PSW Pending Sign-off","Dropped"],
-  "FAIR Released":["Pilot Lots In Progress"],
-  "Pilot Lots In Progress":["All Lots Delivered","Pilot Lots Failed - Hold"],
+  "FAIR Released":["Pilot Lots In Progress","Sample Under Inspection"],
+  /* A lot is received into the same inspection status the samples use - the cycle is the
+     same, only the project's HubCycle says which pass it is. */
+  "Pilot Lots In Progress":["Sample Under Inspection","All Lots Delivered","Pilot Lots Failed - Hold"],
   /* Declared as a legal target above but nothing writes it yet. It still needs a key:
      without one the app treats every move from here as legal while the router treats
      none of them as legal, so a project that ever lands here is either unguarded or
@@ -2292,27 +2307,73 @@ function GateItem({st,n,state,who,ev,fields,last,children,rec}){
    down the file, and a const evaluated at load time would hit its temporal dead zone and
    take the whole app down. */
 const TERMINAL_BUCKETS=["Closed","Dropped","On Hold"];
+/* The journey is not one line. Once the samples are qualified the SAME cycle runs again for
+   each pilot lot - the same forms, the same roles, the same statuses - so a flat rail could
+   only ever show it once and would light the sample stages up again on lot 2. What tells the
+   segments apart is the project's CYCLE, not its status. */
+const JOURNEY_QUAL=["F-06 Sample Receipt","F-07 SQE Validation","F-09 Production Trial","F-08 Engineering Approval"];
+const JOURNEY_SEGMENTS=[
+  {key:"front", label:"Intake to vendor", stages:["F-01 Submitted","F-02 Feasibility Review",
+    "Capex / Opex Approval","F-03 AEF Review","F-04 PR/PO Creation","F-05 Vendor Notification"]},
+  /* The warrant is signed once, on the samples - a lot qualifies, it does not re-warrant. */
+  {key:"Sample", label:"Samples", stages:JOURNEY_QUAL.concat(["F-10 PSW Sign-off"])},
+  {key:"Lot 1", label:"Pilot lot 1", stages:JOURNEY_QUAL},
+  {key:"Lot 2", label:"Pilot lot 2", stages:JOURNEY_QUAL},
+  {key:"Lot 3", label:"Pilot lot 3", stages:JOURNEY_QUAL},
+  {key:"close", label:"Closure", stages:["F-14 Project Closure"]},
+];
+const CYCLES=["Sample","Lot 1","Lot 2","Lot 3"];
+/* Where a cycle goes when AME approves it. The samples earn the warrant; a lot hands on to the
+   next lot, which starts by being received; the last lot ends the pilot phase. Returned as an
+   override rather than baked into F-08's decision options, because the form is the same form -
+   it is the project's cycle that decides what approving it means. */
+const cycleAdvance=(p)=>{
+  const c=cycleOf(p), i=CYCLES.indexOf(c);
+  if(c==="Sample") return null;                       /* unchanged: on to the PSW */
+  if(i<CYCLES.length-1) return {toStatus:"Pilot Lots In Progress",toPhase:"Pilot",cycle:CYCLES[i+1]};
+  return {toStatus:"All Lots Delivered",toPhase:"Pilot",cycle:c};
+};
+const cycleOf=p=>{const c=String((p&&p.cycle)||"Sample").trim();
+  return CYCLES.indexOf(c)>=0?c:"Sample";};
+/* The segment the project is actually in: the front stages are shared by every cycle, so they
+   win while the project is still in them; after that the cycle decides. */
+const segmentOf=p=>{
+  const b=bucketFor(p&&p.status);
+  if(JOURNEY_SEGMENTS[0].stages.indexOf(b)>=0) return "front";
+  if(b==="F-14 Project Closure") return "close";
+  return cycleOf(p);
+};
+
 function JourneyRail({p}){
   const [sel,setSel]=useState(null);
-  const JOURNEY=PLANNER_BUCKETS.map(b=>b[0]).filter(b=>TERMINAL_BUCKETS.indexOf(b)<0);
   const here=bucketFor(p.status);
   const terminal=TERMINAL_BUCKETS.indexOf(here)>=0;
-  const at=JOURNEY.indexOf(here);
+  const segKey=segmentOf(p);
+  const segAt=JOURNEY_SEGMENTS.findIndex(s=>s.key===segKey);
   useEffect(()=>{setSel(here);},[here]);
   return <div className="block" style={{marginBottom:18}}>
     <div className="block-h"><h2>Project journey</h2>
-      <span className="tmeta">{terminal?here:(at>=0?("step "+(at+1)+" of "+JOURNEY.length+" · "+here):here)}</span></div>
+      <span className="tmeta">{terminal?here
+        :((JOURNEY_SEGMENTS[segAt]||{}).label||"")+" · "+here}</span></div>
     <div className="panel-pad">
-      <div className="jrail">
-        {JOURNEY.map((b,i)=>{
-          const st=terminal?(here==="Closed"?"done":"skip"):i<at?"done":i===at?"now":"next";
-          return <div key={b} className={"jstep "+st+(sel===b?" open":"")} title={b}
+      {JOURNEY_SEGMENTS.map((seg,si)=>{
+        const at=si===segAt?seg.stages.indexOf(here):-1;
+        return <div key={seg.key} className="jseg">
+          <div className="jseg-h">{seg.label}</div>
+          <div className="jrail">
+          {seg.stages.map((b,i)=>{
+          const st=terminal?(here==="Closed"?"done":"skip")
+            :si<segAt?"done":si>segAt?"next"
+            :i<at?"done":i===at?"now":"next";
+          return <div key={seg.key+"|"+b} className={"jstep "+st+(sel===b&&si===segAt?" open":"")} title={b}
                       onClick={()=>setSel(sel===b?null:b)}>
             <span className="jdot">{st==="done"?"✓":i+1}</span>
             <span className="jlab">{b}</span>
           </div>;
         })}
-      </div>
+          </div>
+        </div>;
+      })}
       {/* A rail of names answers "where is it" and nothing else. Opening a stage answers the
          questions people actually have: who owns it, what they fill in, and whether it is an
          approval or a form. All of it read from the same tables that drive the work queues,
@@ -5952,7 +6013,9 @@ function PhaseForm({formId,pid,group}){
   /* A target that reads off the project (F-02c follows the route the Finance Head set) is
      resolved here, so validation, the button and the command all see the same status. */
   const pick=spec.decision.options.find(o=>o.v===decision);
-  const chosen=pick?{...pick,to:(typeof pick.to==="function"?pick.to(project):pick.to)}:null;
+  const chosen=pick?{...pick,
+    to:(typeof pick.to==="function"?pick.to(project):pick.to),
+    phase:(typeof pick.phase==="function"?pick.phase(project):pick.phase)}:null;
   const calc=spec.computed?spec.computed(v):null;
   /* A File cannot be serialised into the command payload, and an attachment belongs in the
      library rather than inside a form record. So each file is uploaded as its own document and
@@ -7013,7 +7076,7 @@ async function loadLive(){
 
   await Promise.all([
     grab("projects",async()=>{
-      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,GroupsJSON,TracksJSON,HubSummaryJSON,HubFormJSON,HubTeamJSON,HubQuoteJSON,HubPSWJSON,ProjectCategory,HubInvestmentINR,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
+      const rows=await spq("NPIProjects","$select=ProjectID,Title,CurrentStatus,CurrentPhase,HubStatus,HubPhase,HubManaged,GroupsJSON,TracksJSON,HubSummaryJSON,HubFormJSON,HubTeamJSON,HubQuoteJSON,HubPSWJSON,HubCycle,ProjectCategory,HubInvestmentINR,ProjectSite,PlantCode,TargetVendor,RecommendedVendor,TargetMassProductionDate,HubUpdated,Modified,SourcingApprovedBy,Author/Title&$expand=Author&$orderby=Modified desc&$top=500");
       return rows.filter(r=>r.ProjectID).map(r=>({
         id:r.ProjectID, title:r.Title||r.ProjectID,
         /* HubStatus is what the Hub decided; CurrentStatus is what the cards drive.
@@ -7053,6 +7116,10 @@ async function loadLive(){
         quoteTsv:r.HubQuoteJSON||"",
         /* The ungrouped project's warrant. A grouped one keeps its copy inside each track. */
         psw:readJson(r.HubPSWJSON,{}),
+        /* Which pass through the qualification cycle this project is on: the samples, or
+           pilot lot 1, 2 or 3. The statuses are the same either way - what changes is which
+           segment of the journey they belong to. */
+        cycle:r.HubCycle||"Sample",
         summary:readJson(r.HubSummaryJSON,{})}));
     }),
     grab("parts",async()=>{
@@ -7212,7 +7279,7 @@ async function loadLive(){
    than migrated. Every call is wrapped - private windows, blocked site data and a full quota
    all throw, and none of them are a reason for the app not to open. */
 const DEMO_KEY="npiHub.standalone";
-const DEMO_SHAPE="2026-09-29.team-from-directory";
+const DEMO_SHAPE="2026-09-30.pilot-lot-cycle";
 let demoSaveFailed=false;
 const demoLoad=()=>{
   if(spx()) return null;
@@ -8003,10 +8070,43 @@ function App(){
            fields:{...values,form:spec.id,decision:choice.v,
                    recommend:choice.to,recommendPhase:choice.phase||"",awaiting:leader}}
         : {projectId:project.id,fromStatus:project.status,toStatus:choice.to,...cards,
+           ...sideEffects(spec,values,"",project),
            toPhase:choice.phase||"",fields:{...values,form:spec.id,decision:choice.v}},
         project.id, leader?(spec.id+" recommendation"):spec.id);
     },
   };
+  /* The rows a command has to create in a list of its own - samples received, a vendor
+     contacted. The grids are tab-separated text on screen and in HubFormJSON, and asking the
+     router to parse that inside a flow expression is how a silent mis-parse happens, so the
+     app sends the rows it has already parsed to render them. A form with no side effect
+     returns nothing and the payload is unchanged. */
+  function sideEffects(spec,values,group,project){
+    const v=values||{};
+    /* Which pass of the cycle the project is moving into. Sent only when it CHANGES - every
+       other command leaves HubCycle alone, the same rule the quote and the warrant follow. */
+    const cyc=(()=>{
+      if(!project) return {};
+      if(spec.id==="F-06"&&project.status==="FAIR Released") return {cycle:"Lot 1"};
+      if(spec.id==="F-08"){const a=cycleAdvance(project);return a?{cycle:a.cycle}:{};}
+      return {};
+    })();
+    if(spec.id==="F-06"){
+      /* r[3] is the received date: a row without one was never filled in. */
+      const rows=sampleGridRows(v.sampleLines).filter(r=>r[3]);
+      if(!rows.length) return cyc;
+      return {...cyc,samples:rows.map(r=>({vendor:r[0]||"",part:r[1]||"",expected:r[2]||"",
+        received:r[3]||"",qty:num(r[4]),lot:r[5]||"",
+        type:v.sampleType||"Sample",ppap:v.ppapLevel||"",group:group||""}))};
+    }
+    if(spec.id==="F-05"){
+      const email=String(v.contactEmail||"").trim();
+      if(!email) return cyc;
+      return {...cyc,vendorComm:{name:String(v.contactName||"").trim(),email:email,
+        deadline:String(v.sampleDeadline||"").trim(),group:group||""}};
+    }
+    return cyc;
+  }
+
   /* The three things every track write has to tell the router: which group moved, what all
      the tracks now are, and what the project row should therefore say. Passing the same
      transform the local reducer used keeps the two in step. */
@@ -8101,6 +8201,7 @@ function App(){
                  recommend:choice.to,recommendPhase:choice.phase||"",awaiting:leader}}
       : {projectId:project.id,...trackBits,...cards,fromStatus:track.status,
          toStatus:choice.to,toPhase:choice.phase||"",
+         ...sideEffects(spec,values,track.g,project),
          fields:{...values,form:spec.id,decision:choice.v,group:track.g}},
       project.id,(leader?(spec.id+" recommendation"):spec.id)+" \u00b7 "+track.g);
   }
