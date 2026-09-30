@@ -861,7 +861,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-30 08:19 UTC (web)";
+const BUILD="2026-09-30 09:59 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -1117,7 +1117,7 @@ const applyTracks=(p,tracks)=>{
 };
 
 const GATE_ACTS=["Decide","Validate","Review","Run trial","Sign"];
-function approvalsFromProjects(rows){
+function approvalsFromProjects(rows,timers){
   const out=[];
   (rows||[]).forEach((p,i)=>{
     /* Once the tracks have split, an approval belongs to a group, not to the project: three
@@ -1146,7 +1146,7 @@ function approvalsFromProjects(rows){
         /* No SLA: nothing in SharePoint records when this gate was entered. It used to be
            derived from the row's position in the array, which produced a confident-looking
            countdown that meant nothing at all. */
-        h:null});
+        h:slaLeftFor(timers,p.id)});
     });
     });
   });
@@ -1170,7 +1170,7 @@ function tasksFor(roleId,db,who){
         if(!rule.cft&&who&&!assignedTo(p,rule.roles||[],who)) return;
         const np=u.g?partsInGroup(db.parts,p.id,u.g).length:0;
         out.push({pid:p.id,group:u.g,title:rule.title+(u.g?" \u00b7 "+u.g:""),
-          phase:rule.phase,act:rule.act,form:rule.form,h:null,
+          phase:rule.phase,act:rule.act,form:rule.form,h:slaLeftFor(db.timers,p.id),
           meta:[p.title+" · "+plantLine(p),u.g?(u.g+" \u00b7 "+np+" part(s)"):(p.supplier!=="\u2014"?p.supplier:"")]});
       });
     });
@@ -1884,6 +1884,14 @@ const slaColor = h => h==null?"":h<=12?"r":h<=48?"a":"g";
 /* Guard every comparison: in JS `null <= 12` is TRUE, so an unknown SLA would silently
    report itself as breaching - the opposite of the honesty this is for. */
 const slaKnown = h => typeof h==="number" && isFinite(h);
+/* Hours left on the project's running clock. Null when nothing is running: a project with no
+   SLA is not "0 hours left", and the screens render null as a dash. */
+const slaLeftFor=(timers,pid)=>{
+  const t=(timers||[]).find(x=>x.pid===pid&&x.escalateAt);
+  if(!t) return null;
+  const ms=new Date(t.escalateAt).getTime()-Date.now();
+  return isFinite(ms)?Math.round(ms/36e5):null;
+};
 const slaBreach = h => slaKnown(h) && h<=12;
 const slaSoon   = h => slaKnown(h) && h>12 && h<24;
 const slaOk     = h => slaKnown(h) && h>=24;
@@ -5349,7 +5357,9 @@ function Reports({onAct}){
           <tbody>{breaching.sort((a,b)=>a.h-b.h).map((t,i)=><tr key={i} className="pick" onClick={()=>openProject(t.pid)}>
             <td><span className="tpid">{t.pid}</span></td><td>{t.title}</td><td>{t.role}</td>
             <td><span className={"sla "+slaColor(t.h)}>{slaLabel(t.h)}</span></td></tr>)}</tbody>
-        </table></div>:<div className="rempty"><b>No task has a clock on it.</b><br/>SLA timers are not written yet, so nothing here can breach. Until they are, this counts open work rather than time left.</div>}
+        </table></div>:<div className="rempty">{slaOpen.some(t=>slaKnown(t.h))
+            ? <><b>Nothing is breaching.</b><br/>Every task with a clock on it has more than twelve hours left.</>
+            : <><b>No task has a clock on it.</b><br/>A clock starts when a project reaches a status with an SLA, so nothing here can breach yet.</>}</div>}
       </RPanel>
     </>:null}
 
@@ -7266,6 +7276,15 @@ async function loadLive(){
       return rows.filter(r=>r.Title).map(r=>({_id:r.Id,name:r.Title,code:r.PlantCode||"",
         region:r.Region||"—",bu:r.BusinessUnit||"—",teamJson:r.TeamJSON||"",
         status:r.Active===false?"Inactive":"Active"}));
+    }), grab("timers",async()=>{
+      /* The running SLA clocks. Every figure the screens show about time left comes from
+         here now - before these rows existed the hours were derived from a row's position
+         in an array, which is why they were removed rather than displayed. */
+      const rows=await spq("SLATimers","$select=ProjectIDRef,StartTime,SLAHours,ReminderTime,EscalationTime,ReminderFired,EscalationFired,AssignedApprover,EscalateTo,TimerStatus&$filter=TimerStatus eq 'Active'&$top=500");
+      return rows.map(r=>({pid:r.ProjectIDRef||"",start:r.StartTime||"",sla:spNum(r.SLAHours),
+        remindAt:r.ReminderTime||"",escalateAt:r.EscalationTime||"",
+        reminded:r.ReminderFired===true,escalated:r.EscalationFired===true,
+        waitingOn:r.AssignedApprover||"",escalateTo:r.EscalateTo||""}));
     }), grab("vendorContact",async()=>{
       /* The addresses the vendor correspondence uses. They were literals inside the flows -
          a sender, a Cc and a fallback - so changing who vendors hear from meant a rebuild. */
@@ -7430,7 +7449,7 @@ function App(){
     loadLive().then(live=>{
       setDb(d=>{
         const next={...d};
-        ["projects","parts","audit","samples","pilots","docs","suppliers","comms","rates"].forEach(k=>{ if(live[k]) next[k]=live[k]; });
+        ["projects","parts","audit","samples","pilots","docs","suppliers","comms","rates","timers"].forEach(k=>{ if(live[k]) next[k]=live[k]; });
         /* Only sections with a real list behind them are replaced. Journeys has none - it is
            the roadmap, genuinely configuration rather than data - so it stays as declared. */
         const adm={...d.admin};
@@ -7498,7 +7517,7 @@ function App(){
           next.projects=live.projects.map(p=>({...p,parts:String(n[p.id]||0)}));
         }
         /* Derived last, so it is built from the live projects rather than the seed ones. */
-        if(live.projects) next.approvals=approvalsFromProjects(next.projects);
+        if(live.projects) next.approvals=approvalsFromProjects(next.projects,live.timers||d.timers);
         if(live.audit){
           const wasRead={}; (d.notifs||[]).forEach(x=>{ if(x.read) wasRead[x.id]=true; });
           next.notifs=live.audit.slice(0,10).map(a=>{
