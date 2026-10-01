@@ -861,7 +861,7 @@ const { useState, useMemo, useContext, useEffect, useRef } = React;
 /* Replaced by port_app.py at build time; stays "dev" in the standalone artifact, which is
    exactly what it is. The footer shows it so a deploy can be confirmed from the page itself
    rather than by comparing hashed filenames in DevTools. */
-const BUILD="2026-09-30 09:59 UTC (web)";
+const BUILD="2026-10-01 04:14 UTC (web)";
 
 /* ---------- icons ---------- */
 const I = {
@@ -1027,31 +1027,31 @@ const STATUS_TASKS={
   "Business Head Approval Pending":{roles:["BU_HEAD"],title:"Business Head approval (F-02e)",phase:"Approval",act:"Decide"},
   "Finance Routing Decision Pending":{roles:["FIN_ANALYST"],title:"Account coding - GL, cost centre (F-02c)",phase:"Approval",act:"Record",form:"F-02c"},
   "Finance Head Approval Pending":{roles:["FIN_HEAD"],title:"Finance Head approval - Capex or Opex (F-02f)",phase:"Approval",act:"Decide"},
-  "Approval Pending - Capex":[{roles:["ENG","ENG_LEAD"],title:"Capex AEF identifiers (F-03c)",phase:"Approval",act:"Open",form:"F-03c"},{roles:["BU_MEMBER","CTRL","CTRL_HEAD"],title:"Capex compliance review",phase:"Approval",act:"Open"}],
-  "Approval Pending - Opex":[{roles:["FIN_ANALYST","FIN_HEAD"],title:"Opex GL & cost centre (F-03o)",phase:"Approval",act:"Open",form:"F-03o"},{roles:["BU_MEMBER"],title:"Business case review",phase:"Approval",act:"Open"}],
-  "Development Approved":{roles:["PLANNER","PLAN_LEAD"],title:"PR creation (F-04)",phase:"Vendor Dev",act:"Raise PR",form:"F-04"},
-  "PO Creation Pending":{roles:["BUYER","BUYER_LEAD"],title:"PO creation (F-04-PO)",phase:"Vendor Dev",act:"Raise PO",form:"F-04-PO"},
-  "Opex - PR Pending":{roles:["PLANNER","PLAN_LEAD"],title:"Opex PR number (F-04o)",phase:"Vendor Dev",act:"Raise PR",form:"F-04o-PR"},
-  "Opex - PO Pending":{roles:["SRC_MEMBER","BUYER"],title:"Opex PO number (F-04o)",phase:"Vendor Dev",act:"Confirm",form:"F-04o-PO"},
+  "Approval Pending - Capex":[{roles:["ENG_LEAD"],title:"Capex AEF identifiers (F-03c)",phase:"Approval",act:"Open",form:"F-03c"},{roles:["BU_MEMBER","CTRL","CTRL_HEAD"],title:"Capex compliance review",phase:"Approval",act:"Open"}],
+  "Approval Pending - Opex":[{roles:["FIN_ANALYST"],title:"Opex GL & cost centre (F-03o)",phase:"Approval",act:"Open",form:"F-03o"},{roles:["BU_MEMBER"],title:"Business case review",phase:"Approval",act:"Open"}],
+  "Development Approved":{roles:["PLANNER"],title:"PR creation (F-04)",phase:"Vendor Dev",act:"Raise PR",form:"F-04"},
+  "PO Creation Pending":{roles:["BUYER"],title:"PO creation (F-04-PO)",phase:"Vendor Dev",act:"Raise PO",form:"F-04-PO"},
+  "Opex - PR Pending":{roles:["PLANNER"],title:"Opex PR number (F-04o)",phase:"Vendor Dev",act:"Raise PR",form:"F-04o-PR"},
+  "Opex - PO Pending":{roles:["SRC_MEMBER"],title:"Opex PO number (F-04o)",phase:"Vendor Dev",act:"Confirm",form:"F-04o-PO"},
   "PO Pending":{roles:["SRC_MEMBER","SRC_HEAD"],title:"Vendor notification & timeline (F-05)",phase:"Vendor Dev",act:"Notify",form:"F-05"},
   /* SQE hands the samples to the line, not to AME: the trial runs first and AME signs off on
      what the trial produced. "Engineering Approved" and "Production Rejected" below are the
      old order's statuses, kept so a project already sitting on one still has a task. */
-  "SQE Approved":{roles:["PROD_ENG","MFG_HEAD"],title:"Production trial (F-09)",phase:"Sample Qual",act:"Run trial",form:"F-09"},
+  "SQE Approved":{roles:["PROD_ENG"],title:"Production trial (F-09)",phase:"Sample Qual",act:"Run trial",form:"F-09"},
   "Production Trial Approved":{roles:["ENG","ENG_LEAD"],title:"Engineering / AME approval (F-08)",phase:"Sample Qual",act:"Review",form:"F-08"},
   /* A rejection used to hand Sourcing a receipt form, which assumed somebody had already
      chased the vendor by email - the app never asked who was supplying the replacement or
      when it was due. F-06R is that missing step: it is the only exit from a rejection, and
      recording what arrives stays F-06 as before. */
-  "Sample Rejected":{roles:["SRC_MEMBER","SRC_HEAD"],title:"Re-source & re-sample (F-06R)",phase:"Sample Qual",act:"Re-source",form:"F-06R"},
-  "Re-sample Requested":{roles:["SRC_MEMBER","SQE_ENG"],title:"Record re-sample receipt (F-06)",phase:"Sample Qual",act:"Record",form:"F-06"},
-  "Engineering Approved":{roles:["PROD_ENG","MFG_HEAD"],title:"Production trial (F-09)",phase:"Sample Qual",act:"Run trial",form:"F-09"},
-  "Trial Repeat Required":{roles:["PROD_ENG","MFG_HEAD"],title:"Repeat production trial (F-09)",phase:"Sample Qual",act:"Run trial",form:"F-09"},
-  "Production Rejected":{roles:["ENG","ENG_LEAD"],title:"Engineering re-review (F-08)",phase:"Sample Qual",act:"Review",form:"F-08"},
-  "In Development":{roles:["SRC_MEMBER","SQE_ENG"],title:"Record sample receipt (F-06)",phase:"Sample Qual",act:"Record",form:"F-06"},
-  "Sample Under Inspection":{roles:["SQE_ENG","SQE_HEAD"],title:"SQE sample validation (F-07)",phase:"Sample Qual",act:"Validate",form:"F-07"},
-  "SQE Conditional":{roles:["PROD_ENG","MFG_HEAD"],title:"Production trial (F-09)",phase:"Sample Qual",act:"Run trial",form:"F-09"},
-  "PSW Pending Sign-off":{roles:["SRC_MEMBER","SRC_HEAD"],title:"Initiate PSW sign-off (F-10)",phase:"PSW",act:"Initiate",form:"F-10"},
+  "Sample Rejected":{roles:["SRC_MEMBER"],title:"Re-source & re-sample (F-06R)",phase:"Sample Qual",act:"Re-source",form:"F-06R"},
+  "Re-sample Requested":{roles:["SRC_MEMBER"],title:"Record re-sample receipt (F-06)",phase:"Sample Qual",act:"Record",form:"F-06"},
+  "Engineering Approved":{roles:["PROD_ENG"],title:"Production trial (F-09)",phase:"Sample Qual",act:"Run trial",form:"F-09"},
+  "Trial Repeat Required":{roles:["PROD_ENG"],title:"Repeat production trial (F-09)",phase:"Sample Qual",act:"Run trial",form:"F-09"},
+  "Production Rejected":{roles:["ENG"],title:"Engineering re-review (F-08)",phase:"Sample Qual",act:"Review",form:"F-08"},
+  "In Development":{roles:["SRC_MEMBER"],title:"Record sample receipt (F-06)",phase:"Sample Qual",act:"Record",form:"F-06"},
+  "Sample Under Inspection":{roles:["SQE_ENG"],title:"SQE sample validation (F-07)",phase:"Sample Qual",act:"Validate",form:"F-07"},
+  "SQE Conditional":{roles:["PROD_ENG"],title:"Production trial (F-09)",phase:"Sample Qual",act:"Run trial",form:"F-09"},
+  "PSW Pending Sign-off":{roles:["SRC_MEMBER"],title:"Initiate PSW sign-off (F-10)",phase:"PSW",act:"Initiate",form:"F-10"},
   "PSW Sign-off Pending":{cft:true,title:"PSW / CFT signature (F-10)",phase:"PSW",act:"Sign"},
   "PSW Rejected":{roles:["SRC_MEMBER","SRC_HEAD"],title:"PSW rejected - revise and re-initiate",phase:"PSW",act:"Open"},
   "FAIR Released":{roles:["SRC_MEMBER","SQE_ENG"],title:"Start pilot lot 1 - record its receipt (F-06)",phase:"Pilot",act:"Start",form:"F-06"},
